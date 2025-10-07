@@ -31,9 +31,13 @@ object DatabaseModule {
     @Provides fun provideStudentDao(db: AppDatabase): StudentDao = db.studentDao()
     @Provides fun provideSubjectDao(db: AppDatabase): SubjectPresetDao = db.subjectDao()
     @Provides fun provideLessonDao(db: AppDatabase): LessonDao = db.lessonDao()
+    @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
 
     @Provides @Singleton
-    fun provideStudentsRepo(dao: StudentDao): StudentsRepository = RoomStudentsRepository(dao)
+    fun provideStudentsRepo(
+        studentDao: StudentDao,
+        paymentDao: PaymentDao
+    ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao)
 
     @Provides @Singleton
     fun provideSubjectsRepo(dao: SubjectPresetDao): SubjectPresetsRepository = RoomSubjectPresetsRepository(dao)
