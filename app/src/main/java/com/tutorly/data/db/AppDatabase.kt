@@ -24,6 +24,13 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lessonDao(): LessonDao
     abstract fun paymentDao(): PaymentDao
     abstract fun subjectPresetDao(): SubjectPresetDao
+
+    /**
+     * Backwards-compatible accessor for subject presets DAO.
+     * `subjectPresetDao()` is the Room-generated method, but a shorter name is still
+     * referenced across the codebase (e.g. in DI modules).
+     */
+    fun subjectDao(): SubjectPresetDao = subjectPresetDao()
 }
 
 
