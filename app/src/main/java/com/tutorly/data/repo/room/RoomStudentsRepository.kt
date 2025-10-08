@@ -2,10 +2,11 @@ package com.tutorly.data.repo.room
 
 import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.dao.StudentDao
-import com.tutorly.models.Student
 import com.tutorly.domain.repo.StudentsRepository
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import com.tutorly.models.PaymentStatus
+import com.tutorly.models.Student
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
 @Singleton
@@ -16,6 +17,9 @@ class RoomStudentsRepository @Inject constructor(
 
     override suspend fun allActive(): List<Student> =
         studentDao.getAllActive()
+
+    override suspend fun searchActive(query: String): List<Student> =
+        studentDao.searchActive(query)
 
     override suspend fun getById(id: Long): Student? =
         studentDao.getById(id)
@@ -32,8 +36,11 @@ class RoomStudentsRepository @Inject constructor(
     override suspend fun delete(student: Student) =
         studentDao.delete(student)
 
+    override suspend fun hasDebt(studentId: Long): Boolean =
+        paymentDao.hasDebt(studentId, PaymentStatus.outstandingStatuses)
+
     override fun observeHasDebt(studentId: Long): Flow<Boolean> =
-        paymentDao.observeHasDebt(studentId)
+        paymentDao.observeHasDebt(studentId, PaymentStatus.outstandingStatuses)
 }
 
 
