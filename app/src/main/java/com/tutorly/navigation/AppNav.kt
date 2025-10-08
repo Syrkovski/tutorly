@@ -7,10 +7,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tutorly.ui.CalendarScreen
 import com.tutorly.ui.components.AppBottomBar
 import com.tutorly.ui.components.AppTopBar
@@ -21,6 +23,8 @@ const val ROUTE_STUDENTS = "students"
 const val ROUTE_STUDENT_NEW = "student/new"
 const val ROUTE_STUDENT_EDIT = "student/{studentId}"
 const val ROUTE_LESSON_NEW = "lesson/new?studentId={studentId}" // под автоподстановку
+
+private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
 
 @Composable
 fun AppNavRoot() {
@@ -37,18 +41,18 @@ fun AppNavRoot() {
     Scaffold(
         topBar = {
             if (showGlobalTopBar) {
-                AppTopBar(
-                    title = when(route){
-                        "students" -> "Ученики"
-                        "finance"  -> "Финансы"
-                        else -> ""
-                    },
-                    onAddClick = when(route){
-                        "students" -> ({ /* создать ученика */ })
-                        else -> null
-                    }
-                )
+        AppTopBar(
+            title = when(route){
+                "students" -> "Ученики"
+                "finance"  -> "Финансы"
+                else -> ""
+            },
+            onAddClick = when(route){
+                "students" -> ({ nav.navigate(ROUTE_STUDENT_NEW) })
+                else -> null
             }
+        )
+    }
         },
         bottomBar = {
             AppBottomBar(
@@ -72,7 +76,34 @@ fun AppNavRoot() {
         ) {
             composable("calendar") { CalendarScreen() }   // сам рисует свой верх (месяц/табы/лента)
             composable("today")    { TodayScreen() }      // сам рисует свой верх (заголовок + счетчики)
-//            composable("students") { StudentsScreen() }
+            composable(ROUTE_STUDENTS) {
+                StudentsScreen(
+                    onStudentClick = { id -> nav.navigate(studentDetailsRoute(id)) },
+                    onAddClick = { nav.navigate(ROUTE_STUDENT_NEW) }
+                )
+            }
+            composable(ROUTE_STUDENT_NEW) {
+                StudentEditorScreen(
+                    onClose = { nav.popBackStack() },
+                    onSaved = { newId ->
+                        nav.popBackStack()
+                        nav.navigate(studentDetailsRoute(newId)) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+            composable(
+                route = ROUTE_STUDENT_EDIT,
+                arguments = listOf(navArgument("studentId") { type = NavType.LongType })
+            ) {
+                StudentEditorScreen(
+                    onClose = { nav.popBackStack() },
+                    onSaved = {
+                        nav.popBackStack()
+                    }
+                )
+            }
             composable("finance")  { FinanceScreen() }
         }
     }
