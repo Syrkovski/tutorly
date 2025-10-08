@@ -1,3 +1,8 @@
 package com.tutorly.models
 
-enum class PaymentStatus { DUE, PAID, CANCELLED, UNPAID }
+enum class PaymentStatus {
+    DUE,
+    PAID,
+    CANCELLED,
+    UNPAID,
+}
