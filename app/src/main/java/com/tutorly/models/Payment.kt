@@ -31,7 +31,7 @@ data class Payment(
     val method: String? = null,       // "cash", "transfer", ...
     val at: Instant = Instant.now(),
     val note: String? = null,
-    val status: PaymentStatus = PaymentStatus.DUE // 👈 добавлено
+    val status: PaymentStatus = PaymentStatus.UNPAID
 )
 
 
