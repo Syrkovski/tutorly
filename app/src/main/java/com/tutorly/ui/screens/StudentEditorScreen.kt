@@ -33,6 +33,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 @HiltViewModel
 class StudentEditorVM @Inject constructor(
@@ -42,16 +43,18 @@ class StudentEditorVM @Inject constructor(
     private val id: Long? = savedStateHandle.get<Long>("studentId")
     var name by mutableStateOf("")
     var phone by mutableStateOf("")
-    var notes by mutableStateOf("")
+    var note by mutableStateOf("")
+    private var loadedStudent: Student? = null
 
     init {
         id?.let {
             viewModelScope.launch {
                 repo.observeStudent(it).collect { s ->
                     if (s != null) {
+                        loadedStudent = s
                         name = s.name
                         phone = s.phone.orEmpty()
-                        notes = s.notes.orEmpty()
+                        note = s.note.orEmpty()
                     }
                 }
             }
@@ -61,14 +64,19 @@ class StudentEditorVM @Inject constructor(
     fun save(onSaved: (Long) -> Unit) = viewModelScope.launch {
         val trimmedName = name.trim()
         require(trimmedName.isNotEmpty()) { "Имя обязательно" }
-        val newId = repo.upsert(
-            Student(
-                id ?: 0,
-                trimmedName,
-                phone.trim().ifBlank { null },
-                notes.trim().ifBlank { null }
-            )
-        )
+        val trimmedPhone = phone.trim().ifBlank { null }
+        val trimmedNote = note.trim().ifBlank { null }
+        val student = (loadedStudent?.copy(
+            name = trimmedName,
+            phone = trimmedPhone,
+            note = trimmedNote
+        ) ?: Student(
+            name = trimmedName,
+            phone = trimmedPhone,
+            note = trimmedNote
+        )).copy(updatedAt = Instant.now())
+        val newId = repo.upsert(student)
+        loadedStudent = student.copy(id = newId)
         onSaved(newId)
     }
 }
@@ -121,8 +129,8 @@ fun StudentEditorScreen(
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
-                value = vm.notes,
-                onValueChange = { vm.notes = it },
+                value = vm.note,
+                onValueChange = { vm.note = it },
                 label = { Text(text = stringResource(id = R.string.student_editor_notes)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
