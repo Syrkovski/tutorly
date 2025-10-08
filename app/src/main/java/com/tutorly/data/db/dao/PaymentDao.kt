@@ -2,6 +2,7 @@ package com.tutorly.data.db.dao
 
 import androidx.room.*
 import com.tutorly.models.Payment
+import com.tutorly.models.PaymentStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -12,32 +13,32 @@ interface PaymentDao {
     @Query("""
         SELECT EXISTS(
           SELECT 1 FROM payments
-          WHERE studentId = :studentId AND status = 'DUE'
+          WHERE studentId = :studentId AND status IN (:statuses)
         )
     """)
-    suspend fun hasDebt(studentId: Long): Boolean
+    suspend fun hasDebt(studentId: Long, statuses: List<PaymentStatus>): Boolean
 
     @Query("""
         SELECT EXISTS(
           SELECT 1 FROM payments
-          WHERE studentId = :studentId AND status = 'DUE'
+          WHERE studentId = :studentId AND status IN (:statuses)
         )
     """)
-    fun observeHasDebt(studentId: Long): Flow<Boolean>
+    fun observeHasDebt(studentId: Long, statuses: List<PaymentStatus>): Flow<Boolean>
 
     @Query("""
         SELECT COALESCE(SUM(amountCents), 0)
         FROM payments
-        WHERE studentId = :studentId AND status = 'DUE'
+        WHERE studentId = :studentId AND status IN (:statuses)
     """)
-    suspend fun totalDebt(studentId: Long): Long
+    suspend fun totalDebt(studentId: Long, statuses: List<PaymentStatus>): Long
 
     @Query("""
         SELECT COALESCE(SUM(amountCents), 0)
         FROM payments
-        WHERE studentId = :studentId AND status = 'DUE'
+        WHERE studentId = :studentId AND status IN (:statuses)
     """)
-    fun observeTotalDebt(studentId: Long): Flow<Long>
+    fun observeTotalDebt(studentId: Long, statuses: List<PaymentStatus>): Flow<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(payment: Payment): Long

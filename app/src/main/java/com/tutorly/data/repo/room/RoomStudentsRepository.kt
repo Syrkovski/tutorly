@@ -2,8 +2,9 @@ package com.tutorly.data.repo.room
 
 import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.dao.StudentDao
-import com.tutorly.models.Student
 import com.tutorly.domain.repo.StudentsRepository
+import com.tutorly.models.PaymentStatus
+import com.tutorly.models.Student
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -36,10 +37,10 @@ class RoomStudentsRepository @Inject constructor(
         studentDao.delete(student)
 
     override suspend fun hasDebt(studentId: Long): Boolean =
-        paymentDao.hasDebt(studentId)
+        paymentDao.hasDebt(studentId, PaymentStatus.outstandingStatuses)
 
     override fun observeHasDebt(studentId: Long): Flow<Boolean> =
-        paymentDao.observeHasDebt(studentId)
+        paymentDao.observeHasDebt(studentId, PaymentStatus.outstandingStatuses)
 }
 
 

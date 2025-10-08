@@ -5,4 +5,9 @@ enum class PaymentStatus {
     PAID,
     CANCELLED,
     UNPAID,
+    ;
+
+    companion object {
+        val outstandingStatuses: List<PaymentStatus> = listOf(UNPAID, DUE)
+    }
 }
