@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface StudentsRepository {
     // sync (suspend) — где нужно мгновенно получить сущность
     suspend fun allActive(): List<Student>
+    suspend fun searchActive(query: String): List<Student>
     suspend fun getById(id: Long): Student?
 
     // observable — для UI
@@ -17,6 +18,7 @@ interface StudentsRepository {
     suspend fun delete(student: Student)
 
     // агрегаты
+    suspend fun hasDebt(studentId: Long): Boolean
     fun observeHasDebt(studentId: Long): Flow<Boolean>
 }
 

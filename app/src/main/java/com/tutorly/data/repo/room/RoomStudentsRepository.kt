@@ -17,6 +17,9 @@ class RoomStudentsRepository @Inject constructor(
     override suspend fun allActive(): List<Student> =
         studentDao.getAllActive()
 
+    override suspend fun searchActive(query: String): List<Student> =
+        studentDao.searchActive(query)
+
     override suspend fun getById(id: Long): Student? =
         studentDao.getById(id)
 
@@ -31,6 +34,9 @@ class RoomStudentsRepository @Inject constructor(
 
     override suspend fun delete(student: Student) =
         studentDao.delete(student)
+
+    override suspend fun hasDebt(studentId: Long): Boolean =
+        paymentDao.hasDebt(studentId)
 
     override fun observeHasDebt(studentId: Long): Flow<Boolean> =
         paymentDao.observeHasDebt(studentId)
