@@ -5,13 +5,17 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.tutorly.navigation.ROUTE_CALENDAR
+import com.tutorly.navigation.ROUTE_FINANCE
+import com.tutorly.navigation.ROUTE_STUDENTS
+import com.tutorly.navigation.ROUTE_TODAY
 import com.tutorly.ui.theme.RoyalBlue
 
 enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui.graphics.vector.ImageVector){
-    Calendar("calendar", "Календарь", Icons.Outlined.CalendarMonth),
-    Today("today", "Сегодня", Icons.Outlined.AssignmentTurnedIn),
-    Students("students", "Ученики", Icons.Outlined.People),
-    Finance("finance", "Финансы", Icons.Outlined.AttachMoney),
+    Calendar(ROUTE_CALENDAR, "Календарь", Icons.Outlined.CalendarMonth),
+    Today(ROUTE_TODAY, "Сегодня", Icons.Outlined.AssignmentTurnedIn),
+    Students(ROUTE_STUDENTS, "Ученики", Icons.Outlined.People),
+    Finance(ROUTE_FINANCE, "Финансы", Icons.Outlined.AttachMoney),
 }
 
 @Composable
