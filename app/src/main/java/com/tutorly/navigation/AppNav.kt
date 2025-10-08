@@ -72,7 +72,7 @@ fun AppNavRoot() {
         ) {
             composable("calendar") { CalendarScreen() }   // сам рисует свой верх (месяц/табы/лента)
             composable("today")    { TodayScreen() }      // сам рисует свой верх (заголовок + счетчики)
-            composable("students") { StudentsScreen() }
+//            composable("students") { StudentsScreen() }
             composable("finance")  { FinanceScreen() }
         }
     }

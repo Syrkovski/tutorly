@@ -3,7 +3,7 @@ package com.tutorly.models
 import androidx.room.*
 import java.time.Instant
 
-enum class PaymentStatus { DUE, PAID, CANCELLED }
+
 
 @Entity(
     tableName = "payments",
