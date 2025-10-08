@@ -4,8 +4,8 @@ import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.dao.StudentDao
 import com.tutorly.models.Student
 import com.tutorly.domain.repo.StudentsRepository
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
 @Singleton

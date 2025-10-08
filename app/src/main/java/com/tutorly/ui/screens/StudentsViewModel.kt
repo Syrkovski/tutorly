@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jakarta.inject.Inject
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

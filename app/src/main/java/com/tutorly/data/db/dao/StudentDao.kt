@@ -25,7 +25,9 @@ interface StudentDao {
 
     @Query("""
         SELECT * FROM students
-        WHERE (:q == '' OR name LIKE '%' || :q || '%' OR phone LIKE '%' || :q || '%')
+        WHERE active = 1 AND (
+            :q == '' OR name LIKE '%' || :q || '%' OR phone LIKE '%' || :q || '%'
+        )
         ORDER BY name COLLATE NOCASE
     """)
     fun observeStudents(q: String): Flow<List<Student>>

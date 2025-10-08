@@ -3,8 +3,8 @@ package com.tutorly.data.repo.room
 import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.models.Payment
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
 @Singleton
