@@ -15,7 +15,22 @@ interface PaymentDao {
           WHERE studentId = :studentId AND status = 'DUE'
         )
     """)
+    suspend fun hasDebt(studentId: Long): Boolean
+
+    @Query("""
+        SELECT EXISTS(
+          SELECT 1 FROM payments
+          WHERE studentId = :studentId AND status = 'DUE'
+        )
+    """)
     fun observeHasDebt(studentId: Long): Flow<Boolean>
+
+    @Query("""
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
+        WHERE studentId = :studentId AND status = 'DUE'
+    """)
+    suspend fun totalDebt(studentId: Long): Long
 
     @Query("""
         SELECT COALESCE(SUM(amountCents), 0)

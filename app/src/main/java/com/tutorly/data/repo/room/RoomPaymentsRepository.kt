@@ -15,8 +15,14 @@ class RoomPaymentsRepository @Inject constructor(
     override fun observePaymentsByStudent(studentId: Long): Flow<List<Payment>> =
         paymentDao.observePaymentsByStudent(studentId)
 
+    override suspend fun hasDebt(studentId: Long): Boolean =
+        paymentDao.hasDebt(studentId)
+
     override fun observeHasDebt(studentId: Long): Flow<Boolean> =
         paymentDao.observeHasDebt(studentId)
+
+    override suspend fun totalDebt(studentId: Long): Long =
+        paymentDao.totalDebt(studentId)
 
     override fun observeTotalDebt(studentId: Long): Flow<Long> =
         paymentDao.observeTotalDebt(studentId)
