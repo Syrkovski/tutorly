@@ -25,6 +25,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZonedDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -35,12 +36,16 @@ fun WeekMosaic(
     anchor: LocalDate,
     onOpenDay: (LocalDate) -> Unit,
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
+    stats: WeeklyStats? = null,
+    currentDateTime: ZonedDateTime,
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
     hSpacing: Dp = 8.dp,
     vSpacing: Dp = 8.dp
 ) {
     val monday = anchor.with(DayOfWeek.MONDAY)
     val days = remember(monday) { (0..6).map { monday.plusDays(it.toLong()) } }
+    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
+    val now = remember(currentDateTime) { currentDateTime.toLocalDateTime() }
 
     val dayCards = remember(days, dayDataProvider) {
         days.map { d ->
@@ -53,19 +58,21 @@ fun WeekMosaic(
         }
     }
 
-    val weekly = remember(days, dayDataProvider) {
-        var total = 0
-        var paid = 0
-        var debts = 0
-        var earned = 0L
-        days.forEach { d ->
-            val ls = dayDataProvider(d)
-            total += ls.size
-            paid += ls.count { it.paid }
-            debts += ls.count { !it.paid }
-            earned += ls.filter { it.paid }.sumOf { it.price }
+    val weekly = remember(days, dayDataProvider, stats) {
+        stats ?: run {
+            var total = 0
+            var paid = 0
+            var debts = 0
+            var earned = 0L
+            days.forEach { d ->
+                val ls = dayDataProvider(d)
+                total += ls.size
+                paid += ls.count { it.paid }
+                debts += ls.count { !it.paid }
+                earned += ls.filter { it.paid }.sumOf { it.priceCents }
+            }
+            WeeklyStats(totalLessons = total, paidCount = paid, debtCount = debts, earnedCents = earned)
         }
-        WeeklyStats(totalLessons = total, paidCount = paid, debtCount = debts, earned = earned)
     }
 
     val tiles = remember(dayCards, weekly) {
@@ -89,7 +96,9 @@ fun WeekMosaic(
                     is WeekTile.Day -> DayTile(
                         model = tile.model,
                         height = cellH,
-                        onClick = { onOpenDay(tile.model.date) }
+                        onClick = { onOpenDay(tile.model.date) },
+                        today = today,
+                        now = now
                     )
                     is WeekTile.Stats -> StatsTile(
                         stats = tile.stats,
@@ -107,15 +116,16 @@ fun WeekMosaic(
 private fun DayTile(
     model: DayCardModel,
     height: Dp,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    today: LocalDate,
+    now: LocalDateTime
 ) {
-    val today = LocalDate.now()
     val isToday = model.date == today
     val hasLessons = model.totalLessons > 0
 
-    val (ongoing, others) = remember(model, isToday) {
+    val (ongoing, others) = remember(model, isToday, now) {
         if (!isToday) emptyList<LessonBrief>() to model.brief
-        else model.brief.partition { it.isOngoingOn(model.date) }
+        else model.brief.partition { it.isOngoingOn(model.date, now) }
     }
 
     // лёгкая подложка только если есть занятия
@@ -264,7 +274,7 @@ private fun StatsTile(
                 StatRow("Всего занятий", stats.totalLessons.toString())
                 StatRow("Оплачено", stats.paidCount.toString())
                 StatRow("Долгов", stats.debtCount.toString())
-                StatRow("Заработано", formatMoney(stats.earned))
+                StatRow("Заработано", formatMoney(stats.earnedCents))
             }
         }
     }
@@ -284,7 +294,7 @@ data class LessonBrief(
     val time: String,    // "09:30"
     val end: String?,    // "10:30" (null — неизвестно)
     val student: String,
-    val price: Long,     // сумма (рубли/копейки — как решишь)
+    val priceCents: Long,
     val paid: Boolean
 )
 
@@ -294,11 +304,11 @@ private data class DayCardModel(
     val totalLessons: Int
 )
 
-private data class WeeklyStats(
+data class WeeklyStats(
     val totalLessons: Int,
     val paidCount: Int,
     val debtCount: Int,
-    val earned: Long
+    val earnedCents: Long
 )
 
 private sealed interface WeekTile {
@@ -317,8 +327,7 @@ private fun dayTitle(d: LocalDate): String {
 private fun timeRangeText(l: LessonBrief): String =
     if (l.end.isNullOrBlank()) l.time else "${l.time}–${l.end}"
 
-private fun LessonBrief.isOngoingOn(day: LocalDate): Boolean {
-    val now = LocalDateTime.now()
+private fun LessonBrief.isOngoingOn(day: LocalDate, now: LocalDateTime): Boolean {
     if (now.toLocalDate() != day) return false
     val start = parseLocalTime(time) ?: return false
     val endT  = parseLocalTime(end) ?: return false
@@ -330,9 +339,13 @@ private fun parseLocalTime(hhmm: String?): LocalTime? = try {
     if (hhmm == null) null else LocalTime.parse(hhmm)
 } catch (_: Throwable) { null }
 
-private fun formatMoney(amount: Long): String {
+private fun formatMoney(amountCents: Long): String {
+    val rubles = amountCents / 100
+    val kopecks = (amountCents % 100).toInt()
     val nf = NumberFormat.getInstance(Locale("ru", "RU"))
-    return nf.format(amount) + " ₽"
+    val base = nf.format(rubles)
+    return if (kopecks == 0) "$base ₽"
+    else String.format(Locale("ru", "RU"), "%s,%02d ₽", base, kopecks)
 }
 
 /* ----------------------------- Demo data -------------------------------- */
@@ -341,11 +354,11 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
     val seed = (date.dayOfMonth + date.monthValue) % 3
     return when (seed) {
         0 -> listOf(
-            LessonBrief("09:30", "10:30", "Анна", 1500, true),
-            LessonBrief("13:00", "14:30", "Иван", 2000, false),
-            LessonBrief("18:00", "19:00", "Олег", 1500, true)
+            LessonBrief("09:30", "10:30", "Анна", 1500_00, true),
+            LessonBrief("13:00", "14:30", "Иван", 2000_00, false),
+            LessonBrief("18:00", "19:00", "Олег", 1500_00, true)
         )
-        1 -> listOf(LessonBrief("16:00", "17:30", "Мария", 1800, true))
+        1 -> listOf(LessonBrief("16:00", "17:30", "Мария", 1800_00, true))
         else -> emptyList()
     }
 }

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
+import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.room.RoomLessonsRepository
 import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
@@ -13,6 +14,7 @@ import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
+import com.tutorly.domain.repo.UserSettingsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,5 +52,11 @@ object DatabaseModule {
     fun provideSubjectsRepo(dao: SubjectPresetDao): SubjectPresetsRepository = RoomSubjectPresetsRepository(dao)
 
     @Provides @Singleton
-    fun provideLessonsRepo(dao: LessonDao): LessonsRepository = RoomLessonsRepository(dao)
+    fun provideLessonsRepo(
+        lessonDao: LessonDao,
+        paymentDao: PaymentDao
+    ): LessonsRepository = RoomLessonsRepository(lessonDao, paymentDao)
+
+    @Provides @Singleton
+    fun provideUserSettingsRepo(): UserSettingsRepository = StaticUserSettingsRepository()
 }

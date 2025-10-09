@@ -1,14 +1,47 @@
 package com.tutorly.data.db.dao
 
 import androidx.room.*
+import com.tutorly.data.db.projections.LessonWithStudent
 import com.tutorly.models.*
+import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 @Dao
 interface LessonDao {
     @Transaction
     @Query("SELECT * FROM lessons WHERE startAt >= :from AND startAt < :to ORDER BY startAt")
-    suspend fun inRange(from: Instant, to: Instant): List<Lesson>
+    fun observeInRange(from: Instant, to: Instant): Flow<List<LessonWithStudent>>
+
+    @Query(
+        """
+        SELECT
+            COUNT(*) AS totalLessons,
+            COALESCE(SUM(CASE WHEN paymentStatus = :paidStatus THEN 1 ELSE 0 END), 0) AS paidLessons,
+            COALESCE(SUM(CASE WHEN paymentStatus IN (:outstandingStatuses) THEN 1 ELSE 0 END), 0) AS debtLessons
+        FROM lessons
+        WHERE startAt >= :from AND startAt < :to
+        """
+    )
+    fun observeLessonCounts(
+        from: Instant,
+        to: Instant,
+        paidStatus: PaymentStatus,
+        outstandingStatuses: List<PaymentStatus>
+    ): Flow<LessonCountTuple>
+
+    @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC")
+    fun observeByStudent(studentId: Long): Flow<List<Lesson>>
+
+    @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): Lesson?
+
+    @Transaction
+    @Query("SELECT * FROM lessons WHERE startAt < :end AND endAt > :start ORDER BY startAt")
+    suspend fun findOverlapping(start: Instant, end: Instant): List<LessonWithStudent>
+
+    @Transaction
+    @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC LIMIT 1")
+    suspend fun findLatestForStudent(studentId: Long): LessonWithStudent?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
@@ -19,6 +52,12 @@ interface LessonDao {
     @Query("UPDATE lessons SET note=:note, updatedAt=:now WHERE id=:id")
     suspend fun updateNote(id: Long, note: String?, now: Instant)
 }
+
+data class LessonCountTuple(
+    val totalLessons: Int,
+    val paidLessons: Int,
+    val debtLessons: Int
+)
 
 
 //@Dao
