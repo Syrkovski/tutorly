@@ -60,6 +60,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import kotlinx.coroutines.launch

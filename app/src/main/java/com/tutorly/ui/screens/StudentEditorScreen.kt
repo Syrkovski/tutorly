@@ -220,7 +220,7 @@ fun StudentEditorScreen(
                                 val text = if (message.isNotBlank()) {
                                     message
                                 } else {
-                                    stringResource(id = R.string.student_editor_save_error)
+                                    context.getString(R.string.student_editor_save_error)
                                 }
                                 snackbarHostState.showSnackbar(text)
                             }
