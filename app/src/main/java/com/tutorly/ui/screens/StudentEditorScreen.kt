@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -151,6 +152,7 @@ fun StudentEditorScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -175,7 +177,7 @@ fun StudentEditorScreen(
                                             val text = if (message.isNotBlank()) {
                                                 message
                                             } else {
-                                                stringResource(id = R.string.student_editor_save_error)
+                                                context.getString(R.string.student_editor_save_error)
                                             }
                                             snackbarHostState.showSnackbar(text)
                                         }

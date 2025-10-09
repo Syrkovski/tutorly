@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +79,7 @@ fun StudentsScreen(
     val formState by vm.editorFormState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editorOrigin by rememberSaveable { mutableStateOf(StudentEditorOrigin.NONE) }
@@ -107,7 +109,7 @@ fun StudentsScreen(
             vm.submitNewStudent(
                 onSuccess = { newId, name ->
                     closeEditor()
-                    val message = stringResource(id = R.string.student_added_message, name)
+                    val message = context.getString(R.string.student_added_message, name)
                     coroutineScope.launch { snackbarHostState.showSnackbar(message) }
                     if (editorOrigin == StudentEditorOrigin.LESSON_CREATION) {
                         onStudentCreatedFromLesson(newId)
@@ -117,7 +119,7 @@ fun StudentsScreen(
                     val message = if (error.isNotBlank()) {
                         error
                     } else {
-                        stringResource(id = R.string.student_editor_save_error)
+                        context.getString(R.string.student_editor_save_error)
                     }
                     coroutineScope.launch { snackbarHostState.showSnackbar(message) }
                 }
