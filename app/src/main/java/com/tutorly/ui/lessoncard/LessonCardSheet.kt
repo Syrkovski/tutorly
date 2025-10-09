@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -300,7 +302,10 @@ private fun LessonPaymentBlock(
     val locale = remember { Locale.getDefault() }
     val currencyFormatter = remember(locale) { NumberFormat.getCurrencyInstance(locale) }
     val amount = remember(details.priceCents) { currencyFormatter.format(details.priceCents / 100.0) }
-    val statusChip = paymentStatusChip(details.paymentStatus)
+    val colorScheme = MaterialTheme.colorScheme
+    val statusChip = remember(details.paymentStatus, colorScheme) {
+        paymentStatusChip(details.paymentStatus, colorScheme)
+    }
 
     Card { 
         Column(
@@ -387,23 +392,22 @@ private data class PaymentStatusChip(
     val foreground: Color,
 )
 
-@Composable
-private fun paymentStatusChip(status: PaymentStatus): PaymentStatusChip {
+private fun paymentStatusChip(status: PaymentStatus, colorScheme: ColorScheme): PaymentStatusChip {
     val (label, background, foreground) = when (status) {
         PaymentStatus.PAID -> Triple(
             R.string.lesson_status_paid,
-            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-            MaterialTheme.colorScheme.tertiary
+            colorScheme.tertiary.copy(alpha = 0.1f),
+            colorScheme.tertiary
         )
         PaymentStatus.DUE, PaymentStatus.UNPAID -> Triple(
             R.string.lesson_status_due,
-            MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-            MaterialTheme.colorScheme.error
+            colorScheme.error.copy(alpha = 0.1f),
+            colorScheme.error
         )
         PaymentStatus.CANCELLED -> Triple(
             R.string.lesson_status_cancelled,
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant
+            colorScheme.surfaceVariant,
+            colorScheme.onSurfaceVariant
         )
     }
     val icon = when (status) {
