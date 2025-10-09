@@ -31,7 +31,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
-import androidx.compose.foundation.gestures.detectDragGestures
 import com.tutorly.ui.components.WeekMosaic
 
 enum class CalendarMode { DAY, WEEK, MONTH }
@@ -63,17 +62,31 @@ fun CalendarScreen(
         }
     }
 
-    val swipeModifier = Modifier.pointerInput(mode, anchor) {
-        detectDragGestures(
-            onDragEnd = {},
-            onDragCancel = {},
-            onDragStart = {},
-            onDrag = { change, dragAmount ->
-                val (dx, dy) = dragAmount
-                // свайп только если горизонтальное движение значительно больше вертикального
-                if (abs(dx) > abs(dy) * 1.5f && abs(dx) > 40) {
-                    if (dx < 0) nextPeriod() else prevPeriod()
-                    change.consume() // "съедаем" событие, чтобы не ушло в скролл
+    val swipeModifier = Modifier.pointerInput(mode) {
+        val threshold = 48.dp.toPx()
+        var totalDrag = 0f
+        var handled = false
+        detectHorizontalDragGestures(
+            onDragStart = {
+                totalDrag = 0f
+                handled = false
+            },
+            onDragEnd = {
+                totalDrag = 0f
+                handled = false
+            },
+            onDragCancel = {
+                totalDrag = 0f
+                handled = false
+            },
+            onHorizontalDrag = { change, dragAmount ->
+                if (handled) return@detectHorizontalDragGestures
+
+                totalDrag += dragAmount
+                if (abs(totalDrag) > threshold) {
+                    if (totalDrag < 0) nextPeriod() else prevPeriod()
+                    handled = true
+                    change.consume()
                 }
             }
         )
@@ -173,13 +186,34 @@ fun PlanScreenHeader(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             // свайп только на хедере — не мешает вертикальному скроллу списка
-            .pointerInput(mode, anchor) {
-                detectHorizontalDragGestures { change, dragAmount ->
-                    if (abs(dragAmount) > 50) {
-                        if (dragAmount < 0) onSwipeLeft() else onSwipeRight()
-                        change.consume()
+            .pointerInput(mode) {
+                val threshold = 48.dp.toPx()
+                var totalDrag = 0f
+                var handled = false
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        totalDrag = 0f
+                        handled = false
+                    },
+                    onDragEnd = {
+                        totalDrag = 0f
+                        handled = false
+                    },
+                    onDragCancel = {
+                        totalDrag = 0f
+                        handled = false
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        if (handled) return@detectHorizontalDragGestures
+
+                        totalDrag += dragAmount
+                        if (abs(totalDrag) > threshold) {
+                            if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
+                            handled = true
+                            change.consume()
+                        }
                     }
-                }
+                )
             }
     ) {
         Row(
