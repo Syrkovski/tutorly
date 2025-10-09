@@ -289,7 +289,8 @@ fun CalendarScreen(
                             uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
                         },
                         stats = uiState.stats.toWeeklyStats(),
-                        currentDateTime = uiState.currentDateTime
+                        currentDateTime = uiState.currentDateTime,
+                        onLessonClick = { brief -> lessonCardViewModel.open(brief.id) }
                     )
                     CalendarMode.MONTH -> MonthPlaceholder(currentDate)
                 }
@@ -301,6 +302,7 @@ fun CalendarScreen(
 
 private fun CalendarLesson.toLessonBrief(): LessonBrief {
     return LessonBrief(
+        id = id,
         time = start.format(timeFormatter),
         end = end.format(timeFormatter),
         student = studentName,
