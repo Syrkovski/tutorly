@@ -5,7 +5,7 @@ import com.tutorly.models.PaymentStatus
 import java.time.Duration
 import java.time.Instant
 
-internal data class LessonCardDetails(
+data class LessonCardDetails(
     val id: Long,
     val studentId: Long,
     val studentName: String,
@@ -22,7 +22,7 @@ internal data class LessonCardDetails(
     val paymentStatusIcon: PaymentStatusIcon,
 )
 
-internal data class LessonCardUiState(
+data class LessonCardUiState(
     val isVisible: Boolean = false,
     val isLoading: Boolean = false,
     val details: LessonCardDetails? = null,
@@ -36,13 +36,13 @@ internal data class LessonCardUiState(
     val snackbarMessage: LessonCardMessage? = null,
 )
 
-internal sealed interface LessonCardMessage {
+sealed interface LessonCardMessage {
     data object NoteSaved : LessonCardMessage
     data class PaymentMarked(val status: PaymentStatus) : LessonCardMessage
     data class Error(val throwable: Throwable) : LessonCardMessage
 }
 
-internal sealed interface LessonCardExitAction {
+sealed interface LessonCardExitAction {
     data object Close : LessonCardExitAction
     data class NavigateToEdit(val details: LessonCardDetails) : LessonCardExitAction
 }

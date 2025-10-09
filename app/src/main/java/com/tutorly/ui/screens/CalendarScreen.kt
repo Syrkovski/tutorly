@@ -827,37 +827,37 @@ private fun DayTwoLineChip(
         }
     }
 }
-    LessonCardSheet(
-        state = lessonCardState,
-        zoneId = uiState.zoneId,
-        onDismissRequest = lessonCardViewModel::requestDismiss,
-        onCancelDismiss = lessonCardViewModel::cancelDismiss,
-        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
-        onNoteChange = lessonCardViewModel::onNoteChange,
-        onSaveNote = lessonCardViewModel::saveNote,
-        onMarkPaid = lessonCardViewModel::markPaid,
-        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
-        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
-        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
-        onRequestEdit = lessonCardViewModel::requestEdit,
-        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
-    )
-
-    val pendingExit = lessonCardState.pendingExitAction
-    LaunchedEffect(pendingExit) {
-        when (pendingExit) {
-            is LessonCardExitAction.NavigateToEdit -> {
-                val details = pendingExit.details
-                onLessonDetails(
-                    details.id,
-                    details.studentId,
-                    details.startAt.atZone(uiState.zoneId)
-                )
-                lessonCardViewModel.consumeExitAction()
-            }
-            LessonCardExitAction.Close -> {
-                lessonCardViewModel.consumeExitAction()
-            }
-            null -> Unit
-        }
-    }
+//    LessonCardSheet(
+//        state = lessonCardState,
+//        zoneId = uiState.zoneId,
+//        onDismissRequest = lessonCardViewModel::requestDismiss,
+//        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+//        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+//        onNoteChange = lessonCardViewModel::onNoteChange,
+//        onSaveNote = lessonCardViewModel::saveNote,
+//        onMarkPaid = lessonCardViewModel::markPaid,
+//        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+//        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+//        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+//        onRequestEdit = lessonCardViewModel::requestEdit,
+//        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+//    )
+//
+//    val pendingExit = lessonCardState.pendingExitAction
+//    LaunchedEffect(pendingExit) {
+//        when (pendingExit) {
+//            is LessonCardExitAction.NavigateToEdit -> {
+//                val details = pendingExit.details
+//                onLessonDetails(
+//                    details.id,
+//                    details.studentId,
+//                    details.startAt.atZone(uiState.zoneId)
+//                )
+//                lessonCardViewModel.consumeExitAction()
+//            }
+//            LessonCardExitAction.Close -> {
+//                lessonCardViewModel.consumeExitAction()
+//            }
+//            null -> Unit
+//        }
+//    }
