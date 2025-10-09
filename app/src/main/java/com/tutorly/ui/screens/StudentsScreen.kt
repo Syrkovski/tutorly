@@ -1,7 +1,6 @@
 package com.tutorly.ui.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,21 +17,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Message
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -47,26 +48,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,8 +81,13 @@ fun StudentsScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editorOrigin by rememberSaveable { mutableStateOf(StudentEditorOrigin.NONE) }
+    var selectedStudentId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val selectedStudent = remember(selectedStudentId, students) {
+        selectedStudentId?.let { id -> students.firstOrNull { it.student.id == id } }
+    }
 
     LaunchedEffect(initialEditorOrigin) {
         if (initialEditorOrigin != StudentEditorOrigin.NONE) {
@@ -133,8 +135,13 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
-            FloatingActionButton(onClick = { openEditor(StudentEditorOrigin.STUDENTS) }) {
+            FloatingActionButton(
+                onClick = { openEditor(StudentEditorOrigin.STUDENTS) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = R.string.add_student))
             }
         }
@@ -151,7 +158,8 @@ fun StudentsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) }
+                placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
+                shape = MaterialTheme.shapes.large
             )
 
             Spacer(Modifier.height(16.dp))
@@ -170,7 +178,7 @@ fun StudentsScreen(
                     ) { item ->
                         StudentCard(
                             item = item,
-                            onClick = { onStudentClick(item.student.id) }
+                            onClick = { selectedStudentId = item.student.id }
                         )
                     }
                 }
@@ -198,6 +206,22 @@ fun StudentsScreen(
                 onActiveChange = vm::onEditorActiveChange,
                 onCancel = { if (!formState.isSaving) closeEditor() },
                 onSave = handleSave
+            )
+        }
+    }
+
+    selectedStudent?.let { studentItem ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedStudentId = null },
+            sheetState = detailSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            StudentDetailsSheet(
+                item = studentItem,
+                onOpenProfile = {
+                    selectedStudentId = null
+                    onStudentClick(studentItem.student.id)
+                }
             )
         }
     }
@@ -298,112 +322,145 @@ private fun StudentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accentColors = remember(item.student.name) { studentAccentColors(item.student.name) }
     Card(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 10.dp,
-                spotColor = accentColors.primary.copy(alpha = 0.18f),
-                ambientColor = accentColors.primary.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(24.dp)
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    accentColors.primary.copy(alpha = 0.35f),
-                    accentColors.secondary.copy(alpha = 0.35f)
-                )
-            )
-        )
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            StudentAvatar(
-                name = item.student.name,
-                accentColors = accentColors
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StudentAvatar(name = item.student.name)
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = item.student.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        overflow = TextOverflow.Ellipsis
                     )
-                    if (item.hasDebt) {
-                        Spacer(Modifier.width(8.dp))
-                        PaymentBadge(paid = false)
+                    item.student.note?.takeIf { it.isNotBlank() }?.let { note ->
+                        Text(
+                            text = note.trim(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-
-                item.student.note?.takeIf { it.isNotBlank() }?.let { note ->
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = note.trim(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                val contacts = buildContactLine(item)
-                if (contacts != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = contacts,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                if (item.hasDebt) {
+                    PaymentBadge(paid = false)
                 }
             }
+
+            ContactRow(
+                icon = Icons.Outlined.Phone,
+                value = item.student.phone,
+                placeholder = stringResource(id = R.string.student_details_phone_placeholder)
+            )
+
+            ContactRow(
+                icon = Icons.Outlined.Message,
+                value = item.student.messenger,
+                placeholder = stringResource(id = R.string.student_details_messenger_placeholder)
+            )
         }
     }
 }
 
-private fun buildContactLine(item: StudentsViewModel.StudentListItem): String? {
-    val contactParts = buildList {
-        item.student.phone?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
-        item.student.messenger?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
+@Composable
+private fun ContactRow(
+    icon: ImageVector,
+    value: String?,
+    placeholder: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value?.takeIf { it.isNotBlank() }?.trim() ?: placeholder,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (value.isNullOrBlank()) {
+                MaterialTheme.colorScheme.outline
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+        )
     }
-    if (contactParts.isEmpty()) return null
-    return contactParts.joinToString(separator = " · ")
 }
 
-private data class StudentAccentColors(val primary: Color, val secondary: Color)
+@Composable
+private fun StudentDetailsSheet(
+    item: StudentsViewModel.StudentListItem,
+    onOpenProfile: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = item.student.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            ContactRow(
+                icon = Icons.Outlined.Phone,
+                value = item.student.phone,
+                placeholder = stringResource(id = R.string.student_details_phone_placeholder)
+            )
+            ContactRow(
+                icon = Icons.Outlined.Message,
+                value = item.student.messenger,
+                placeholder = stringResource(id = R.string.student_details_messenger_placeholder)
+            )
+            item.student.note?.takeIf { it.isNotBlank() }?.let { note ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(id = R.string.student_details_notes_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = note.trim(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
 
-private fun studentAccentColors(name: String): StudentAccentColors {
-    val palette = listOf(
-        Pair(Color(0xFF6A6CFF), Color(0xFF8A8CFF)),
-        Pair(Color(0xFFFF6A88), Color(0xFFFF8BAA)),
-        Pair(Color(0xFF2EC5CE), Color(0xFF5DDADB)),
-        Pair(Color(0xFFF9A826), Color(0xFFFAC858)),
-        Pair(Color(0xFF7B61FF), Color(0xFF9D7BFF)),
-        Pair(Color(0xFF00BFA6), Color(0xFF4ADEB4))
-    )
-    val index = name.hashCode().absoluteValue % palette.size
-    val (primary, secondary) = palette[index]
-    return StudentAccentColors(primary = primary, secondary = secondary)
+        Button(
+            onClick = onOpenProfile,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = stringResource(id = R.string.student_details_open_profile))
+        }
+    }
 }
 
 @Composable
 private fun StudentAvatar(
     name: String,
-    accentColors: StudentAccentColors,
 ) {
     val initials = name
         .split(" ")
@@ -414,25 +471,15 @@ private fun StudentAvatar(
 
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(48.dp)
             .clip(CircleShape)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        accentColors.primary,
-                        accentColors.secondary
-                    ),
-                    tileMode = TileMode.Clamp
-                )
-            ),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
