@@ -14,7 +14,7 @@ interface LessonDao {
 
     @Query(
         """
-        SELECT 
+        SELECT
             COUNT(*) AS totalLessons,
             COALESCE(SUM(CASE WHEN paymentStatus = :paidStatus THEN 1 ELSE 0 END), 0) AS paidLessons,
             COALESCE(SUM(CASE WHEN paymentStatus IN (:outstandingStatuses) THEN 1 ELSE 0 END), 0) AS debtLessons
@@ -31,6 +31,9 @@ interface LessonDao {
 
     @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC")
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
+
+    @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): Lesson?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long

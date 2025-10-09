@@ -1,14 +1,14 @@
 package com.tutorly.data.repo.room
 
 import com.tutorly.data.db.dao.LessonDao
-import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.dao.LessonCountTuple
-import com.tutorly.data.db.projections.LessonWithStudent
+import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.projections.toLessonDetails
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
+import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -19,10 +19,10 @@ class RoomLessonsRepository(
     private val lessonDao: LessonDao,
     private val paymentDao: PaymentDao
 ) : LessonsRepository {
-    override fun observeInRange(from: Instant, to: Instant): Flow<List<LessonDetails>> =
+    override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         lessonDao.observeInRange(from, to).map { lessons -> lessons.map { it.toLessonDetails() } }
 
-    override fun observeStatsInRange(from: Instant, to: Instant): Flow<LessonsRangeStats> =
+    override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
         combine(
             lessonDao.observeLessonCounts(
                 from = from,
@@ -47,8 +47,55 @@ class RoomLessonsRepository(
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> = lessonDao.observeByStudent(studentId)
 
     override suspend fun upsert(lesson: Lesson): Long = lessonDao.upsert(lesson)
-    override suspend fun markPayment(id: Long, status: PaymentStatus, paidCents: Int) =
-        lessonDao.updatePayment(id, status, paidCents, Instant.now())
+    override suspend fun markPaid(id: Long) {
+        val lesson = lessonDao.findById(id) ?: return
+        val now = Instant.now()
+        lessonDao.updatePayment(id, PaymentStatus.PAID, lesson.priceCents, now)
+
+        val existing = paymentDao.findByLesson(id)
+        val payment = (existing ?: Payment(
+            lessonId = lesson.id,
+            studentId = lesson.studentId,
+            amountCents = lesson.priceCents,
+            status = PaymentStatus.PAID,
+            at = now
+        )).copy(
+            amountCents = lesson.priceCents,
+            status = PaymentStatus.PAID,
+            at = now
+        )
+
+        if (existing == null) {
+            paymentDao.insert(payment)
+        } else {
+            paymentDao.update(payment)
+        }
+    }
+
+    override suspend fun markDue(id: Long) {
+        val lesson = lessonDao.findById(id) ?: return
+        val now = Instant.now()
+        lessonDao.updatePayment(id, PaymentStatus.DUE, 0, now)
+
+        val existing = paymentDao.findByLesson(id)
+        val payment = (existing ?: Payment(
+            lessonId = lesson.id,
+            studentId = lesson.studentId,
+            amountCents = lesson.priceCents,
+            status = PaymentStatus.DUE,
+            at = now
+        )).copy(
+            amountCents = lesson.priceCents,
+            status = PaymentStatus.DUE,
+            at = now
+        )
+
+        if (existing == null) {
+            paymentDao.insert(payment)
+        } else {
+            paymentDao.update(payment)
+        }
+    }
 
     override suspend fun saveNote(id: Long, note: String?) =
         lessonDao.updateNote(id, note, Instant.now())

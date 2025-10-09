@@ -42,11 +42,11 @@ class CalendarViewModel @Inject constructor(
     }
 
     private val lessonsFlow = queryFlow.flatMapLatest { query ->
-        lessonsRepository.observeInRange(query.range.start, query.range.end)
+        lessonsRepository.observeLessons(query.range.start, query.range.end)
     }
 
     private val statsFlow = queryFlow.flatMapLatest { query ->
-        lessonsRepository.observeStatsInRange(query.range.start, query.range.end)
+        lessonsRepository.observeWeekStats(query.range.start, query.range.end)
     }
 
     val uiState: StateFlow<CalendarUiState> = combine(

@@ -6,6 +6,7 @@ import com.tutorly.domain.model.asIcon
 import com.tutorly.domain.model.resolveDuration
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
+import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,15 +19,16 @@ class InMemoryLessonsRepository : LessonsRepository {
     private val seq = AtomicLong(1)
     private val store = ConcurrentHashMap<Long, Lesson>()
     private val lessonsFlow = MutableStateFlow<List<Lesson>>(emptyList())
+    private val payments = ConcurrentHashMap<Long, Payment>()
 
-    override fun observeInRange(from: Instant, to: Instant): Flow<List<LessonDetails>> =
+    override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         lessonsFlow.map { lessons ->
             lessons.filter { it.startAt >= from && it.startAt < to }
                 .sortedBy { it.startAt }
                 .map { it.toDetailsStub() }
         }
 
-    override fun observeStatsInRange(from: Instant, to: Instant): Flow<LessonsRangeStats> =
+    override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
         lessonsFlow.map { lessons ->
             val relevant = lessons.filter { it.startAt >= from && it.startAt < to }
             val paidStatus = PaymentStatus.PAID
@@ -51,9 +53,52 @@ class InMemoryLessonsRepository : LessonsRepository {
         return id
     }
 
-    override suspend fun markPayment(id: Long, status: PaymentStatus, paidCents: Int) {
-        store[id]?.let {
-            store[id] = it.copy(paymentStatus = status, paidCents = paidCents)
+    override suspend fun markPaid(id: Long) {
+        store[id]?.let { lesson ->
+            val updatedLesson = lesson.copy(
+                paymentStatus = PaymentStatus.PAID,
+                paidCents = lesson.priceCents
+            )
+            store[id] = updatedLesson
+            val now = Instant.now()
+            val payment = payments[id]
+            payments[id] = (payment ?: Payment(
+                id = id,
+                lessonId = updatedLesson.id,
+                studentId = updatedLesson.studentId,
+                amountCents = updatedLesson.priceCents,
+                status = PaymentStatus.PAID,
+                at = now
+            )).copy(
+                amountCents = updatedLesson.priceCents,
+                status = PaymentStatus.PAID,
+                at = now
+            )
+            emit()
+        }
+    }
+
+    override suspend fun markDue(id: Long) {
+        store[id]?.let { lesson ->
+            val updatedLesson = lesson.copy(
+                paymentStatus = PaymentStatus.DUE,
+                paidCents = 0
+            )
+            store[id] = updatedLesson
+            val now = Instant.now()
+            val payment = payments[id]
+            payments[id] = (payment ?: Payment(
+                id = id,
+                lessonId = updatedLesson.id,
+                studentId = updatedLesson.studentId,
+                amountCents = updatedLesson.priceCents,
+                status = PaymentStatus.DUE,
+                at = now
+            )).copy(
+                amountCents = updatedLesson.priceCents,
+                status = PaymentStatus.DUE,
+                at = now
+            )
             emit()
         }
     }

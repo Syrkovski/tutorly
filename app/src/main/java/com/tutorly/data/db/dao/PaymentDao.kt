@@ -54,6 +54,9 @@ interface PaymentDao {
         status: PaymentStatus
     ): Flow<Long>
 
+    @Query("SELECT * FROM payments WHERE lessonId = :lessonId LIMIT 1")
+    suspend fun findByLesson(lessonId: Long): Payment?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(payment: Payment): Long
 
