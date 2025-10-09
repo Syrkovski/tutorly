@@ -24,10 +24,12 @@ const val ROUTE_TODAY = "today"
 const val ROUTE_STUDENTS = "students"
 const val ROUTE_FINANCE = "finance"
 const val ROUTE_STUDENT_NEW = "student/new"
-const val ROUTE_STUDENT_EDIT = "student/{studentId}"
+const val ROUTE_STUDENT_DETAILS = "student/{studentId}"
+const val ROUTE_STUDENT_EDIT = "student/{studentId}/edit"
 const val ROUTE_LESSON_NEW = "lesson/new?studentId={studentId}" // под автоподстановку
 
-private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
+private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
+private fun studentEditRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
 
 @Composable
 fun AppNavRoot() {
@@ -89,11 +91,6 @@ fun AppNavRoot() {
                         nav.navigate(studentDetailsRoute(id)) {
                             launchSingleTop = true
                         }
-                    },
-                    onAddClick = {
-                        nav.navigate(ROUTE_STUDENT_NEW) {
-                            launchSingleTop = true
-                        }
                     }
                 )
             }
@@ -103,6 +100,20 @@ fun AppNavRoot() {
                     onSaved = { newId ->
                         nav.popBackStack()
                         nav.navigate(studentDetailsRoute(newId)) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+            composable(
+                route = ROUTE_STUDENT_DETAILS,
+                arguments = listOf(navArgument("studentId") { type = NavType.LongType })
+            ) { entry ->
+                val studentId = entry.arguments?.getLong("studentId") ?: return@composable
+                StudentDetailsScreen(
+                    onBack = { nav.popBackStack() },
+                    onEdit = {
+                        nav.navigate(studentEditRoute(studentId)) {
                             launchSingleTop = true
                         }
                     }

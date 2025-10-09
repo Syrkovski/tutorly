@@ -9,4 +9,18 @@
     <string name="student_editor_name">Имя*</string>
     <string name="student_editor_phone">Телефон</string>
     <string name="student_editor_notes">Заметки</string>
+    <string name="student_details_title_placeholder">Ученик</string>
+    <string name="student_details_back">Назад</string>
+    <string name="student_details_edit">Редактировать ученика</string>
+    <string name="student_details_missing">Ученик не найден</string>
+    <string name="student_details_payments_title">Платежи</string>
+    <string name="student_details_debt_amount">Долг: %1$s</string>
+    <string name="student_details_no_debt">Долгов нет</string>
+    <string name="student_details_contact_title">Контакты</string>
+    <string name="student_details_phone_label">Телефон</string>
+    <string name="student_details_phone_placeholder">Не указан</string>
+    <string name="student_details_messenger_label">Мессенджер</string>
+    <string name="student_details_messenger_placeholder">Не указан</string>
+    <string name="student_details_notes_title">Заметки</string>
+    <string name="student_details_notes_placeholder">Нет заметок</string>
 </resources>
