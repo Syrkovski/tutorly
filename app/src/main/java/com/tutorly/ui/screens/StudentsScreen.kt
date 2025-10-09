@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -47,7 +46,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
@@ -133,8 +131,13 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
-            FloatingActionButton(onClick = { openEditor(StudentEditorOrigin.STUDENTS) }) {
+            FloatingActionButton(
+                onClick = { openEditor(StudentEditorOrigin.STUDENTS) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = R.string.add_student))
             }
         }
@@ -151,7 +154,8 @@ fun StudentsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) }
+                placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
+                shape = MaterialTheme.shapes.large
             )
 
             Spacer(Modifier.height(16.dp))
@@ -301,24 +305,18 @@ private fun StudentCard(
     val accentColors = remember(item.student.name) { studentAccentColors(item.student.name) }
     Card(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 10.dp,
-                spotColor = accentColors.primary.copy(alpha = 0.18f),
-                ambientColor = accentColors.primary.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(24.dp)
-            ),
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         border = BorderStroke(
             width = 1.dp,
             brush = Brush.linearGradient(
                 colors = listOf(
-                    accentColors.primary.copy(alpha = 0.35f),
-                    accentColors.secondary.copy(alpha = 0.35f)
+                    accentColors.primary.copy(alpha = 0.25f),
+                    accentColors.secondary.copy(alpha = 0.25f)
                 )
             )
         )
