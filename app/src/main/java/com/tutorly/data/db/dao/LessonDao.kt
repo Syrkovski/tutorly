@@ -2,6 +2,7 @@ package com.tutorly.data.db.dao
 
 import androidx.room.*
 import com.tutorly.models.*
+import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 @Dao
@@ -9,6 +10,9 @@ interface LessonDao {
     @Transaction
     @Query("SELECT * FROM lessons WHERE startAt >= :from AND startAt < :to ORDER BY startAt")
     suspend fun inRange(from: Instant, to: Instant): List<Lesson>
+
+    @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC")
+    fun observeByStudent(studentId: Long): Flow<List<Lesson>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
