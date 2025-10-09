@@ -43,6 +43,10 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC LIMIT 1")
     suspend fun findLatestForStudent(studentId: Long): LessonWithStudent?
 
+    @Transaction
+    @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
+    fun observeById(id: Long): Flow<LessonWithStudent?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
 

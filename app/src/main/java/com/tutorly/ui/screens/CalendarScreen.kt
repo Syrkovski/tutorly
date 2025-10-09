@@ -46,6 +46,9 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
+import com.tutorly.ui.lessoncard.LessonCardExitAction
+import com.tutorly.ui.lessoncard.LessonCardSheet
+import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -72,6 +75,8 @@ fun CalendarScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val creationState by creationViewModel.uiState.collectAsState()
+    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
+    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var direction by remember { mutableStateOf(0) } // -1 назад, +1 вперёд
     val anchor = uiState.anchor
@@ -263,7 +268,7 @@ fun CalendarScreen(
                         lessons = lessonsForCurrent,
                         currentDateTime = uiState.currentDateTime,
                         onLessonClick = { lesson ->
-                            viewModel.onLessonSelected(lesson)
+                            lessonCardViewModel.open(lesson.id)
                         },
                         onEmptySlot = { startTime ->
                             viewModel.onEmptySlotSelected(currentDate, startTime, DefaultSlotDuration)
@@ -653,6 +658,7 @@ private fun LessonBlock(
 private fun CalendarLesson.subtitleText(): String? {
     val parts = listOfNotNull(
         subjectName?.takeIf { it.isNotBlank() },
+        lessonNote?.takeIf { it.isNotBlank() },
         studentNote?.takeIf { it.isNotBlank() },
         lessonTitle?.takeIf { it.isNotBlank() }
     ).distinct()
@@ -819,3 +825,37 @@ private fun DayTwoLineChip(
         }
     }
 }
+    LessonCardSheet(
+        state = lessonCardState,
+        zoneId = uiState.zoneId,
+        onDismissRequest = lessonCardViewModel::requestDismiss,
+        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+        onNoteChange = lessonCardViewModel::onNoteChange,
+        onSaveNote = lessonCardViewModel::saveNote,
+        onMarkPaid = lessonCardViewModel::markPaid,
+        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+        onRequestEdit = lessonCardViewModel::requestEdit,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
+
+    val pendingExit = lessonCardState.pendingExitAction
+    LaunchedEffect(pendingExit) {
+        when (pendingExit) {
+            is LessonCardExitAction.NavigateToEdit -> {
+                val details = pendingExit.details
+                onLessonDetails(
+                    details.id,
+                    details.studentId,
+                    details.startAt.atZone(uiState.zoneId)
+                )
+                lessonCardViewModel.consumeExitAction()
+            }
+            LessonCardExitAction.Close -> {
+                lessonCardViewModel.consumeExitAction()
+            }
+            null -> Unit
+        }
+    }

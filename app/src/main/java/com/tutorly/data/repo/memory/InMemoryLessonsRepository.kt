@@ -45,6 +45,9 @@ class InMemoryLessonsRepository : LessonsRepository {
             )
         }
 
+    override fun observeLessonDetails(id: Long): Flow<LessonDetails?> =
+        lessonsFlow.map { lessons -> lessons.firstOrNull { it.id == id }?.toDetailsStub() }
+
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
         lessonsFlow.map { lessons -> lessons.filter { it.studentId == studentId } }
 
@@ -171,6 +174,7 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         paymentStatusIcon = paymentStatus.asIcon(),
         priceCents = priceCents,
         paidCents = paidCents,
-        lessonTitle = title
+        lessonTitle = title,
+        lessonNote = note
     )
 }

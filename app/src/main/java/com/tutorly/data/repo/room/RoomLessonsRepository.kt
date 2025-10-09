@@ -46,6 +46,9 @@ class RoomLessonsRepository(
             )
         }
 
+    override fun observeLessonDetails(id: Long): Flow<LessonDetails?> =
+        lessonDao.observeById(id).map { it?.toLessonDetails() }
+
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
         lessonDao.observeByStudent(studentId)
 

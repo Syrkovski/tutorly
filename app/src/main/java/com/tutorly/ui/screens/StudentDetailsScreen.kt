@@ -1,5 +1,6 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -49,9 +51,13 @@ import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.lessoncard.LessonCardExitAction
+import com.tutorly.ui.lessoncard.LessonCardSheet
+import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -61,11 +67,50 @@ fun StudentDetailsScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onCreateLesson: (Student) -> Unit = {},
+    onLessonEdit: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
 ) {
     val state by vm.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
+    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
+    val zoneId = remember { ZoneId.systemDefault() }
+
+    LessonCardSheet(
+        state = lessonCardState,
+        zoneId = zoneId,
+        onDismissRequest = lessonCardViewModel::requestDismiss,
+        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+        onNoteChange = lessonCardViewModel::onNoteChange,
+        onSaveNote = lessonCardViewModel::saveNote,
+        onMarkPaid = lessonCardViewModel::markPaid,
+        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+        onRequestEdit = lessonCardViewModel::requestEdit,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
+
+    val pendingExit = lessonCardState.pendingExitAction
+    LaunchedEffect(pendingExit) {
+        when (pendingExit) {
+            is LessonCardExitAction.NavigateToEdit -> {
+                val details = pendingExit.details
+                onLessonEdit(
+                    details.id,
+                    details.studentId,
+                    details.startAt.atZone(zoneId)
+                )
+                lessonCardViewModel.consumeExitAction()
+            }
+            LessonCardExitAction.Close -> {
+                lessonCardViewModel.consumeExitAction()
+            }
+            null -> Unit
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -148,7 +193,8 @@ fun StudentDetailsScreen(
                     LessonsHistoryCard(
                         lessons = lessons,
                         currencyFormatter = currencyFormatter,
-                        locale = locale
+                        locale = locale,
+                        onLessonClick = { lesson -> lessonCardViewModel.open(lesson.id) }
                     )
                 }
             }
@@ -412,6 +458,7 @@ private fun LessonsHistoryCard(
     lessons: List<Lesson>,
     currencyFormatter: NumberFormat,
     locale: Locale,
+    onLessonClick: (Lesson) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dateFormatter = remember(locale) {
@@ -442,7 +489,8 @@ private fun LessonsHistoryCard(
                             lesson = lesson,
                             currencyFormatter = currencyFormatter,
                             dateFormatter = dateFormatter,
-                            timeFormatter = timeFormatter
+                            timeFormatter = timeFormatter,
+                            onClick = onLessonClick
                         )
                         if (index != lessons.lastIndex) {
                             Divider()
@@ -460,6 +508,7 @@ private fun LessonHistoryRow(
     currencyFormatter: NumberFormat,
     dateFormatter: DateTimeFormatter,
     timeFormatter: DateTimeFormatter,
+    onClick: (Lesson) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val zoneId = remember { ZoneId.systemDefault() }
@@ -469,7 +518,9 @@ private fun LessonHistoryRow(
         Duration.between(lesson.startAt, lesson.endAt).toMinutes().toInt().coerceAtLeast(0)
     }
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick(lesson) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {

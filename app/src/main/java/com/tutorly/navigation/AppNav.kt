@@ -196,6 +196,11 @@ fun AppNavRoot() {
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onLessonEdit = { lessonId, targetStudentId, start ->
+                        nav.navigate(lessonDetailsRoute(lessonId, targetStudentId, start)) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
