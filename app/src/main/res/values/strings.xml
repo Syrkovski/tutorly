@@ -8,7 +8,10 @@
     <string name="student_editor_save">Сохранить ученика</string>
     <string name="student_editor_name">Имя*</string>
     <string name="student_editor_phone">Телефон</string>
+    <string name="student_editor_messenger">Мессенджер</string>
     <string name="student_editor_notes">Заметки</string>
+    <string name="student_editor_is_archived">Архивирован</string>
+    <string name="student_editor_active">Активен</string>
     <string name="student_details_title_placeholder">Ученик</string>
     <string name="student_details_back">Назад</string>
     <string name="student_details_edit">Редактировать ученика</string>
@@ -16,6 +19,7 @@
     <string name="student_details_payments_title">Платежи</string>
     <string name="student_details_debt_amount">Долг: %1$s</string>
     <string name="student_details_no_debt">Долгов нет</string>
+    <string name="student_details_header_placeholder">Дополнительная информация не указана</string>
     <string name="student_details_contact_title">Контакты</string>
     <string name="student_details_phone_label">Телефон</string>
     <string name="student_details_phone_placeholder">Не указан</string>
@@ -23,4 +27,15 @@
     <string name="student_details_messenger_placeholder">Не указан</string>
     <string name="student_details_notes_title">Заметки</string>
     <string name="student_details_notes_placeholder">Нет заметок</string>
+    <string name="student_details_stats_lessons">Занятий</string>
+    <string name="student_details_stats_earned">Получено</string>
+    <string name="student_details_stats_paid">Оплачено</string>
+    <string name="student_details_stats_debt">Долг</string>
+    <string name="student_details_history_title">История занятий</string>
+    <string name="student_details_history_empty">Пока нет занятий</string>
+    <string name="student_details_history_time_range">%1$s — %2$s · %3$d мин</string>
+    <string name="lesson_status_paid">Оплачено</string>
+    <string name="lesson_status_due">Долг</string>
+    <string name="lesson_status_unpaid">Не оплачено</string>
+    <string name="lesson_status_cancelled">Отменено</string>
 </resources>

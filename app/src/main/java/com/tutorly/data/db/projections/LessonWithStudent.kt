@@ -3,6 +3,7 @@ package com.tutorly.data.db.projections
 import androidx.room.Embedded
 import androidx.room.Relation
 import com.tutorly.models.Lesson
+import com.tutorly.models.Payment
 import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
 
@@ -11,7 +12,9 @@ data class LessonWithStudent(
     @Relation(parentColumn = "studentId", entityColumn = "id")
     val student: Student,
     @Relation(parentColumn = "subjectId", entityColumn = "id")
-    val subject: SubjectPreset?
+    val subject: SubjectPreset?,
+    @Relation(parentColumn = "id", entityColumn = "lessonId")
+    val payments: List<Payment>
 )
 
 data class StudentWithLessons(
