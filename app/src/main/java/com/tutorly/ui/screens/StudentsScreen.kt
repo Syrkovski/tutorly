@@ -380,6 +380,15 @@ private fun StudentCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    item.student.note?.takeIf { it.isNotBlank() }?.let { note ->
+                        Text(
+                            text = note.trim(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 if (item.hasDebt) {
                     PaymentBadge(paid = false)
