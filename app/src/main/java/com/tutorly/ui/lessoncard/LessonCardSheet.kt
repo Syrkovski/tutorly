@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -299,7 +300,7 @@ private fun LessonPaymentBlock(
     val locale = remember { Locale.getDefault() }
     val currencyFormatter = remember(locale) { NumberFormat.getCurrencyInstance(locale) }
     val amount = remember(details.priceCents) { currencyFormatter.format(details.priceCents / 100.0) }
-    val statusChip = remember(details.paymentStatus) { paymentStatusChip(details.paymentStatus) }
+    val statusChip = paymentStatusChip(details.paymentStatus)
 
     Card { 
         Column(
@@ -432,7 +433,11 @@ private fun StatusChip(chip: PaymentStatusChip) {
 }
 
 @Composable
-private fun InfoCell(label: String, value: String, leadingIcon: androidx.compose.ui.graphics.vector.ImageVector?) {
+private fun RowScope.InfoCell(
+    label: String,
+    value: String,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector?,
+) {
     Surface(
         modifier = Modifier.weight(1f),
         color = MaterialTheme.colorScheme.surface,
