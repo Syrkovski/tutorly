@@ -2,11 +2,15 @@ package com.tutorly.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
+import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.models.Student
+import com.tutorly.models.SubjectPreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.time.Instant
+import java.time.Duration
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,12 +23,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class StudentsViewModel @Inject constructor(
-    private val repo: StudentsRepository
+    private val repo: StudentsRepository,
+    private val lessonsRepository: LessonsRepository,
+    private val subjectPresetsRepository: SubjectPresetsRepository
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -35,16 +41,32 @@ class StudentsViewModel @Inject constructor(
 
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
+    private val lessonObservers = mutableMapOf<Long, Job>()
+    private val _latestLessons = MutableStateFlow<Map<Long, LessonSnapshot?>>(emptyMap())
+    private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
 
     private val studentsStream = _query
         .map { it.trim() }
         .distinctUntilChanged()
         .flatMapLatest { repo.observeStudents(it) }
-        .onEach { syncDebtObservers(it) }
+        .onEach {
+            syncDebtObservers(it)
+            syncLessonObservers(it)
+        }
 
-    val students: StateFlow<List<StudentListItem>> = combine(studentsStream, _debts) { students, debts ->
+    val students: StateFlow<List<StudentListItem>> = combine(
+        studentsStream,
+        _debts,
+        _latestLessons,
+        _subjects
+    ) { students, debts, lessons, subjects ->
         students.map { student ->
-            StudentListItem(student, debts[student.id] == true)
+            val snapshot = lessons[student.id]
+            StudentListItem(
+                student = student,
+                hasDebt = debts[student.id] == true,
+                profile = buildProfile(student, snapshot, subjects)
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -169,14 +191,106 @@ class StudentsViewModel @Inject constructor(
         }
     }
 
+    private fun syncLessonObservers(students: List<Student>) {
+        val ids = students.map { it.id }.toSet()
+        val existing = lessonObservers.keys.toSet()
+
+        val toRemove = existing - ids
+        if (toRemove.isNotEmpty()) {
+            toRemove.forEach { id ->
+                lessonObservers.remove(id)?.cancel()
+            }
+            _latestLessons.update { lessons -> lessons - toRemove }
+        }
+
+        val toAdd = ids - existing
+        toAdd.forEach { id ->
+            lessonObservers[id] = viewModelScope.launch {
+                lessonsRepository.observeByStudent(id).collect { lessons ->
+                    val latest = lessons.maxByOrNull { it.startAt }
+                    val snapshot = latest?.let {
+                        val durationMinutes = Duration.between(it.startAt, it.endAt)
+                            .toMinutes()
+                            .toInt()
+                            .coerceAtLeast(0)
+                        LessonSnapshot(
+                            lessonId = it.id,
+                            subjectId = it.subjectId,
+                            durationMinutes = durationMinutes,
+                            priceCents = it.priceCents
+                        )
+                    }
+                    _latestLessons.update { existingMap -> existingMap + (id to snapshot) }
+
+                    val subjectId = latest?.subjectId
+                    if (subjectId != null && _subjects.value[subjectId] == null) {
+                        val preset = subjectPresetsRepository.getById(subjectId)
+                        if (preset != null) {
+                            _subjects.update { cache -> cache + (subjectId to preset) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         debtObservers.values.forEach { it.cancel() }
         debtObservers.clear()
+        lessonObservers.values.forEach { it.cancel() }
+        lessonObservers.clear()
     }
 
     data class StudentListItem(
         val student: Student,
-        val hasDebt: Boolean
+        val hasDebt: Boolean,
+        val profile: StudentProfile
     )
+
+    data class StudentProfile(
+        val subject: String?,
+        val grade: String?,
+        val rate: LessonRate?
+    )
+
+    data class LessonRate(
+        val durationMinutes: Int,
+        val priceCents: Int
+    )
+
+    private data class LessonSnapshot(
+        val lessonId: Long,
+        val subjectId: Long?,
+        val durationMinutes: Int,
+        val priceCents: Int
+    )
+
+    private fun buildProfile(
+        student: Student,
+        snapshot: LessonSnapshot?,
+        subjects: Map<Long, SubjectPreset>
+    ): StudentProfile {
+        val subject = snapshot?.subjectId?.let { subjectId ->
+            subjects[subjectId]?.name
+        } ?: student.note
+            ?.lineSequence()
+            ?.firstOrNull { it.isNotBlank() }
+            ?.trim()
+
+        val grade = student.note.extractGrade()
+        val rate = snapshot?.takeIf { it.priceCents > 0 && it.durationMinutes > 0 }?.let {
+            LessonRate(durationMinutes = it.durationMinutes, priceCents = it.priceCents)
+        }
+
+        return StudentProfile(subject = subject, grade = grade, rate = rate)
+    }
+}
+
+private fun String?.extractGrade(): String? {
+    if (this.isNullOrBlank()) return null
+    val regex = Regex("""(?i)(\n|^|\s)(\d{1,2})\s*(класс|кл\\.?)""")
+    val match = regex.find(this)
+    val gradeNumber = match?.groups?.get(2)?.value
+    return gradeNumber?.let { "$it класс" }
 }
