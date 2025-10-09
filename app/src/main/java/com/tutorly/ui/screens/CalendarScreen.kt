@@ -26,8 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -41,6 +41,7 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.WeeklyStats
+import com.tutorly.ui.theme.NowRed
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -190,6 +191,7 @@ fun CalendarScreen(
                     CalendarMode.DAY -> DayTimeline(
                         date = currentDate,
                         lessons = lessonsForCurrent,
+                        currentDateTime = uiState.currentDateTime,
                         onLessonClick = { lesson ->
                             viewModel.onLessonSelected(lesson.id)
                         },
@@ -211,7 +213,8 @@ fun CalendarScreen(
                         dayDataProvider = { date ->
                             uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
                         },
-                        stats = uiState.stats.toWeeklyStats()
+                        stats = uiState.stats.toWeeklyStats(),
+                        currentDateTime = uiState.currentDateTime
                     )
                     CalendarMode.MONTH -> MonthPlaceholder(currentDate)
                 }
@@ -343,10 +346,12 @@ private const val SlotIncrementMinutes: Int = 30
 private fun DayTimeline(
     date: LocalDate,
     lessons: List<CalendarLesson>,
+    currentDateTime: ZonedDateTime,
     onLessonClick: (CalendarLesson) -> Unit,
     onEmptySlot: (LocalTime) -> Unit
 ) {
     val dayLessons = remember(date, lessons) { lessons }
+    val isToday = remember(date, currentDateTime) { currentDateTime.toLocalDate() == date }
     val (startHour, endHourExclusive) = remember(dayLessons) {
         computeTimelineBounds(dayLessons)
     }
@@ -354,6 +359,9 @@ private fun DayTimeline(
         (startHour until endHourExclusive).map { "%02d:00".format(it) }
     }
     val totalHeight: Dp = HourHeight * hours.size
+    val totalMinutes = remember(startHour, endHourExclusive) {
+        (endHourExclusive - startHour) * MinutesPerHour
+    }
 
     val scroll = rememberScrollState()
     val density = LocalDensity.current
@@ -361,6 +369,18 @@ private fun DayTimeline(
     val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
     val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
     val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
+    val minuteHeight = remember { HourHeight / MinutesPerHour }
+    val nowMinutesFromStart = remember(isToday, currentDateTime, startHour) {
+        if (!isToday) null else {
+            val currentMinutes = currentDateTime.hour * MinutesPerHour + currentDateTime.minute
+            currentMinutes - startHour * MinutesPerHour
+        }
+    }
+    val nowBadgeOffset = remember(nowMinutesFromStart, totalMinutes) {
+        nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
+            minuteHeight * minutes.toFloat()
+        }
+    }
 
     val lessonRegions = remember(dayLessons, startHour, hourHeightPx, labelWidthPx, cardInsetPx) {
         val baseMin = startHour * MinutesPerHour
@@ -428,6 +448,15 @@ private fun DayTimeline(
                     topLeft = androidx.compose.ui.geometry.Offset(leftPad, 0f),
                     size = androidx.compose.ui.geometry.Size(spineW, size.height)
                 )
+                nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
+                    val y = minutes * rowH / MinutesPerHour
+                    drawLine(
+                        color = NowRed,
+                        start = androidx.compose.ui.geometry.Offset(0f, y),
+                        end = androidx.compose.ui.geometry.Offset(size.width, y),
+                        strokeWidth = 2.dp.toPx()
+                    )
+                }
             }
 
             // 2) Уроки — точное позиционирование по времени, до правого края
@@ -454,6 +483,22 @@ private fun DayTimeline(
                     ) {
                         Text(it, style = MaterialTheme.typography.labelLarge)
                     }
+                }
+            }
+
+            nowBadgeOffset?.let { offset ->
+                val centered = offset - 12.dp
+                val badgeOffset = if (centered < 0.dp) 0.dp else centered
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .offset(y = badgeOffset)
+                ) {
+                    NowBadge(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = LabelWidth + 16.dp)
+                    )
                 }
             }
         }
@@ -589,6 +634,22 @@ private fun StatusBadge(text: String, color: Color, icon: ImageVector?) {
                 style = MaterialTheme.typography.labelSmall
             )
         }
+    }
+}
+
+@Composable
+private fun NowBadge(modifier: Modifier = Modifier) {
+    Surface(
+        color = NowRed,
+        contentColor = Color.White,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier
+    ) {
+        Text(
+            text = stringResource(R.string.calendar_now_badge),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
 

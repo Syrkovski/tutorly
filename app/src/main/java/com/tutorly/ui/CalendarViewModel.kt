@@ -16,6 +16,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
@@ -38,6 +41,7 @@ class CalendarViewModel @Inject constructor(
 
     private val anchor = MutableStateFlow(LocalDate.now(zoneId))
     private val mode = MutableStateFlow(CalendarMode.DAY)
+    private val currentDateTime = MutableStateFlow(ZonedDateTime.now(zoneId))
 
     private val queryFlow = combine(anchor, mode) { currentAnchor, currentMode ->
         CalendarQuery(
@@ -58,6 +62,15 @@ class CalendarViewModel @Inject constructor(
             lessonsRepository.observeWeekStats(range.start, range.end)
         }
 
+    init {
+        viewModelScope.launch {
+            while (isActive) {
+                currentDateTime.value = ZonedDateTime.now(zoneId)
+                delay(30_000)
+            }
+        }
+    }
+
     private val _events = MutableSharedFlow<CalendarEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<CalendarEvent> = _events.asSharedFlow()
 
@@ -73,8 +86,9 @@ class CalendarViewModel @Inject constructor(
     val uiState: StateFlow<CalendarUiState> = combine(
         queryFlow,
         lessonsFlow,
-        statsFlow
-    ) { query, lessons, stats ->
+        statsFlow,
+        currentDateTime
+    ) { query, lessons, stats, now ->
         val calendarLessons = lessons
             .map { it.toCalendarLesson(zoneId) }
             .sortedBy { it.start }
@@ -85,7 +99,8 @@ class CalendarViewModel @Inject constructor(
             zoneId = zoneId,
             lessons = calendarLessons,
             lessonsByDate = groupedByDate,
-            stats = stats
+            stats = stats,
+            currentDateTime = now
         )
     }.stateIn(
         scope = viewModelScope,
@@ -94,7 +109,8 @@ class CalendarViewModel @Inject constructor(
             anchor = anchor.value,
             mode = mode.value,
             zoneId = zoneId,
-            stats = LessonsRangeStats.EMPTY
+            stats = LessonsRangeStats.EMPTY,
+            currentDateTime = currentDateTime.value
         )
     )
 
@@ -206,7 +222,8 @@ data class CalendarUiState(
     val zoneId: ZoneId,
     val lessons: List<CalendarLesson> = emptyList(),
     val lessonsByDate: Map<LocalDate, List<CalendarLesson>> = emptyMap(),
-    val stats: LessonsRangeStats = LessonsRangeStats.EMPTY
+    val stats: LessonsRangeStats = LessonsRangeStats.EMPTY,
+    val currentDateTime: ZonedDateTime
 )
 
 sealed interface CalendarEvent {

@@ -25,6 +25,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZonedDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -36,12 +37,15 @@ fun WeekMosaic(
     onOpenDay: (LocalDate) -> Unit,
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
     stats: WeeklyStats? = null,
+    currentDateTime: ZonedDateTime,
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
     hSpacing: Dp = 8.dp,
     vSpacing: Dp = 8.dp
 ) {
     val monday = anchor.with(DayOfWeek.MONDAY)
     val days = remember(monday) { (0..6).map { monday.plusDays(it.toLong()) } }
+    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
+    val now = remember(currentDateTime) { currentDateTime.toLocalDateTime() }
 
     val dayCards = remember(days, dayDataProvider) {
         days.map { d ->
@@ -92,7 +96,9 @@ fun WeekMosaic(
                     is WeekTile.Day -> DayTile(
                         model = tile.model,
                         height = cellH,
-                        onClick = { onOpenDay(tile.model.date) }
+                        onClick = { onOpenDay(tile.model.date) },
+                        today = today,
+                        now = now
                     )
                     is WeekTile.Stats -> StatsTile(
                         stats = tile.stats,
@@ -110,15 +116,16 @@ fun WeekMosaic(
 private fun DayTile(
     model: DayCardModel,
     height: Dp,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    today: LocalDate,
+    now: LocalDateTime
 ) {
-    val today = LocalDate.now()
     val isToday = model.date == today
     val hasLessons = model.totalLessons > 0
 
-    val (ongoing, others) = remember(model, isToday) {
+    val (ongoing, others) = remember(model, isToday, now) {
         if (!isToday) emptyList<LessonBrief>() to model.brief
-        else model.brief.partition { it.isOngoingOn(model.date) }
+        else model.brief.partition { it.isOngoingOn(model.date, now) }
     }
 
     // лёгкая подложка только если есть занятия
@@ -320,8 +327,7 @@ private fun dayTitle(d: LocalDate): String {
 private fun timeRangeText(l: LessonBrief): String =
     if (l.end.isNullOrBlank()) l.time else "${l.time}–${l.end}"
 
-private fun LessonBrief.isOngoingOn(day: LocalDate): Boolean {
-    val now = LocalDateTime.now()
+private fun LessonBrief.isOngoingOn(day: LocalDate, now: LocalDateTime): Boolean {
     if (now.toLocalDate() != day) return false
     val start = parseLocalTime(time) ?: return false
     val endT  = parseLocalTime(end) ?: return false
