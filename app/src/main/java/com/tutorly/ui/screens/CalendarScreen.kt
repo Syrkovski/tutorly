@@ -54,6 +54,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
@@ -81,6 +82,38 @@ fun CalendarScreen(
     var direction by remember { mutableStateOf(0) } // -1 назад, +1 вперёд
     val anchor = uiState.anchor
     val mode = uiState.mode
+    val zoneId = remember { ZoneId.systemDefault() }
+
+    LessonCardSheet(
+        state = lessonCardState,
+        zoneId = zoneId,
+        onDismissRequest = lessonCardViewModel::requestDismiss,
+        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+        onNoteChange = lessonCardViewModel::onNoteChange,
+        onSaveNote = lessonCardViewModel::saveNote,
+        onMarkPaid = lessonCardViewModel::markPaid,
+        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+        onRequestEdit = lessonCardViewModel::requestEdit,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
+
+    val pendingExit = lessonCardState.pendingExitAction
+    LaunchedEffect(pendingExit) {
+        when (pendingExit) {
+            is LessonCardExitAction.NavigateToEdit -> {
+                val details = pendingExit.details
+                onLessonDetails(details.id, details.studentId, details.startAt.atZone(zoneId))
+                lessonCardViewModel.consumeExitAction()
+            }
+            LessonCardExitAction.Close -> {
+                lessonCardViewModel.consumeExitAction()
+            }
+            null -> Unit
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -94,7 +127,7 @@ fun CalendarScreen(
                         origin = LessonCreationOrigin.CALENDAR
                     )
                 )
-                is CalendarEvent.OpenLesson -> onLessonDetails(event.lessonId, event.studentId, event.start)
+                is CalendarEvent.OpenLesson -> lessonCardViewModel.open(event.lessonId)
             }
         }
     }
