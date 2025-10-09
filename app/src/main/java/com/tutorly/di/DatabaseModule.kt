@@ -6,9 +6,11 @@ import androidx.room.Room
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
 import com.tutorly.data.repo.room.RoomLessonsRepository
+import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
 import com.tutorly.data.repo.room.RoomSubjectPresetsRepository
 import com.tutorly.domain.repo.LessonsRepository
+import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
 import dagger.Module
@@ -38,6 +40,11 @@ object DatabaseModule {
         studentDao: StudentDao,
         paymentDao: PaymentDao
     ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao)
+
+    @Provides @Singleton
+    fun providePaymentsRepo(
+        paymentDao: PaymentDao
+    ): PaymentsRepository = RoomPaymentsRepository(paymentDao)
 
     @Provides @Singleton
     fun provideSubjectsRepo(dao: SubjectPresetDao): SubjectPresetsRepository = RoomSubjectPresetsRepository(dao)
