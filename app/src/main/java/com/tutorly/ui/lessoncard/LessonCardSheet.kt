@@ -426,10 +426,12 @@ private fun StatusChip(chip: PaymentStatusChip) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            when (chip.icon) {
-                PaymentStatusIcon.PAID -> Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                PaymentStatusIcon.OUTSTANDING -> Icon(imageVector = Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp))
-                PaymentStatusIcon.CANCELLED -> Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+            chip.icon?.let { icon ->
+                when (icon) {
+                    PaymentStatusIcon.PAID -> Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    PaymentStatusIcon.OUTSTANDING -> Icon(imageVector = Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp))
+                    PaymentStatusIcon.CANCELLED -> Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
             }
             Text(text = stringResource(chip.labelRes), style = MaterialTheme.typography.labelMedium)
         }
