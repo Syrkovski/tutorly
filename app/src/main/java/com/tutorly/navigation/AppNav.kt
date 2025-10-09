@@ -31,6 +31,9 @@ const val ROUTE_LESSON_NEW = "lesson/new?studentId={studentId}" // под авт
 private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
 private fun studentEditRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
 
+private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
+private fun studentEditRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
+
 @Composable
 fun AppNavRoot() {
     val nav = rememberNavController()
