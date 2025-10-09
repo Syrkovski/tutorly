@@ -13,25 +13,75 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = PrimaryBlue,
+    onPrimary = OnPrimaryBlue,
+    primaryContainer = DarkPrimaryContainer,
+    onPrimaryContainer = DarkOnPrimaryContainer,
+    secondary = SecondaryIndigo,
+    onSecondary = OnSecondaryIndigo,
+    secondaryContainer = DarkSecondaryContainer,
+    onSecondaryContainer = DarkOnSecondaryContainer,
+    tertiary = TertiaryTeal,
+    onTertiary = OnTertiaryTeal,
+    tertiaryContainer = DarkTertiaryContainer,
+    onTertiaryContainer = DarkOnTertiaryContainer,
+    background = DarkBackground,
+    onBackground = DarkOnBackground,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceTint = PrimaryBlue,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    outline = DarkOutline,
+    outlineVariant = DarkOutlineVariant,
+    surfaceContainerLowest = DarkSurfaceContainerLowest,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
+    error = ErrorRed,
+    onError = OnErrorRed,
+    errorContainer = ErrorRedContainer,
+    onErrorContainer = OnErrorRedContainer,
+    inverseSurface = Color(0xFFE0E2FF),
+    inverseOnSurface = Color(0xFF1B1E2B),
+    inversePrimary = PrimaryBlue
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = PrimaryBlue,
+    onPrimary = OnPrimaryBlue,
+    primaryContainer = PrimaryBlueContainer,
+    onPrimaryContainer = OnPrimaryBlueContainer,
+    secondary = SecondaryIndigo,
+    onSecondary = OnSecondaryIndigo,
+    secondaryContainer = SecondaryIndigoContainer,
+    onSecondaryContainer = OnSecondaryIndigoContainer,
+    tertiary = TertiaryTeal,
+    onTertiary = OnTertiaryTeal,
+    tertiaryContainer = TertiaryTealContainer,
+    onTertiaryContainer = OnTertiaryTealContainer,
+    background = NeutralBackground,
+    onBackground = NeutralOnBackground,
+    surface = NeutralBackground,
+    onSurface = NeutralOnBackground,
+    surfaceTint = PrimaryBlue,
+    surfaceVariant = NeutralSurfaceVariant,
+    onSurfaceVariant = NeutralOnSurfaceVariant,
+    outline = NeutralOutline,
+    outlineVariant = NeutralOutlineVariant,
+    surfaceContainerLowest = SurfaceContainerLowest,
+    surfaceContainerLow = SurfaceContainerLow,
+    surfaceContainer = SurfaceContainer,
+    surfaceContainerHigh = SurfaceContainerHigh,
+    surfaceContainerHighest = SurfaceContainerHighest,
+    error = ErrorRed,
+    onError = OnErrorRed,
+    errorContainer = ErrorRedContainer,
+    onErrorContainer = OnErrorRedContainer,
+    inverseSurface = Color(0xFF2F3144),
+    inverseOnSurface = Color(0xFFF1F1FF),
+    inversePrimary = PrimaryBlue
 )
 
 @Composable
@@ -71,6 +121,7 @@ fun AppTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = LightColors,
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }

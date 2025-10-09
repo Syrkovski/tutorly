@@ -18,55 +18,57 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import com.tutorly.R
-import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.models.PaymentStatus
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,8 +86,17 @@ fun StudentsScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editorOrigin by rememberSaveable { mutableStateOf(StudentEditorOrigin.NONE) }
+    var highlightedStudent by remember { mutableStateOf<StudentsViewModel.StudentListItem?>(null) }
+    val selectedSheetState by vm.selectedStudentSheetState.collectAsState()
+
+    LaunchedEffect(selectedSheetState.isVisible) {
+        if (!selectedSheetState.isVisible) {
+            highlightedStudent = null
+        }
+    }
 
     LaunchedEffect(initialEditorOrigin) {
         if (initialEditorOrigin != StudentEditorOrigin.NONE) {
@@ -133,11 +144,7 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { openEditor(StudentEditorOrigin.STUDENTS) }) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = R.string.add_student))
-            }
-        }
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         Column(
             modifier
@@ -151,8 +158,20 @@ fun StudentsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) }
+                placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
+                shape = MaterialTheme.shapes.large
             )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { openEditor(StudentEditorOrigin.STUDENTS) }) {
+                    Text(text = stringResource(id = R.string.add_student))
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -170,7 +189,10 @@ fun StudentsScreen(
                     ) { item ->
                         StudentCard(
                             item = item,
-                            onClick = { onStudentClick(item.student.id) }
+                            onClick = {
+                                highlightedStudent = item
+                                vm.showStudentDetails(item.student.id)
+                            }
                         )
                     }
                 }
@@ -198,6 +220,28 @@ fun StudentsScreen(
                 onActiveChange = vm::onEditorActiveChange,
                 onCancel = { if (!formState.isSaving) closeEditor() },
                 onSave = handleSave
+            )
+        }
+    }
+
+    if (selectedSheetState.isVisible) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                vm.dismissStudentDetails()
+                highlightedStudent = null
+            },
+            sheetState = detailSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            StudentProfileSheet(
+                state = selectedSheetState,
+                listItem = highlightedStudent,
+                onOpenProfile = {
+                    val targetId = selectedSheetState.student?.id ?: highlightedStudent?.student?.id
+                    highlightedStudent = null
+                    vm.dismissStudentDetails()
+                    targetId?.let(onStudentClick)
+                }
             )
         }
     }
@@ -298,112 +342,275 @@ private fun StudentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accentColors = remember(item.student.name) { studentAccentColors(item.student.name) }
+    val locale = remember { Locale("ru", "RU") }
+    val currencyFormatter = remember(locale) { NumberFormat.getCurrencyInstance(locale) }
+    val highlightTexts = studentHighlightTexts(item.profile, currencyFormatter)
+
     Card(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 10.dp,
-                spotColor = accentColors.primary.copy(alpha = 0.18f),
-                ambientColor = accentColors.primary.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(24.dp)
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    accentColors.primary.copy(alpha = 0.35f),
-                    accentColors.secondary.copy(alpha = 0.35f)
-                )
-            )
-        )
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            StudentAvatar(
-                name = item.student.name,
-                accentColors = accentColors
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StudentAvatar(name = item.student.name)
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = item.student.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (item.hasDebt) {
-                        Spacer(Modifier.width(8.dp))
-                        PaymentBadge(paid = false)
-                    }
-                }
-
-                item.student.note?.takeIf { it.isNotBlank() }?.let { note ->
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = note.trim(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                }
-
-                val contacts = buildContactLine(item)
-                if (contacts != null) {
-                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = contacts,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = highlightTexts.subjectText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (highlightTexts.isSubjectPlaceholder) {
+                            MaterialTheme.colorScheme.outline
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+                if (item.hasDebt) {
+                    Text(
+                        text = stringResource(id = R.string.students_debt_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                StudentHighlightRow(
+                    icon = Icons.Outlined.School,
+                    text = highlightTexts.gradeText,
+                    isPlaceholder = highlightTexts.isGradePlaceholder
+                )
+                StudentHighlightRow(
+                    icon = Icons.Outlined.AttachMoney,
+                    text = highlightTexts.rateText,
+                    isPlaceholder = highlightTexts.isRatePlaceholder
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudentHighlightRow(
+    icon: ImageVector,
+    text: String,
+    isPlaceholder: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isPlaceholder) {
+                MaterialTheme.colorScheme.outline
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+        )
+    }
+}
+
+
+@Composable
+private fun StudentProfileSheet(
+    state: StudentsViewModel.SelectedStudentSheetState,
+    listItem: StudentsViewModel.StudentListItem?,
+    onOpenProfile: () -> Unit,
+) {
+    val locale = remember { Locale("ru", "RU") }
+    val currencyFormatter = remember(locale) { NumberFormat.getCurrencyInstance(locale) }
+
+    when {
+        state.isLoading -> Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(vertical = 48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        state.student == null -> Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(id = R.string.student_details_missing),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        else -> {
+            val student = state.student
+            val lessons = remember(state.lessons) { state.lessons.sortedByDescending { it.startAt } }
+            val totalEarnedCents = remember(lessons) { lessons.sumOf { it.paidCents.toLong() } }
+            val formattedTotalEarned = remember(totalEarnedCents) { currencyFormatter.format(totalEarnedCents / 100.0) }
+            val formattedDebt = remember(state.totalDebtCents) { currencyFormatter.format(state.totalDebtCents / 100.0) }
+            val highlightTexts = studentHighlightTexts(listItem?.profile, currencyFormatter)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                StudentSummaryCard(
+                    student = student,
+                    hasDebt = state.hasDebt,
+                    totalDebt = formattedDebt
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val subjectLine = stringResource(
+                        id = R.string.students_highlight_value,
+                        stringResource(id = R.string.students_subject_label),
+                        highlightTexts.subjectText
+                    )
+                    Text(
+                        text = subjectLine,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (highlightTexts.isSubjectPlaceholder) {
+                            MaterialTheme.colorScheme.outline
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    StudentHighlightRow(
+                        icon = Icons.Outlined.School,
+                        text = highlightTexts.gradeText,
+                        isPlaceholder = highlightTexts.isGradePlaceholder
+                    )
+                    StudentHighlightRow(
+                        icon = Icons.Outlined.AttachMoney,
+                        text = highlightTexts.rateText,
+                        isPlaceholder = highlightTexts.isRatePlaceholder
+                    )
+                }
+
+                StudentContactCard(student = student)
+
+                StudentStatsRow(
+                    totalLessons = lessons.size,
+                    formattedTotalEarned = formattedTotalEarned,
+                    paidLessons = lessons.count { it.paymentStatus == PaymentStatus.PAID },
+                    hasDebt = state.hasDebt,
+                    formattedDebt = formattedDebt
+                )
+
+                student.note?.takeIf { it.isNotBlank() }?.let { note ->
+                    StudentNotesCard(note = note)
+                }
+
+                LessonsHistoryCard(
+                    lessons = lessons.take(3),
+                    currencyFormatter = currencyFormatter,
+                    locale = locale,
+                    onLessonClick = {}
+                )
+
+                Button(
+                    onClick = onOpenProfile,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = stringResource(id = R.string.student_details_open_profile))
                 }
             }
         }
     }
 }
 
-private fun buildContactLine(item: StudentsViewModel.StudentListItem): String? {
-    val contactParts = buildList {
-        item.student.phone?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
-        item.student.messenger?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
-    }
-    if (contactParts.isEmpty()) return null
-    return contactParts.joinToString(separator = " · ")
-}
+private data class StudentHighlightTexts(
+    val subjectText: String,
+    val isSubjectPlaceholder: Boolean,
+    val gradeText: String,
+    val isGradePlaceholder: Boolean,
+    val rateText: String,
+    val isRatePlaceholder: Boolean,
+)
 
-private data class StudentAccentColors(val primary: Color, val secondary: Color)
+@Composable
+private fun studentHighlightTexts(
+    profile: StudentsViewModel.StudentProfile?,
+    currencyFormatter: NumberFormat
+): StudentHighlightTexts {
+    val subjectPlaceholder = stringResource(id = R.string.students_subject_placeholder)
+    val gradeLabel = stringResource(id = R.string.students_grade_label)
+    val gradePlaceholder = stringResource(id = R.string.students_grade_placeholder)
+    val ratePlaceholder = stringResource(id = R.string.students_rate_placeholder)
+    val rateLabelGeneric = stringResource(id = R.string.students_rate_label_generic)
 
-private fun studentAccentColors(name: String): StudentAccentColors {
-    val palette = listOf(
-        Pair(Color(0xFF6A6CFF), Color(0xFF8A8CFF)),
-        Pair(Color(0xFFFF6A88), Color(0xFFFF8BAA)),
-        Pair(Color(0xFF2EC5CE), Color(0xFF5DDADB)),
-        Pair(Color(0xFFF9A826), Color(0xFFFAC858)),
-        Pair(Color(0xFF7B61FF), Color(0xFF9D7BFF)),
-        Pair(Color(0xFF00BFA6), Color(0xFF4ADEB4))
+    val subjectValue = profile?.subject?.takeIf { it.isNotBlank() }
+    val gradeValue = profile?.grade?.takeIf { it.isNotBlank() }
+    val rate = profile?.rate?.takeIf { it.priceCents > 0 && it.durationMinutes > 0 }
+
+    val rateLabel = rate?.durationMinutes?.let { duration ->
+        when (duration) {
+            60 -> stringResource(id = R.string.students_rate_label_hour)
+            90 -> stringResource(id = R.string.students_rate_label_hour_half)
+            else -> stringResource(id = R.string.students_rate_label_custom, duration)
+        }
+    } ?: rateLabelGeneric
+
+    val rateValue = rate?.let { currencyFormatter.format(it.priceCents / 100.0) } ?: ratePlaceholder
+
+    return StudentHighlightTexts(
+        subjectText = subjectValue ?: subjectPlaceholder,
+        isSubjectPlaceholder = subjectValue == null,
+        gradeText = stringResource(
+            id = R.string.students_highlight_value,
+            gradeLabel,
+            gradeValue ?: gradePlaceholder
+        ),
+        isGradePlaceholder = gradeValue == null,
+        rateText = stringResource(
+            id = R.string.students_highlight_value,
+            rateLabel,
+            rateValue
+        ),
+        isRatePlaceholder = rate == null
     )
-    val index = name.hashCode().absoluteValue % palette.size
-    val (primary, secondary) = palette[index]
-    return StudentAccentColors(primary = primary, secondary = secondary)
 }
 
 @Composable
 private fun StudentAvatar(
     name: String,
-    accentColors: StudentAccentColors,
+    size: Dp = 48.dp,
 ) {
     val initials = name
         .split(" ")
@@ -414,25 +621,15 @@ private fun StudentAvatar(
 
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(size)
             .clip(CircleShape)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        accentColors.primary,
-                        accentColors.secondary
-                    ),
-                    tileMode = TileMode.Clamp
-                )
-            ),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
