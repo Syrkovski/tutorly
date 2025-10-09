@@ -1,6 +1,7 @@
 package com.tutorly.data.repo.memory
 
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
@@ -22,6 +23,21 @@ class InMemoryLessonsRepository : LessonsRepository {
             lessons.filter { it.startAt >= from && it.startAt < to }
                 .sortedBy { it.startAt }
                 .map { it.toDetailsStub() }
+        }
+
+    override fun observeStatsInRange(from: Instant, to: Instant): Flow<LessonsRangeStats> =
+        lessonsFlow.map { lessons ->
+            val relevant = lessons.filter { it.startAt >= from && it.startAt < to }
+            val paidStatus = PaymentStatus.PAID
+            val outstanding = PaymentStatus.outstandingStatuses.toSet()
+            LessonsRangeStats(
+                totalLessons = relevant.size,
+                paidLessons = relevant.count { it.paymentStatus == paidStatus },
+                debtLessons = relevant.count { it.paymentStatus in outstanding },
+                earnedCents = relevant
+                    .filter { it.paymentStatus == paidStatus }
+                    .sumOf { it.paidCents.toLong() }
+            )
         }
 
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =

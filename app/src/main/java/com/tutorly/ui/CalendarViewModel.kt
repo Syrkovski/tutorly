@@ -3,6 +3,7 @@ package com.tutorly.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.PaymentStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,26 +32,38 @@ class CalendarViewModel @Inject constructor(
     private val anchor = MutableStateFlow(LocalDate.now(zoneId))
     private val mode = MutableStateFlow(CalendarMode.DAY)
 
-    private val rangeFlow = combine(anchor, mode) { currentAnchor, currentMode ->
-        currentAnchor to currentMode
-    }.map { (currentAnchor, currentMode) ->
-        currentAnchor to currentMode.toRange(currentAnchor, zoneId)
+    private val queryFlow = combine(anchor, mode) { currentAnchor, currentMode ->
+        CalendarQuery(
+            anchor = currentAnchor,
+            mode = currentMode,
+            range = currentMode.toRange(currentAnchor, zoneId)
+        )
     }
 
-    private val lessonsFlow = rangeFlow.flatMapLatest { (_, range) ->
-        lessonsRepository.observeInRange(range.start, range.end)
+    private val lessonsFlow = queryFlow.flatMapLatest { query ->
+        lessonsRepository.observeInRange(query.range.start, query.range.end)
+    }
+
+    private val statsFlow = queryFlow.flatMapLatest { query ->
+        lessonsRepository.observeStatsInRange(query.range.start, query.range.end)
     }
 
     val uiState: StateFlow<CalendarUiState> = combine(
-        anchor,
-        mode,
-        lessonsFlow
-    ) { currentAnchor, currentMode, lessons ->
+        queryFlow,
+        lessonsFlow,
+        statsFlow
+    ) { query, lessons, stats ->
+        val calendarLessons = lessons
+            .map { it.toCalendarLesson(zoneId) }
+            .sortedBy { it.start }
+        val groupedByDate = calendarLessons.groupBy { it.start.toLocalDate() }
         CalendarUiState(
-            anchor = currentAnchor,
-            mode = currentMode,
+            anchor = query.anchor,
+            mode = query.mode,
             zoneId = zoneId,
-            lessons = lessons.map { it.toCalendarLesson(zoneId) }.sortedBy { it.start }
+            lessons = calendarLessons,
+            lessonsByDate = groupedByDate,
+            stats = stats
         )
     }.stateIn(
         scope = viewModelScope,
@@ -58,7 +71,8 @@ class CalendarViewModel @Inject constructor(
         initialValue = CalendarUiState(
             anchor = anchor.value,
             mode = mode.value,
-            zoneId = zoneId
+            zoneId = zoneId,
+            stats = LessonsRangeStats.EMPTY
         )
     )
 
@@ -91,6 +105,12 @@ class CalendarViewModel @Inject constructor(
         mode.value = newMode
     }
 }
+
+private data class CalendarQuery(
+    val anchor: LocalDate,
+    val mode: CalendarMode,
+    val range: CalendarRange
+)
 
 private fun CalendarMode.toRange(anchor: LocalDate, zoneId: ZoneId): CalendarRange = when (this) {
     CalendarMode.DAY -> {
@@ -162,5 +182,7 @@ data class CalendarUiState(
     val anchor: LocalDate,
     val mode: CalendarMode,
     val zoneId: ZoneId,
-    val lessons: List<CalendarLesson> = emptyList()
+    val lessons: List<CalendarLesson> = emptyList(),
+    val lessonsByDate: Map<LocalDate, List<CalendarLesson>> = emptyMap(),
+    val stats: LessonsRangeStats = LessonsRangeStats.EMPTY
 )

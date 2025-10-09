@@ -12,6 +12,23 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE startAt >= :from AND startAt < :to ORDER BY startAt")
     fun observeInRange(from: Instant, to: Instant): Flow<List<LessonWithStudent>>
 
+    @Query(
+        """
+        SELECT 
+            COUNT(*) AS totalLessons,
+            COALESCE(SUM(CASE WHEN paymentStatus = :paidStatus THEN 1 ELSE 0 END), 0) AS paidLessons,
+            COALESCE(SUM(CASE WHEN paymentStatus IN (:outstandingStatuses) THEN 1 ELSE 0 END), 0) AS debtLessons
+        FROM lessons
+        WHERE startAt >= :from AND startAt < :to
+        """
+    )
+    fun observeLessonCounts(
+        from: Instant,
+        to: Instant,
+        paidStatus: PaymentStatus,
+        outstandingStatuses: List<PaymentStatus>
+    ): Flow<LessonCountTuple>
+
     @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC")
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
 
@@ -24,6 +41,12 @@ interface LessonDao {
     @Query("UPDATE lessons SET note=:note, updatedAt=:now WHERE id=:id")
     suspend fun updateNote(id: Long, note: String?, now: Instant)
 }
+
+data class LessonCountTuple(
+    val totalLessons: Int,
+    val paidLessons: Int,
+    val debtLessons: Int
+)
 
 
 //@Dao

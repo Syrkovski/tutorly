@@ -28,8 +28,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
+import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.WeekMosaic
+import com.tutorly.ui.components.WeeklyStats
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -158,10 +161,8 @@ fun CalendarScreen(
                 ,
                 label = "day-switch"
             ) { currentDate ->
-                val lessonsForCurrent = remember(currentDate, uiState.lessons) {
-                    uiState.lessons
-                        .filter { it.start.toLocalDate() == currentDate }
-                        .sortedBy { it.start }
+                val lessonsForCurrent = remember(currentDate, uiState.lessonsByDate) {
+                    uiState.lessonsByDate[currentDate].orEmpty()
                 }
                 when (mode) {
                     CalendarMode.DAY -> DayTimeline(currentDate, lessonsForCurrent)
@@ -175,13 +176,37 @@ fun CalendarScreen(
                             }
                             viewModel.setMode(CalendarMode.DAY)
                             viewModel.selectDate(selected)
-                        })
+                        },
+                        dayDataProvider = { date ->
+                            uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
+                        },
+                        stats = uiState.stats.toWeeklyStats()
+                    )
                     CalendarMode.MONTH -> MonthPlaceholder(currentDate)
                 }
             }
         }
     }
 }
+
+private fun CalendarLesson.toLessonBrief(): LessonBrief {
+    return LessonBrief(
+        time = start.format(timeFormatter),
+        end = end.format(timeFormatter),
+        student = studentName,
+        priceCents = priceCents.toLong(),
+        paid = paymentStatus == PaymentStatus.PAID
+    )
+}
+
+private fun LessonsRangeStats.toWeeklyStats(): WeeklyStats = WeeklyStats(
+    totalLessons = totalLessons,
+    paidCount = paidLessons,
+    debtCount = debtLessons,
+    earnedCents = earnedCents
+)
+
+private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 
 /* ----------------------------- HEADER ----------------------------------- */

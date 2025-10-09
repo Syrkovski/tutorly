@@ -4,6 +4,7 @@ import androidx.room.*
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 @Dao
 interface PaymentDao {
@@ -39,6 +40,19 @@ interface PaymentDao {
         WHERE studentId = :studentId AND status IN (:statuses)
     """)
     fun observeTotalDebt(studentId: Long, statuses: List<PaymentStatus>): Flow<Long>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
+        WHERE at >= :from AND at < :to AND status = :status
+        """
+    )
+    fun observeTotalInRange(
+        from: Instant,
+        to: Instant,
+        status: PaymentStatus
+    ): Flow<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(payment: Payment): Long

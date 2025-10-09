@@ -50,5 +50,8 @@ object DatabaseModule {
     fun provideSubjectsRepo(dao: SubjectPresetDao): SubjectPresetsRepository = RoomSubjectPresetsRepository(dao)
 
     @Provides @Singleton
-    fun provideLessonsRepo(dao: LessonDao): LessonsRepository = RoomLessonsRepository(dao)
+    fun provideLessonsRepo(
+        lessonDao: LessonDao,
+        paymentDao: PaymentDao
+    ): LessonsRepository = RoomLessonsRepository(lessonDao, paymentDao)
 }
