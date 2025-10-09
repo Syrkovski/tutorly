@@ -10,5 +10,7 @@ data class UserSettings(
     val workDayStartMinutes: Int = 9 * 60,    // 09:00
     val workDayEndMinutes: Int = 22 * 60,     // 22:00
     val slotStepMinutes: Int = 30,            // шаг слотов
-    val locale: String = "ru"
+    val locale: String = "ru",
+    val defaultLessonDurationMinutes: Int = 60,
+    val defaultLessonPriceCents: Int = 0
 )

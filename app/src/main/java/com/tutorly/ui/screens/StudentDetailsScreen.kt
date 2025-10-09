@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Message
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +60,7 @@ import java.util.Locale
 fun StudentDetailsScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onCreateLesson: (Student) -> Unit = {},
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
 ) {
@@ -126,6 +128,12 @@ fun StudentDetailsScreen(
                         hasDebt = state.hasDebt,
                         totalDebt = formattedDebt
                     )
+                    Button(
+                        onClick = { onCreateLesson(student) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = stringResource(id = R.string.student_details_create_lesson))
+                    }
                     StudentContactCard(student = student)
                     StudentStatsRow(
                         totalLessons = lessons.size,

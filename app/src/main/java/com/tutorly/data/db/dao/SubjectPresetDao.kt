@@ -8,6 +8,9 @@ interface SubjectPresetDao {
     @Query("SELECT * FROM subject_presets ORDER BY name")
     suspend fun all(): List<SubjectPreset>
 
+    @Query("SELECT * FROM subject_presets WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): SubjectPreset?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(preset: SubjectPreset): Long
 }

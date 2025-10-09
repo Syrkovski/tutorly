@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,21 +18,43 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.tutorly.R
+import com.tutorly.ui.CalendarEvent
+import com.tutorly.domain.model.LessonsRangeStats
+import com.tutorly.domain.model.PaymentStatusIcon
+import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.components.LessonBrief
+import com.tutorly.ui.components.WeekMosaic
+import com.tutorly.ui.components.WeeklyStats
+import com.tutorly.ui.theme.NowRed
+import com.tutorly.ui.lessoncreation.LessonCreationConfig
+import com.tutorly.ui.lessoncreation.LessonCreationOrigin
+import com.tutorly.ui.lessoncreation.LessonCreationSheet
+import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
-import com.tutorly.ui.components.WeekMosaic
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 enum class CalendarMode { DAY, WEEK, MONTH }
 
@@ -39,27 +62,70 @@ enum class CalendarMode { DAY, WEEK, MONTH }
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
-    onAddClick: (() -> Unit)? = null
+    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
+    onAddStudent: () -> Unit = {},
+    creationViewModel: LessonCreationViewModel,
+    viewModel: CalendarViewModel = hiltViewModel()
 ) {
-    var mode by rememberSaveable { mutableStateOf(CalendarMode.DAY) }
-    var anchor by rememberSaveable { mutableStateOf(LocalDate.now()) }
+    val uiState by viewModel.uiState.collectAsState()
+    val creationState by creationViewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     var direction by remember { mutableStateOf(0) } // -1 назад, +1 вперёд
+    val anchor = uiState.anchor
+    val mode = uiState.mode
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is CalendarEvent.CreateLesson -> creationViewModel.start(
+                    LessonCreationConfig(
+                        start = event.start,
+                        duration = event.duration,
+                        studentId = event.studentId,
+                        zoneId = event.start.zone,
+                        origin = LessonCreationOrigin.CALENDAR
+                    )
+                )
+                is CalendarEvent.OpenLesson -> onLessonDetails(event.lessonId, event.studentId, event.start)
+            }
+        }
+    }
+
+    LaunchedEffect(creationState.snackbarMessage) {
+        creationState.snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            creationViewModel.consumeSnackbar()
+        }
+    }
+
+    LessonCreationSheet(
+        state = creationState,
+        onDismiss = { creationViewModel.dismiss() },
+        onStudentQueryChange = creationViewModel::onStudentQueryChange,
+        onStudentSelect = creationViewModel::onStudentSelected,
+        onAddStudent = {
+            creationViewModel.prepareForStudentCreation()
+            creationViewModel.dismiss()
+            onAddStudent()
+        },
+        onSubjectSelect = creationViewModel::onSubjectSelected,
+        onDateSelect = creationViewModel::onDateSelected,
+        onTimeSelect = creationViewModel::onTimeSelected,
+        onDurationChange = creationViewModel::onDurationChanged,
+        onPriceChange = creationViewModel::onPriceChanged,
+        onNoteChange = creationViewModel::onNoteChanged,
+        onSubmit = creationViewModel::submit,
+        onConfirmConflict = creationViewModel::confirmConflict,
+        onDismissConflict = creationViewModel::dismissConflict
+    )
 
     val prevPeriod = {
         direction = -1
-        anchor = when (mode) {
-            CalendarMode.DAY   -> anchor.minusDays(1)
-            CalendarMode.WEEK  -> anchor.minusWeeks(1)
-            CalendarMode.MONTH -> anchor.minusMonths(1)
-        }
+        viewModel.goToPreviousPeriod()
     }
     val nextPeriod = {
         direction = +1
-        anchor = when (mode) {
-            CalendarMode.DAY   -> anchor.plusDays(1)
-            CalendarMode.WEEK  -> anchor.plusWeeks(1)
-            CalendarMode.MONTH -> anchor.plusMonths(1)
-        }
+        viewModel.goToNextPeriod()
     }
 
     val swipeModifier = Modifier.pointerInput(mode) {
@@ -92,20 +158,58 @@ fun CalendarScreen(
         )
     }
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
-    ) {
+    Scaffold(
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = {
+                val start = uiState.currentDateTime
+                creationViewModel.start(
+                    LessonCreationConfig(
+                        start = start,
+                        zoneId = uiState.zoneId,
+                        origin = LessonCreationOrigin.CALENDAR
+                    )
+                )
+            }) {
+                Icon(Icons.Filled.Add, contentDescription = null)
+            }
+        }
+    ) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .windowInsetsPadding(WindowInsets.statusBars)
+        ) {
         // Хедер: тут же свайп (чтобы не конфликтовал со скроллом списка)
         PlanScreenHeader(
             anchor = anchor,
             mode = mode,
-            onModeChange = { mode = it },
+            onModeChange = {
+                direction = 0
+                viewModel.setMode(it)
+            },
             onPrevPeriod = prevPeriod,
             onNextPeriod = nextPeriod,
-            onAddClick = { onAddClick?.invoke() },
-            onSelectDate = { anchor = it },
+            onAddClick = {
+                val start = uiState.currentDateTime
+                creationViewModel.start(
+                    LessonCreationConfig(
+                        start = start,
+                        zoneId = uiState.zoneId,
+                        origin = LessonCreationOrigin.CALENDAR
+                    )
+                )
+            },
+            onSelectDate = { selected ->
+                direction = when {
+                    selected.isAfter(anchor) -> 1
+                    selected.isBefore(anchor) -> -1
+                    else -> 0
+                }
+                viewModel.selectDate(selected)
+            },
             onSwipeLeft = nextPeriod,
             onSwipeRight = prevPeriod
         )
@@ -147,24 +251,64 @@ fun CalendarScreen(
                 ,
                 label = "day-switch"
             ) { currentDate ->
+                val lessonsForCurrent = remember(currentDate, uiState.lessonsByDate) {
+                    uiState.lessonsByDate[currentDate].orEmpty()
+                }
                 when (mode) {
-                    CalendarMode.DAY   -> DayTimeline(currentDate)
-                    CalendarMode.WEEK  -> WeekMosaic(
-                        anchor = currentDate, // внутри он сам возьмёт monday = anchor.with(MONDAY)
+                    CalendarMode.DAY -> DayTimeline(
+                        date = currentDate,
+                        lessons = lessonsForCurrent,
+                        currentDateTime = uiState.currentDateTime,
+                        onLessonClick = { lesson ->
+                            viewModel.onLessonSelected(lesson)
+                        },
+                        onEmptySlot = { startTime ->
+                            viewModel.onEmptySlotSelected(currentDate, startTime, DefaultSlotDuration)
+                        }
+                    )
+                    CalendarMode.WEEK -> WeekMosaic(
+                        anchor = currentDate,
                         onOpenDay = { selected ->
-                            // Вариант A: остаёмся в режиме WEEK и просто выставляем выбранный день якорём
-//                            anchor = selected.with(DayOfWeek.MONDAY)
-
-                            // Вариант B (если когда-нибудь решишь): перейти в DAY на выбранную дату
-                             mode = CalendarMode.DAY
-                             anchor = selected
-                        })
+                            direction = when {
+                                selected.isAfter(anchor) -> 1
+                                selected.isBefore(anchor) -> -1
+                                else -> 0
+                            }
+                            viewModel.setMode(CalendarMode.DAY)
+                            viewModel.selectDate(selected)
+                        },
+                        dayDataProvider = { date ->
+                            uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
+                        },
+                        stats = uiState.stats.toWeeklyStats(),
+                        currentDateTime = uiState.currentDateTime
+                    )
                     CalendarMode.MONTH -> MonthPlaceholder(currentDate)
                 }
             }
         }
     }
+    }
 }
+
+private fun CalendarLesson.toLessonBrief(): LessonBrief {
+    return LessonBrief(
+        time = start.format(timeFormatter),
+        end = end.format(timeFormatter),
+        student = studentName,
+        priceCents = priceCents.toLong(),
+        paid = paymentStatus == PaymentStatus.PAID
+    )
+}
+
+private fun LessonsRangeStats.toWeeklyStats(): WeeklyStats = WeeklyStats(
+    totalLessons = totalLessons,
+    paidCount = paidLessons,
+    debtCount = debtLessons,
+    earnedCents = earnedCents
+)
+
+private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 
 /* ----------------------------- HEADER ----------------------------------- */
@@ -260,32 +404,67 @@ private val GridColor = Color(0xFFE9F0FF)
 private val SpineColor = Color(0xFF2D7FF9).copy(alpha = 0.6f)
 private val LabelWidth = 64.dp
 private val HourHeight = 64.dp
-
-private data class LessonUi(
-    val start: String,   // "HH:mm"
-    val end: String,     // "HH:mm"
-    val student: String,
-    val subtitle: String,
-    val paid: Boolean
-)
+private val TimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
+private const val MinutesPerHour: Int = 60
+private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
+private const val SlotIncrementMinutes: Int = 30
 
 @Composable
-private fun DayTimeline(date: LocalDate) {
-    // Пример данных
-    val lessons = remember(date) {
-        listOf(
-            LessonUi("09:30", "10:30", "Анна Петрова", "Математика • 8 класс", paid = true),
-            LessonUi("13:00", "14:30", "Иван Сидоров", "Английский • 7 класс", paid = false),
-        )
+private fun DayTimeline(
+    date: LocalDate,
+    lessons: List<CalendarLesson>,
+    currentDateTime: ZonedDateTime,
+    onLessonClick: (CalendarLesson) -> Unit,
+    onEmptySlot: (LocalTime) -> Unit
+) {
+    val dayLessons = remember(date, lessons) { lessons }
+    val isToday = remember(date, currentDateTime) { currentDateTime.toLocalDate() == date }
+    val (startHour, endHourExclusive) = remember(dayLessons) {
+        computeTimelineBounds(dayLessons)
+    }
+    val hours = remember(startHour, endHourExclusive) {
+        (startHour until endHourExclusive).map { "%02d:00".format(it) }
+    }
+    val totalHeight: Dp = HourHeight * hours.size
+    val totalMinutes = remember(startHour, endHourExclusive) {
+        (endHourExclusive - startHour) * MinutesPerHour
     }
 
-    val startHour = 9
-    val endHourExclusive = 21
-    val hours = (startHour until endHourExclusive).map { "%02d:00".format(it) }
-    val hoursCount = hours.size
-    val totalHeight: Dp = HourHeight * hoursCount
-
     val scroll = rememberScrollState()
+    val density = LocalDensity.current
+    val hourHeightPx = remember(density) { with(density) { HourHeight.toPx() } }
+    val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
+    val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
+    val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
+    val minuteHeight = remember { HourHeight / MinutesPerHour }
+    val nowMinutesFromStart = remember(isToday, currentDateTime, startHour) {
+        if (!isToday) null else {
+            val currentMinutes = currentDateTime.hour * MinutesPerHour + currentDateTime.minute
+            currentMinutes - startHour * MinutesPerHour
+        }
+    }
+    val nowBadgeOffset = remember(nowMinutesFromStart, totalMinutes) {
+        nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
+            minuteHeight * minutes.toFloat()
+        }
+    }
+
+    val lessonRegions = remember(dayLessons, startHour, hourHeightPx, labelWidthPx, cardInsetPx) {
+        val baseMin = startHour * MinutesPerHour
+        dayLessons.map { lesson ->
+            val startTime = lesson.start.toLocalTime()
+            val startMin = startTime.hour * MinutesPerHour + startTime.minute
+            val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
+            val topPx = ((startMin - baseMin).coerceAtLeast(0)) * hourHeightPx / MinutesPerHour
+            val heightPx = durationMinutes.toFloat() * hourHeightPx / MinutesPerHour
+            TimelineLessonRegion(
+                topPx = topPx,
+                bottomPx = topPx + heightPx,
+                leftPx = labelWidthPx + cardInsetPx
+            )
+        }
+    }
 
     // ВЕСЬ день = одна большая "простыня" высотой totalHeight; она вертикально скроллится
     Box(
@@ -299,6 +478,23 @@ private fun DayTimeline(date: LocalDate) {
                 .fillMaxWidth()
                 .height(totalHeight)
                 .padding(horizontal = 8.dp)
+                .pointerInput(dayLessons, startHour, endHourExclusive, lessonRegions) {
+                    detectTapGestures { offset ->
+                        if (offset.x < labelWidthPx) return@detectTapGestures
+                        if (lessonRegions.any { region -> offset.x >= region.leftPx && offset.y in region.topPx..region.bottomPx }) {
+                            return@detectTapGestures
+                        }
+
+                        val clampedY = offset.y.coerceIn(0f, totalHeightPx)
+                        val minutesWithin = (clampedY / hourHeightPx) * MinutesPerHour
+                        val candidate = (startHour * MinutesPerHour) + minutesWithin.roundToInt()
+                        val normalized = candidate.coerceIn(0, LAST_TIMELINE_MINUTE)
+                        val rounded = (normalized / SlotIncrementMinutes) * SlotIncrementMinutes
+                        val hour = rounded / MinutesPerHour
+                        val minute = rounded % MinutesPerHour
+                        onEmptySlot(LocalTime.of(hour, minute))
+                    }
+                }
         ) {
             // 1) Сетка фоном
             Canvas(Modifier.matchParentSize()) {
@@ -306,7 +502,7 @@ private fun DayTimeline(date: LocalDate) {
                 val leftPad = LabelWidth.toPx()
                 val spineW = 2.dp.toPx()
 
-                repeat(hoursCount + 1) { i ->
+                repeat(hours.size + 1) { i ->
                     val y = i * rowH
                     drawLine(
                         color = GridColor,
@@ -320,14 +516,24 @@ private fun DayTimeline(date: LocalDate) {
                     topLeft = androidx.compose.ui.geometry.Offset(leftPad, 0f),
                     size = androidx.compose.ui.geometry.Size(spineW, size.height)
                 )
+                nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
+                    val y = minutes * rowH / MinutesPerHour
+                    drawLine(
+                        color = NowRed,
+                        start = androidx.compose.ui.geometry.Offset(0f, y),
+                        end = androidx.compose.ui.geometry.Offset(size.width, y),
+                        strokeWidth = 2.dp.toPx()
+                    )
+                }
             }
 
             // 2) Уроки — точное позиционирование по времени, до правого края
-            lessons.forEach { l ->
+            dayLessons.forEach { lesson ->
                 LessonBlock(
-                    lesson = l,
+                    lesson = lesson,
                     baseHour = startHour,
-                    hourHeight = HourHeight
+                    hourHeight = HourHeight,
+                    onLessonClick = onLessonClick
                 )
             }
 
@@ -347,28 +553,62 @@ private fun DayTimeline(date: LocalDate) {
                     }
                 }
             }
+
+            nowBadgeOffset?.let { offset ->
+                val centered = offset - 12.dp
+                val badgeOffset = if (centered < 0.dp) 0.dp else centered
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .offset(y = badgeOffset)
+                ) {
+                    NowBadge(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = LabelWidth + 16.dp)
+                    )
+                }
+            }
         }
     }
 }
 
+private data class TimelineLessonRegion(
+    val topPx: Float,
+    val bottomPx: Float,
+    val leftPx: Float
+)
+
 @Composable
 private fun LessonBlock(
-    lesson: LessonUi,
+    lesson: CalendarLesson,
     baseHour: Int,
-    hourHeight: Dp
+    hourHeight: Dp,
+    onLessonClick: (CalendarLesson) -> Unit
 ) {
-    // Парсим время
-    val (sh, sm) = lesson.start.split(":").map { it.toInt() }
-    val (eh, em) = lesson.end.split(":").map { it.toInt() }
-    val startMin = sh * 60 + sm
-    val endMin = eh * 60 + em
+    val startTime = lesson.start.toLocalTime()
+    val endTime = lesson.end.toLocalTime()
+    val startMin = startTime.hour * 60 + startTime.minute
     val baseMin = baseHour * 60
-    val durMin = (endMin - startMin).coerceAtLeast(30)
+    val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
 
     // Переводим минуты в dp (1 мин = hourHeight/60)
     val minuteDp = hourHeight / 60f
     val top = minuteDp * (startMin - baseMin)
-    val height = minuteDp * durMin
+    val height = minuteDp * durationMinutes.toInt()
+
+    val timeRange = buildString {
+        append(TimeFormatter.format(startTime))
+        append("–")
+        append(TimeFormatter.format(endTime))
+    }
+    val subtitle = lesson.subtitleText()
+    val detailLine = listOfNotNull(timeRange, subtitle).joinToString(" • ")
+    val statusText = lesson.paymentStatusLabel()
+    val statusColor = lesson.paymentStatusColor()
+    val statusIcon = lesson.paymentStatusIconVector()
+    val containerColor = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.12f) }
+        ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
 
     Box(
         Modifier
@@ -378,9 +618,10 @@ private fun LessonBlock(
             .padding(start = LabelWidth + 8.dp, end = 8.dp) // от оси до правого края
     ) {
         Card(
+            onClick = { onLessonClick(lesson) },
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                containerColor = containerColor
             ),
             modifier = Modifier.fillMaxSize()
         ) {
@@ -388,17 +629,108 @@ private fun LessonBlock(
                 Modifier
                     .fillMaxSize()
                     .padding(12.dp),
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(lesson.student, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "${lesson.start}–${lesson.end} • ${lesson.subtitle}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LocalContentColor.current.copy(alpha = 0.7f)
-                )
+                Text(lesson.studentName, style = MaterialTheme.typography.titleMedium)
+                if (detailLine.isNotBlank()) {
+                    Text(
+                        detailLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalContentColor.current.copy(alpha = 0.7f)
+                    )
+                }
+                if (statusText != null) {
+                    StatusBadge(text = statusText, color = statusColor, icon = statusIcon)
+                }
             }
         }
     }
+}
+
+private fun CalendarLesson.subtitleText(): String? {
+    val parts = listOfNotNull(
+        subjectName?.takeIf { it.isNotBlank() },
+        studentNote?.takeIf { it.isNotBlank() },
+        lessonTitle?.takeIf { it.isNotBlank() }
+    ).distinct()
+    return if (parts.isEmpty()) null else parts.joinToString(" • ")
+}
+
+@Composable
+private fun CalendarLesson.paymentStatusLabel(): String? = when (paymentStatus) {
+    PaymentStatus.PAID -> stringResource(R.string.lesson_status_paid)
+    PaymentStatus.DUE -> stringResource(R.string.lesson_status_due)
+    PaymentStatus.UNPAID -> stringResource(R.string.lesson_status_unpaid)
+    PaymentStatus.CANCELLED -> stringResource(R.string.lesson_status_cancelled)
+}
+
+@Composable
+private fun CalendarLesson.paymentStatusColor(): Color = when (paymentStatus) {
+    PaymentStatus.PAID -> MaterialTheme.colorScheme.tertiary
+    PaymentStatus.DUE, PaymentStatus.UNPAID -> MaterialTheme.colorScheme.error
+    PaymentStatus.CANCELLED -> MaterialTheme.colorScheme.outline
+}
+
+@Composable
+private fun CalendarLesson.paymentStatusIconVector(): ImageVector? = when (paymentStatusIcon) {
+    PaymentStatusIcon.PAID -> Icons.Filled.Check
+    PaymentStatusIcon.OUTSTANDING -> Icons.Filled.Warning
+    PaymentStatusIcon.CANCELLED -> Icons.Filled.Close
+}
+
+@Composable
+private fun StatusBadge(text: String, color: Color, icon: ImageVector?) {
+    Surface(
+        color = color.copy(alpha = 0.12f),
+        contentColor = color,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = text,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun NowBadge(modifier: Modifier = Modifier) {
+    Surface(
+        color = NowRed,
+        contentColor = Color.White,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier
+    ) {
+        Text(
+            text = stringResource(R.string.calendar_now_badge),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+private fun computeTimelineBounds(lessons: List<CalendarLesson>): Pair<Int, Int> {
+    val defaultStart = 9
+    val defaultEnd = 21
+    if (lessons.isEmpty()) return defaultStart to defaultEnd
+
+    val earliestMinutes = lessons.minOf { it.start.hour * 60 + it.start.minute }
+    val latestMinutes = lessons.maxOf { it.end.hour * 60 + it.end.minute }
+    val startHour = min(defaultStart, earliestMinutes / 60)
+    val endHourExclusive = max(defaultEnd, ((latestMinutes + 59) / 60))
+    return startHour to max(endHourExclusive, startHour + 1)
 }
 
 /* ---------------------- WEEK / MONTH PLACEHOLDERS ------------------------ */

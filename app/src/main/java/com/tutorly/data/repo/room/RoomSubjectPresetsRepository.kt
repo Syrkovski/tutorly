@@ -8,5 +8,6 @@ class RoomSubjectPresetsRepository(
     private val dao: SubjectPresetDao
 ) : SubjectPresetsRepository {
     override suspend fun all(): List<SubjectPreset> = dao.all()
+    override suspend fun getById(id: Long): SubjectPreset? = dao.getById(id)
     override suspend fun upsert(preset: SubjectPreset): Long = dao.upsert(preset)
 }
