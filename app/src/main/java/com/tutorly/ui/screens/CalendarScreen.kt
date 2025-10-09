@@ -61,8 +61,8 @@ enum class CalendarMode { DAY, WEEK, MONTH }
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
-    onCreateLesson: (ZonedDateTime, Duration) -> Unit = { _, _ -> },
-    onLessonDetails: (Long) -> Unit = {},
+    onCreateLesson: (ZonedDateTime, Duration, Long?) -> Unit = { _, _, _ -> },
+    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
     onAddClick: (() -> Unit)? = null,
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
@@ -74,8 +74,8 @@ fun CalendarScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is CalendarEvent.CreateLesson -> onCreateLesson(event.start, event.duration)
-                is CalendarEvent.OpenLesson -> onLessonDetails(event.lessonId)
+                is CalendarEvent.CreateLesson -> onCreateLesson(event.start, event.duration, event.studentId)
+                is CalendarEvent.OpenLesson -> onLessonDetails(event.lessonId, event.studentId, event.start)
             }
         }
     }
@@ -193,7 +193,7 @@ fun CalendarScreen(
                         lessons = lessonsForCurrent,
                         currentDateTime = uiState.currentDateTime,
                         onLessonClick = { lesson ->
-                            viewModel.onLessonSelected(lesson.id)
+                            viewModel.onLessonSelected(lesson)
                         },
                         onEmptySlot = { startTime ->
                             viewModel.onEmptySlotSelected(currentDate, startTime, DefaultSlotDuration)

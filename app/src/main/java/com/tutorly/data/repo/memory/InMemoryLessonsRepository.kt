@@ -121,6 +121,7 @@ private fun Lesson.toDetailsStub(): LessonDetails {
 
     return LessonDetails(
         id = id,
+        studentId = studentId,
         startAt = startAt,
         endAt = normalizedEnd,
         duration = duration,

@@ -11,6 +11,7 @@ import java.time.Instant
  */
 data class LessonDetails(
     val id: Long,
+    val studentId: Long,
     val startAt: Instant,
     val endAt: Instant,
     val duration: Duration,

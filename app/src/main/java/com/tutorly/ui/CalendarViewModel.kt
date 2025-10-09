@@ -1,5 +1,6 @@
 package com.tutorly.ui
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonDetails
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -34,13 +36,19 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
-    private val lessonsRepository: LessonsRepository
+    private val lessonsRepository: LessonsRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    companion object {
+        const val ARG_ANCHOR_DATE: String = "calendarDate"
+        const val ARG_CALENDAR_MODE: String = "calendarMode"
+    }
 
     private val zoneId: ZoneId = ZoneId.systemDefault()
 
-    private val anchor = MutableStateFlow(LocalDate.now(zoneId))
-    private val mode = MutableStateFlow(CalendarMode.DAY)
+    private val anchor = MutableStateFlow(savedStateHandle.restoreAnchor(zoneId))
+    private val mode = MutableStateFlow(savedStateHandle.restoreMode())
     private val currentDateTime = MutableStateFlow(ZonedDateTime.now(zoneId))
 
     private val queryFlow = combine(anchor, mode) { currentAnchor, currentMode ->
@@ -69,18 +77,30 @@ class CalendarViewModel @Inject constructor(
                 delay(30_000)
             }
         }
+        viewModelScope.launch {
+            anchor.collect { savedStateHandle[ARG_ANCHOR_DATE] = it.toString() }
+        }
+        viewModelScope.launch {
+            mode.collect { savedStateHandle[ARG_CALENDAR_MODE] = it.name }
+        }
     }
 
     private val _events = MutableSharedFlow<CalendarEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<CalendarEvent> = _events.asSharedFlow()
 
-    fun onLessonSelected(lessonId: Long) {
-        _events.tryEmit(CalendarEvent.OpenLesson(lessonId))
+    fun onLessonSelected(lesson: CalendarLesson) {
+        _events.tryEmit(
+            CalendarEvent.OpenLesson(
+                lessonId = lesson.id,
+                studentId = lesson.studentId,
+                start = lesson.start
+            )
+        )
     }
 
     fun onEmptySlotSelected(date: LocalDate, time: LocalTime, duration: Duration) {
         val start = date.atTime(time).atZone(zoneId)
-        _events.tryEmit(CalendarEvent.CreateLesson(start, duration))
+        _events.tryEmit(CalendarEvent.CreateLesson(start, duration, null))
     }
 
     val uiState: StateFlow<CalendarUiState> = combine(
@@ -183,6 +203,7 @@ private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
 
     return CalendarLesson(
         id = id,
+        studentId = studentId,
         start = lessonStart,
         end = lessonEnd,
         duration = duration,
@@ -202,6 +223,7 @@ private data class CalendarRange(val start: Instant, val end: Instant)
 
 data class CalendarLesson(
     val id: Long,
+    val studentId: Long,
     val start: ZonedDateTime,
     val end: ZonedDateTime,
     val duration: Duration,
@@ -227,6 +249,25 @@ data class CalendarUiState(
 )
 
 sealed interface CalendarEvent {
-    data class CreateLesson(val start: ZonedDateTime, val duration: Duration) : CalendarEvent
-    data class OpenLesson(val lessonId: Long) : CalendarEvent
+    data class CreateLesson(
+        val start: ZonedDateTime,
+        val duration: Duration,
+        val studentId: Long?
+    ) : CalendarEvent
+
+    data class OpenLesson(
+        val lessonId: Long,
+        val studentId: Long,
+        val start: ZonedDateTime
+    ) : CalendarEvent
+}
+
+private fun SavedStateHandle.restoreAnchor(zoneId: ZoneId): LocalDate {
+    val raw = get<String>(CalendarViewModel.ARG_ANCHOR_DATE)
+    return raw?.takeIf { it.isNotBlank() }?.let { LocalDate.parse(it) } ?: LocalDate.now(zoneId)
+}
+
+private fun SavedStateHandle.restoreMode(): CalendarMode {
+    val raw = get<String>(CalendarViewModel.ARG_CALENDAR_MODE)
+    return raw?.let { runCatching { CalendarMode.valueOf(it) }.getOrNull() } ?: CalendarMode.DAY
 }

@@ -30,6 +30,7 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
 
     return LessonDetails(
         id = lesson.id,
+        studentId = lesson.studentId,
         startAt = lesson.startAt,
         endAt = normalizedEnd,
         duration = normalizedDuration,
