@@ -35,8 +35,9 @@ const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
 const val ROUTE_TODAY = "today"
 const val ROUTE_STUDENTS = "students"
+private const val ARG_STUDENT_EDITOR_ORIGIN = "studentEditorOrigin"
+private const val ROUTE_STUDENTS_PATTERN = "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN={$ARG_STUDENT_EDITOR_ORIGIN}"
 const val ROUTE_FINANCE = "finance"
-const val ROUTE_STUDENT_NEW = "student/new"
 const val ROUTE_STUDENT_DETAILS = "student/{studentId}"
 const val ROUTE_STUDENT_EDIT = "student/{studentId}/edit"
 const val ROUTE_LESSON_NEW = "lesson/new"
@@ -74,7 +75,7 @@ fun AppNavRoot() {
                     },
                     onAddClick = when (route) {
                         ROUTE_STUDENTS -> ({
-                            nav.navigate(ROUTE_STUDENT_NEW) {
+                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.STUDENTS.name}") {
                                 launchSingleTop = true
                             }
                         })
@@ -129,7 +130,7 @@ fun AppNavRoot() {
                         }
                     },
                     onAddStudent = {
-                        nav.navigate(ROUTE_STUDENT_NEW) {
+                        nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
                             launchSingleTop = true
                         }
                     },
@@ -137,34 +138,36 @@ fun AppNavRoot() {
                 )
             }
             composable(ROUTE_TODAY)    { TodayScreen() }      // сам рисует свой верх (заголовок + счетчики)
-            composable(ROUTE_STUDENTS) {
+            composable(
+                route = ROUTE_STUDENTS_PATTERN,
+                arguments = listOf(
+                    navArgument(ARG_STUDENT_EDITOR_ORIGIN) {
+                        type = NavType.StringType
+                        defaultValue = StudentEditorOrigin.NONE.name
+                    }
+                )
+            ) { entry ->
+                val calendarEntry = remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
+                val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
+                val originName = entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
+                val origin = runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(StudentEditorOrigin.NONE)
                 StudentsScreen(
                     onStudentClick = { id ->
                         nav.navigate(studentDetailsRoute(id)) {
                             launchSingleTop = true
                         }
-                    }
-                )
-            }
-            composable(ROUTE_STUDENT_NEW) {
-                val calendarEntry = remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
-                val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
-                StudentEditorScreen(
-                    onClose = { nav.popBackStack() },
-                    onSaved = { newId ->
-                        nav.popBackStack()
+                    },
+                    onStudentCreatedFromLesson = { newId ->
                         val reopened = creationViewModel.onStudentCreated(newId)
-                        if (reopened) {
-                            nav.navigate(calendarRoute(nav)) {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            nav.navigate(studentDetailsRoute(newId)) {
-                                launchSingleTop = true
-                            }
+                        nav.navigate(calendarRoute(nav)) {
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                    }
+                        if (!reopened) {
+                            creationViewModel.dismiss()
+                        }
+                    },
+                    initialEditorOrigin = origin
                 )
             }
             composable(

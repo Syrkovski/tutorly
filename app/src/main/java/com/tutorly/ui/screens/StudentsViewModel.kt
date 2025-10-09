@@ -6,6 +6,7 @@ import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import java.time.Instant
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,9 @@ class StudentsViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
+    private val _editorFormState = MutableStateFlow(StudentEditorFormState())
+    val editorFormState: StateFlow<StudentEditorFormState> = _editorFormState.asStateFlow()
+
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
 
@@ -46,6 +50,101 @@ class StudentsViewModel @Inject constructor(
 
     fun onQueryChange(value: String) {
         _query.value = value
+    }
+
+    fun startStudentCreation(
+        name: String = "",
+        phone: String = "",
+        messenger: String = "",
+        note: String = "",
+        isArchived: Boolean = false,
+        isActive: Boolean = true,
+    ) {
+        _editorFormState.value = StudentEditorFormState(
+            name = name,
+            phone = phone,
+            messenger = messenger,
+            note = note,
+            isArchived = isArchived,
+            isActive = isActive
+        )
+    }
+
+    fun resetStudentForm() {
+        _editorFormState.value = StudentEditorFormState()
+    }
+
+    fun onEditorNameChange(value: String) {
+        _editorFormState.update { it.copy(name = value, nameError = false) }
+    }
+
+    fun onEditorPhoneChange(value: String) {
+        _editorFormState.update { it.copy(phone = value) }
+    }
+
+    fun onEditorMessengerChange(value: String) {
+        _editorFormState.update { it.copy(messenger = value) }
+    }
+
+    fun onEditorNoteChange(value: String) {
+        _editorFormState.update { it.copy(note = value) }
+    }
+
+    fun onEditorArchivedChange(value: Boolean) {
+        _editorFormState.update { it.copy(isArchived = value) }
+    }
+
+    fun onEditorActiveChange(value: Boolean) {
+        _editorFormState.update { it.copy(isActive = value) }
+    }
+
+    fun submitNewStudent(
+        onSuccess: (Long, String) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val state = _editorFormState.value
+        val trimmedName = state.name.trim()
+        if (trimmedName.isEmpty()) {
+            _editorFormState.update { it.copy(nameError = true) }
+            return
+        }
+
+        val trimmedPhone = state.phone.trim().ifBlank { null }
+        val trimmedMessenger = state.messenger.trim().ifBlank { null }
+        val trimmedNote = state.note.trim().ifBlank { null }
+
+        viewModelScope.launch {
+            _editorFormState.update {
+                it.copy(
+                    name = trimmedName,
+                    phone = trimmedPhone.orEmpty(),
+                    messenger = trimmedMessenger.orEmpty(),
+                    note = trimmedNote.orEmpty(),
+                    nameError = false,
+                    isSaving = true
+                )
+            }
+
+            val student = Student(
+                name = trimmedName,
+                phone = trimmedPhone,
+                messenger = trimmedMessenger,
+                note = trimmedNote,
+                isArchived = state.isArchived,
+                active = state.isActive,
+                updatedAt = Instant.now()
+            )
+
+            runCatching { repo.upsert(student) }
+                .onSuccess { newId ->
+                    _editorFormState.value = StudentEditorFormState()
+                    onSuccess(newId, trimmedName)
+                }
+                .onFailure { throwable ->
+                    _editorFormState.update { it.copy(isSaving = false) }
+                    onError(throwable.message ?: "")
+                }
+        }
     }
 
     private fun syncDebtObservers(students: List<Student>) {
