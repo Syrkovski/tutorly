@@ -3,21 +3,27 @@ package com.tutorly.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonDetails
-import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.domain.model.LessonsRangeStats
+import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.PaymentStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -45,8 +51,23 @@ class CalendarViewModel @Inject constructor(
         lessonsRepository.observeLessons(query.range.start, query.range.end)
     }
 
-    private val statsFlow = queryFlow.flatMapLatest { query ->
-        lessonsRepository.observeWeekStats(query.range.start, query.range.end)
+    private val statsFlow = anchor
+        .map { it.toWeekRange(zoneId) }
+        .distinctUntilChanged()
+        .flatMapLatest { range ->
+            lessonsRepository.observeWeekStats(range.start, range.end)
+        }
+
+    private val _events = MutableSharedFlow<CalendarEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<CalendarEvent> = _events.asSharedFlow()
+
+    fun onLessonSelected(lessonId: Long) {
+        _events.tryEmit(CalendarEvent.OpenLesson(lessonId))
+    }
+
+    fun onEmptySlotSelected(date: LocalDate, time: LocalTime, duration: Duration) {
+        val start = date.atTime(time).atZone(zoneId)
+        _events.tryEmit(CalendarEvent.CreateLesson(start, duration))
     }
 
     val uiState: StateFlow<CalendarUiState> = combine(
@@ -113,6 +134,13 @@ private data class CalendarQuery(
     val range: CalendarRange
 )
 
+private fun LocalDate.toWeekRange(zoneId: ZoneId): CalendarRange {
+    val weekStart = with(DayOfWeek.MONDAY)
+    val start = weekStart.atStartOfDay(zoneId).toInstant()
+    val end = weekStart.plusWeeks(1).atStartOfDay(zoneId).toInstant()
+    return CalendarRange(start, end)
+}
+
 private fun CalendarMode.toRange(anchor: LocalDate, zoneId: ZoneId): CalendarRange = when (this) {
     CalendarMode.DAY -> {
         val start = anchor.atStartOfDay(zoneId).toInstant()
@@ -154,7 +182,7 @@ private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
     )
 }
 
-private data class CalendarRange(val start: java.time.Instant, val end: java.time.Instant)
+private data class CalendarRange(val start: Instant, val end: Instant)
 
 data class CalendarLesson(
     val id: Long,
@@ -180,3 +208,8 @@ data class CalendarUiState(
     val lessonsByDate: Map<LocalDate, List<CalendarLesson>> = emptyMap(),
     val stats: LessonsRangeStats = LessonsRangeStats.EMPTY
 )
+
+sealed interface CalendarEvent {
+    data class CreateLesson(val start: ZonedDateTime, val duration: Duration) : CalendarEvent
+    data class OpenLesson(val lessonId: Long) : CalendarEvent
+}

@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,11 +28,13 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
+import com.tutorly.ui.CalendarEvent
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
@@ -39,14 +42,17 @@ import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.WeeklyStats
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 enum class CalendarMode { DAY, WEEK, MONTH }
 
@@ -54,6 +60,8 @@ enum class CalendarMode { DAY, WEEK, MONTH }
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
+    onCreateLesson: (ZonedDateTime, Duration) -> Unit = { _, _ -> },
+    onLessonDetails: (Long) -> Unit = {},
     onAddClick: (() -> Unit)? = null,
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
@@ -61,6 +69,15 @@ fun CalendarScreen(
     var direction by remember { mutableStateOf(0) } // -1 назад, +1 вперёд
     val anchor = uiState.anchor
     val mode = uiState.mode
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is CalendarEvent.CreateLesson -> onCreateLesson(event.start, event.duration)
+                is CalendarEvent.OpenLesson -> onLessonDetails(event.lessonId)
+            }
+        }
+    }
 
     val prevPeriod = {
         direction = -1
@@ -170,7 +187,16 @@ fun CalendarScreen(
                     uiState.lessonsByDate[currentDate].orEmpty()
                 }
                 when (mode) {
-                    CalendarMode.DAY -> DayTimeline(currentDate, lessonsForCurrent)
+                    CalendarMode.DAY -> DayTimeline(
+                        date = currentDate,
+                        lessons = lessonsForCurrent,
+                        onLessonClick = { lesson ->
+                            viewModel.onLessonSelected(lesson.id)
+                        },
+                        onEmptySlot = { startTime ->
+                            viewModel.onEmptySlotSelected(currentDate, startTime, DefaultSlotDuration)
+                        }
+                    )
                     CalendarMode.WEEK -> WeekMosaic(
                         anchor = currentDate,
                         onOpenDay = { selected ->
@@ -308,9 +334,18 @@ private val SpineColor = Color(0xFF2D7FF9).copy(alpha = 0.6f)
 private val LabelWidth = 64.dp
 private val HourHeight = 64.dp
 private val TimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
+private const val MinutesPerHour: Int = 60
+private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
+private const val SlotIncrementMinutes: Int = 30
 
 @Composable
-private fun DayTimeline(date: LocalDate, lessons: List<CalendarLesson>) {
+private fun DayTimeline(
+    date: LocalDate,
+    lessons: List<CalendarLesson>,
+    onLessonClick: (CalendarLesson) -> Unit,
+    onEmptySlot: (LocalTime) -> Unit
+) {
     val dayLessons = remember(date, lessons) { lessons }
     val (startHour, endHourExclusive) = remember(dayLessons) {
         computeTimelineBounds(dayLessons)
@@ -321,6 +356,27 @@ private fun DayTimeline(date: LocalDate, lessons: List<CalendarLesson>) {
     val totalHeight: Dp = HourHeight * hours.size
 
     val scroll = rememberScrollState()
+    val density = LocalDensity.current
+    val hourHeightPx = remember(density) { with(density) { HourHeight.toPx() } }
+    val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
+    val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
+    val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
+
+    val lessonRegions = remember(dayLessons, startHour, hourHeightPx, labelWidthPx, cardInsetPx) {
+        val baseMin = startHour * MinutesPerHour
+        dayLessons.map { lesson ->
+            val startTime = lesson.start.toLocalTime()
+            val startMin = startTime.hour * MinutesPerHour + startTime.minute
+            val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
+            val topPx = ((startMin - baseMin).coerceAtLeast(0)) * hourHeightPx / MinutesPerHour
+            val heightPx = durationMinutes.toFloat() * hourHeightPx / MinutesPerHour
+            TimelineLessonRegion(
+                topPx = topPx,
+                bottomPx = topPx + heightPx,
+                leftPx = labelWidthPx + cardInsetPx
+            )
+        }
+    }
 
     // ВЕСЬ день = одна большая "простыня" высотой totalHeight; она вертикально скроллится
     Box(
@@ -334,6 +390,23 @@ private fun DayTimeline(date: LocalDate, lessons: List<CalendarLesson>) {
                 .fillMaxWidth()
                 .height(totalHeight)
                 .padding(horizontal = 8.dp)
+                .pointerInput(dayLessons, startHour, endHourExclusive, lessonRegions) {
+                    detectTapGestures { offset ->
+                        if (offset.x < labelWidthPx) return@detectTapGestures
+                        if (lessonRegions.any { region -> offset.x >= region.leftPx && offset.y in region.topPx..region.bottomPx }) {
+                            return@detectTapGestures
+                        }
+
+                        val clampedY = offset.y.coerceIn(0f, totalHeightPx)
+                        val minutesWithin = (clampedY / hourHeightPx) * MinutesPerHour
+                        val candidate = (startHour * MinutesPerHour) + minutesWithin.roundToInt()
+                        val normalized = candidate.coerceIn(0, LAST_TIMELINE_MINUTE)
+                        val rounded = (normalized / SlotIncrementMinutes) * SlotIncrementMinutes
+                        val hour = rounded / MinutesPerHour
+                        val minute = rounded % MinutesPerHour
+                        onEmptySlot(LocalTime.of(hour, minute))
+                    }
+                }
         ) {
             // 1) Сетка фоном
             Canvas(Modifier.matchParentSize()) {
@@ -362,7 +435,8 @@ private fun DayTimeline(date: LocalDate, lessons: List<CalendarLesson>) {
                 LessonBlock(
                     lesson = lesson,
                     baseHour = startHour,
-                    hourHeight = HourHeight
+                    hourHeight = HourHeight,
+                    onLessonClick = onLessonClick
                 )
             }
 
@@ -386,17 +460,24 @@ private fun DayTimeline(date: LocalDate, lessons: List<CalendarLesson>) {
     }
 }
 
+private data class TimelineLessonRegion(
+    val topPx: Float,
+    val bottomPx: Float,
+    val leftPx: Float
+)
+
 @Composable
 private fun LessonBlock(
     lesson: CalendarLesson,
     baseHour: Int,
-    hourHeight: Dp
+    hourHeight: Dp,
+    onLessonClick: (CalendarLesson) -> Unit
 ) {
     val startTime = lesson.start.toLocalTime()
     val endTime = lesson.end.toLocalTime()
     val startMin = startTime.hour * 60 + startTime.minute
     val baseMin = baseHour * 60
-    val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(30)
+    val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
 
     // Переводим минуты в dp (1 мин = hourHeight/60)
     val minuteDp = hourHeight / 60f
@@ -424,6 +505,7 @@ private fun LessonBlock(
             .padding(start = LabelWidth + 8.dp, end = 8.dp) // от оси до правого края
     ) {
         Card(
+            onClick = { onLessonClick(lesson) },
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
                 containerColor = containerColor
