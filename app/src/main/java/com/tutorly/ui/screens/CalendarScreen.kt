@@ -15,6 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -23,12 +26,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.LessonsRangeStats
+import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.WeekMosaic
@@ -407,6 +412,7 @@ private fun LessonBlock(
     val detailLine = listOfNotNull(timeRange, subtitle).joinToString(" • ")
     val statusText = lesson.paymentStatusLabel()
     val statusColor = lesson.paymentStatusColor()
+    val statusIcon = lesson.paymentStatusIconVector()
     val containerColor = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.12f) }
         ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
 
@@ -439,7 +445,7 @@ private fun LessonBlock(
                     )
                 }
                 if (statusText != null) {
-                    StatusBadge(text = statusText, color = statusColor)
+                    StatusBadge(text = statusText, color = statusColor, icon = statusIcon)
                 }
             }
         }
@@ -471,17 +477,36 @@ private fun CalendarLesson.paymentStatusColor(): Color = when (paymentStatus) {
 }
 
 @Composable
-private fun StatusBadge(text: String, color: Color) {
+private fun CalendarLesson.paymentStatusIconVector(): ImageVector? = when (paymentStatusIcon) {
+    PaymentStatusIcon.PAID -> Icons.Filled.Check
+    PaymentStatusIcon.OUTSTANDING -> Icons.Filled.Warning
+    PaymentStatusIcon.CANCELLED -> Icons.Filled.Close
+}
+
+@Composable
+private fun StatusBadge(text: String, color: Color, icon: ImageVector?) {
     Surface(
         color = color.copy(alpha = 0.12f),
         contentColor = color,
         shape = MaterialTheme.shapes.small
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = text,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
     }
 }
 

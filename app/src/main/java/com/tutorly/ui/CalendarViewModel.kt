@@ -3,6 +3,7 @@ package com.tutorly.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.PaymentStatus
@@ -133,33 +134,25 @@ private fun CalendarMode.toRange(anchor: LocalDate, zoneId: ZoneId): CalendarRan
 }
 
 private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
-    val lessonStart = lesson.startAt.atZone(zoneId)
-    val lessonEnd = lesson.endAt.atZone(zoneId)
-    val rawDuration = Duration.between(lessonStart, lessonEnd)
-    val normalizedDuration = when {
-        rawDuration.isZero -> subject?.durationMinutes?.let { Duration.ofMinutes(it.toLong()) }
-        rawDuration.isNegative -> subject?.durationMinutes?.let { Duration.ofMinutes(it.toLong()) }
-        else -> rawDuration
-    } ?: Duration.ofMinutes(DEFAULT_LESSON_DURATION_MINUTES)
-    val normalizedEnd = lessonStart.plus(normalizedDuration)
+    val lessonStart = startAt.atZone(zoneId)
+    val lessonEnd = endAt.atZone(zoneId)
 
     return CalendarLesson(
-        id = lesson.id,
+        id = id,
         start = lessonStart,
-        end = normalizedEnd,
-        duration = normalizedDuration,
-        studentName = student.name,
-        studentNote = student.note,
-        subjectName = subject?.name,
-        lessonTitle = lesson.title,
-        paymentStatus = lesson.paymentStatus,
-        paidCents = lesson.paidCents,
-        priceCents = lesson.priceCents,
-        subjectColorArgb = subject?.colorArgb
+        end = lessonEnd,
+        duration = duration,
+        studentName = studentName,
+        studentNote = studentNote,
+        subjectName = subjectName,
+        lessonTitle = lessonTitle,
+        paymentStatus = paymentStatus,
+        paymentStatusIcon = paymentStatusIcon,
+        paidCents = paidCents,
+        priceCents = priceCents,
+        subjectColorArgb = subjectColorArgb
     )
 }
-
-private const val DEFAULT_LESSON_DURATION_MINUTES = 60L
 
 private data class CalendarRange(val start: java.time.Instant, val end: java.time.Instant)
 
@@ -173,6 +166,7 @@ data class CalendarLesson(
     val subjectName: String?,
     val lessonTitle: String?,
     val paymentStatus: PaymentStatus,
+    val paymentStatusIcon: PaymentStatusIcon,
     val paidCents: Int,
     val priceCents: Int,
     val subjectColorArgb: Int?

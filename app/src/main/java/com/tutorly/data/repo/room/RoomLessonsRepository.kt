@@ -4,6 +4,7 @@ import com.tutorly.data.db.dao.LessonDao
 import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.dao.LessonCountTuple
 import com.tutorly.data.db.projections.LessonWithStudent
+import com.tutorly.data.db.projections.toLessonDetails
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.repo.LessonsRepository
@@ -52,6 +53,3 @@ class RoomLessonsRepository(
     override suspend fun saveNote(id: Long, note: String?) =
         lessonDao.updateNote(id, note, Instant.now())
 }
-
-private fun LessonWithStudent.toLessonDetails(): LessonDetails =
-    LessonDetails(lesson = lesson, student = student, subject = subject, payments = payments)

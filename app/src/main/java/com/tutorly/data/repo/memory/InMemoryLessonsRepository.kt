@@ -2,10 +2,11 @@ package com.tutorly.data.repo.memory
 
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonsRangeStats
+import com.tutorly.domain.model.asIcon
+import com.tutorly.domain.model.resolveDuration
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
-import com.tutorly.models.Student
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -69,14 +70,23 @@ class InMemoryLessonsRepository : LessonsRepository {
     }
 }
 
-private fun Lesson.toDetailsStub(): LessonDetails = LessonDetails(
-    lesson = this,
-    student = Student(
-        id = studentId,
-        name = "Student #$studentId",
-        createdAt = Instant.EPOCH,
-        updatedAt = Instant.EPOCH
-    ),
-    subject = null,
-    payments = emptyList()
-)
+private fun Lesson.toDetailsStub(): LessonDetails {
+    val duration = resolveDuration(startAt, endAt, null)
+    val normalizedEnd = startAt.plus(duration)
+
+    return LessonDetails(
+        id = id,
+        startAt = startAt,
+        endAt = normalizedEnd,
+        duration = duration,
+        studentName = "Student #$studentId",
+        studentNote = null,
+        subjectName = null,
+        subjectColorArgb = null,
+        paymentStatus = paymentStatus,
+        paymentStatusIcon = paymentStatus.asIcon(),
+        priceCents = priceCents,
+        paidCents = paidCents,
+        lessonTitle = title
+    )
+}
