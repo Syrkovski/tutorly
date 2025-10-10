@@ -2,6 +2,7 @@ package com.tutorly.data.repo.memory
 
 import com.tutorly.domain.model.LessonCreateRequest
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.model.asIcon
 import com.tutorly.domain.model.resolveDuration
@@ -28,6 +29,13 @@ class InMemoryLessonsRepository : LessonsRepository {
             lessons.filter { it.startAt >= from && it.startAt < to }
                 .sortedBy { it.startAt }
                 .map { it.toDetailsStub() }
+        }
+
+    override fun observeTodayLessons(dayStart: Instant, dayEnd: Instant): Flow<List<LessonForToday>> =
+        lessonsFlow.map { lessons ->
+            lessons.filter { it.startAt >= dayStart && it.startAt < dayEnd }
+                .sortedBy { it.startAt }
+                .map { it.toTodayStub() }
         }
 
     override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
@@ -71,6 +79,7 @@ class InMemoryLessonsRepository : LessonsRepository {
             priceCents = request.priceCents,
             paidCents = 0,
             paymentStatus = PaymentStatus.UNPAID,
+            markedAt = null,
             status = LessonStatus.PLANNED,
             note = request.note,
             createdAt = now,
@@ -96,12 +105,13 @@ class InMemoryLessonsRepository : LessonsRepository {
 
     override suspend fun markPaid(id: Long) {
         store[id]?.let { lesson ->
+            val now = Instant.now()
             val updatedLesson = lesson.copy(
                 paymentStatus = PaymentStatus.PAID,
-                paidCents = lesson.priceCents
+                paidCents = lesson.priceCents,
+                markedAt = now
             )
             store[id] = updatedLesson
-            val now = Instant.now()
             val payment = payments[id]
             payments[id] = (payment ?: Payment(
                 id = id,
@@ -121,12 +131,13 @@ class InMemoryLessonsRepository : LessonsRepository {
 
     override suspend fun markDue(id: Long) {
         store[id]?.let { lesson ->
+            val now = Instant.now()
             val updatedLesson = lesson.copy(
                 paymentStatus = PaymentStatus.DUE,
-                paidCents = 0
+                paidCents = 0,
+                markedAt = now
             )
             store[id] = updatedLesson
-            val now = Instant.now()
             val payment = payments[id]
             payments[id] = (payment ?: Payment(
                 id = id,
@@ -147,6 +158,18 @@ class InMemoryLessonsRepository : LessonsRepository {
     override suspend fun saveNote(id: Long, note: String?) {
         store[id]?.let {
             store[id] = it.copy(note = note)
+            emit()
+        }
+    }
+
+    override suspend fun resetPaymentStatus(id: Long) {
+        store[id]?.let { lesson ->
+            store[id] = lesson.copy(
+                paymentStatus = PaymentStatus.UNPAID,
+                paidCents = 0,
+                markedAt = null
+            )
+            payments.remove(id)
             emit()
         }
     }
@@ -176,5 +199,26 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         paidCents = paidCents,
         lessonTitle = title,
         lessonNote = note
+    )
+}
+
+private fun Lesson.toTodayStub(): LessonForToday {
+    val duration = resolveDuration(startAt, endAt, null)
+    val normalizedEnd = startAt.plus(duration)
+
+    return LessonForToday(
+        id = id,
+        studentId = studentId,
+        studentName = "Student #$studentId",
+        subjectName = null,
+        lessonTitle = title,
+        startAt = startAt,
+        endAt = normalizedEnd,
+        duration = duration,
+        priceCents = priceCents,
+        studentRateCents = null,
+        note = note,
+        paymentStatus = paymentStatus,
+        markedAt = markedAt
     )
 }

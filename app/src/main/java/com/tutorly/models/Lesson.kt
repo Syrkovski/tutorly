@@ -31,6 +31,7 @@ data class Lesson(
     val priceCents: Int,                 // цена по факту для этого занятия
     val paidCents: Int = 0,              // сколько уже оплачено
     val paymentStatus: PaymentStatus = PaymentStatus.UNPAID,
+    val markedAt: Instant? = null,
     val status: LessonStatus = LessonStatus.PLANNED,
     val note: String? = null,            // заметка урока (тема/замечания)
     val createdAt: Instant = Instant.now(),

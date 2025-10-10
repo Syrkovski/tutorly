@@ -3,6 +3,7 @@ package com.tutorly.data.db.projections
 import androidx.room.Embedded
 import androidx.room.Relation
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.asIcon
 import com.tutorly.domain.model.resolveDuration
 import com.tutorly.models.Lesson
@@ -53,6 +54,34 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         paidCents = lesson.paidCents,
         lessonTitle = lesson.title,
         lessonNote = lesson.note
+    )
+}
+
+fun LessonWithStudent.toLessonForToday(): LessonForToday {
+    val normalizedDuration = resolveDuration(
+        startAt = lesson.startAt,
+        endAt = lesson.endAt,
+        subjectDurationMinutes = subject?.durationMinutes
+    )
+    val normalizedEnd = lesson.startAt.plus(normalizedDuration)
+
+    val subjectName = subject?.name?.takeIf { it.isNotBlank() }?.trim()
+        ?: student.subject?.takeIf { it.isNotBlank() }?.trim()
+
+    return LessonForToday(
+        id = lesson.id,
+        studentId = lesson.studentId,
+        studentName = student.name,
+        subjectName = subjectName,
+        lessonTitle = lesson.title,
+        startAt = lesson.startAt,
+        endAt = normalizedEnd,
+        duration = normalizedDuration,
+        priceCents = lesson.priceCents,
+        studentRateCents = student.rateCents,
+        note = lesson.note,
+        paymentStatus = lesson.paymentStatus,
+        markedAt = lesson.markedAt
     )
 }
 
