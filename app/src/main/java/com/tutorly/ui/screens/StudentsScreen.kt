@@ -363,9 +363,7 @@ private fun StudentEditorSheet(
                     )
                 } else {
                     Text(
-                        text = stringResource(
-                            id = if (isEditing) R.string.student_editor_save else R.string.add_student
-                        )
+                        text = stringResource(id = R.string.student_editor_save)
                     )
                 }
             }
