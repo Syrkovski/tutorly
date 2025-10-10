@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.lazy.animateItemPlacement
+import androidx.compose.foundation.animateItemPlacement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DoneAll
@@ -259,7 +259,7 @@ private fun TodayLessonRow(
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState { value ->
+    val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
             SwipeToDismissBoxValue.StartToEnd -> {
                 onSwipeRight(lesson.id)
@@ -271,7 +271,7 @@ private fun TodayLessonRow(
             }
             else -> false
         }
-    }
+    })
 
     SwipeToDismissBox(
         state = dismissState,
