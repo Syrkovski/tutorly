@@ -1,10 +1,16 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -187,6 +193,25 @@ fun StudentEditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val isEditing = vm.formState.studentId != null
+
+    val attemptSave = {
+        if (!vm.formState.isSaving) {
+            vm.save(
+                onSaved = onSaved,
+                onError = { message ->
+                    coroutineScope.launch {
+                        val text = if (message.isNotBlank()) {
+                            message
+                        } else {
+                            context.getString(R.string.student_editor_save_error)
+                        }
+                        snackbarHostState.showSnackbar(text)
+                    }
+                }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -202,23 +227,7 @@ fun StudentEditorScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = {
-                            if (!vm.formState.isSaving) {
-                                vm.save(
-                                    onSaved = onSaved,
-                                    onError = { message ->
-                                        coroutineScope.launch {
-                                            val text = if (message.isNotBlank()) {
-                                                message
-                                            } else {
-                                                context.getString(R.string.student_editor_save_error)
-                                            }
-                                            snackbarHostState.showSnackbar(text)
-                                        }
-                                    }
-                                )
-                            }
-                        },
+                        onClick = attemptSave,
                         enabled = !vm.formState.isSaving
                     ) {
                         Icon(
@@ -231,40 +240,50 @@ fun StudentEditorScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { inner ->
-        StudentEditorForm(
-            state = vm.formState,
-            onNameChange = vm::onNameChange,
-            onPhoneChange = vm::onPhoneChange,
-            onMessengerChange = vm::onMessengerChange,
-            onRateChange = vm::onRateChange,
-            onSubjectChange = vm::onSubjectChange,
-            onGradeChange = vm::onGradeChange,
-            onNoteChange = vm::onNoteChange,
-            onArchivedChange = vm::onArchivedChange,
-            onActiveChange = vm::onActiveChange,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            focusOnStart = false,
-            enabled = !vm.formState.isSaving,
-            onSubmit = {
-                if (!vm.formState.isSaving) {
-                    vm.save(
-                        onSaved = onSaved,
-                        onError = { message ->
-                            coroutineScope.launch {
-                                val text = if (message.isNotBlank()) {
-                                    message
-                                } else {
-                                    context.getString(R.string.student_editor_save_error)
-                                }
-                                snackbarHostState.showSnackbar(text)
-                            }
-                        }
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            StudentEditorForm(
+                state = vm.formState,
+                onNameChange = vm::onNameChange,
+                onPhoneChange = vm::onPhoneChange,
+                onMessengerChange = vm::onMessengerChange,
+                onRateChange = vm::onRateChange,
+                onSubjectChange = vm::onSubjectChange,
+                onGradeChange = vm::onGradeChange,
+                onNoteChange = vm::onNoteChange,
+                onArchivedChange = vm::onArchivedChange,
+                onActiveChange = vm::onActiveChange,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxWidth(),
+                focusOnStart = false,
+                enabled = !vm.formState.isSaving,
+                onSubmit = attemptSave
+            )
+
+            Button(
+                onClick = attemptSave,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
+            ) {
+                if (vm.formState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = stringResource(
+                            id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                        )
                     )
                 }
             }
-        )
+        }
     }
 }
