@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -301,6 +302,7 @@ private fun StudentEditorSheet(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            .imePadding()
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -334,6 +336,9 @@ private fun StudentEditorSheet(
             onNoteChange = onNoteChange,
             onArchivedChange = onArchivedChange,
             onActiveChange = onActiveChange,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .fillMaxWidth(),
             focusOnStart = true,
             enabled = !state.isSaving,
             onSubmit = onSave
