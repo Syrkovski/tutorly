@@ -67,7 +67,11 @@
     <string name="lesson_status_due">Долг</string>
     <string name="lesson_status_unpaid">Не оплачено</string>
     <string name="lesson_status_cancelled">Отменено</string>
+    <string name="calendar_title">Календарь</string>
     <string name="calendar_now_badge">Сейчас</string>
+    <string name="calendar_status_planned">Запланировано</string>
+    <string name="calendar_status_prepaid">Предоплачено</string>
+    <string name="calendar_status_in_progress">Идёт сейчас</string>
     <string name="lesson_card_subject_placeholder">Без предмета</string>
     <string name="lesson_card_time_label">Время</string>
     <string name="lesson_card_time_value">%1$s · %2$s — %3$s</string>

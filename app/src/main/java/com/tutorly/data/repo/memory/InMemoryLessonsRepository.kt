@@ -192,6 +192,7 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         studentName = "Student #$studentId",
         studentNote = null,
         subjectName = null,
+        studentGrade = null,
         subjectColorArgb = null,
         paymentStatus = paymentStatus,
         paymentStatusIcon = paymentStatus.asIcon(),
