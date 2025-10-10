@@ -274,7 +274,7 @@ private fun TodayLessonRow(
     SwipeToDismissBox(
         state = dismissState,
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(),
         backgroundContent = { DismissBackground(state = dismissState) }
     ) {
         LessonCard(
