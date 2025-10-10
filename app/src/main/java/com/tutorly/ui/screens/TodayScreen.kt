@@ -491,6 +491,7 @@ private fun LessonNoteSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayTopBar(state: TodayUiState) {
     TopAppBar(

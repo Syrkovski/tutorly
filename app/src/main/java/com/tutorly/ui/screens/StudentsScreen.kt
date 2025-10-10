@@ -829,10 +829,10 @@ private fun StudentProfileMetricsSection(
                     }
                 } else {
                     null
-                }
-            }
+                    }
+            )}
         }
-    }
+
 }
 
 @Composable
