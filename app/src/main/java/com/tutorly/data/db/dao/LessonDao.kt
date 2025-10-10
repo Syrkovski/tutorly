@@ -2,6 +2,7 @@ package com.tutorly.data.db.dao
 
 import androidx.room.*
 import com.tutorly.data.db.projections.LessonWithStudent
+import com.tutorly.data.db.projections.LessonWithSubject
 import com.tutorly.models.*
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
