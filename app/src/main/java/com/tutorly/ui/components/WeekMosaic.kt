@@ -38,6 +38,7 @@ fun WeekMosaic(
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
     stats: WeeklyStats? = null,
     currentDateTime: ZonedDateTime,
+    onLessonClick: (LessonBrief) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
     hSpacing: Dp = 8.dp,
     vSpacing: Dp = 8.dp
@@ -98,7 +99,8 @@ fun WeekMosaic(
                         height = cellH,
                         onClick = { onOpenDay(tile.model.date) },
                         today = today,
-                        now = now
+                        now = now,
+                        onLessonClick = onLessonClick
                     )
                     is WeekTile.Stats -> StatsTile(
                         stats = tile.stats,
@@ -118,7 +120,8 @@ private fun DayTile(
     height: Dp,
     onClick: () -> Unit,
     today: LocalDate,
-    now: LocalDateTime
+    now: LocalDateTime,
+    onLessonClick: (LessonBrief) -> Unit
 ) {
     val isToday = model.date == today
     val hasLessons = model.totalLessons > 0
@@ -134,11 +137,13 @@ private fun DayTile(
     else
         Color.Transparent
 
+    val dayShape = MaterialTheme.shapes.medium
     Surface(
         color = bg,
-        shape = MaterialTheme.shapes.medium,
+        shape = dayShape,
         modifier = Modifier
             .height(height)
+            .clip(dayShape)
             .clickable(onClick = onClick)
     ) {
         Column(
@@ -172,7 +177,8 @@ private fun DayTile(
                     LessonRowCompact(
                         time = timeRangeText(it),
                         who = it.student,
-                        tone = LessonTone.Ongoing
+                        tone = LessonTone.Ongoing,
+                        onClick = { onLessonClick(it) }
                     )
                 }
             }
@@ -183,7 +189,8 @@ private fun DayTile(
                 LessonRowCompact(
                     time = timeRangeText(it),
                     who = it.student,
-                    tone = if (it.paid) LessonTone.Paid else LessonTone.Default
+                    tone = if (it.paid) LessonTone.Paid else LessonTone.Default,
+                    onClick = { onLessonClick(it) }
                 )
             }
 
@@ -203,7 +210,7 @@ private fun DayTile(
 private enum class LessonTone { Default, Paid, Ongoing }
 
 @Composable
-private fun LessonRowCompact(time: String, who: String, tone: LessonTone) {
+private fun LessonRowCompact(time: String, who: String, tone: LessonTone, onClick: () -> Unit) {
     val (bg, fg) = when (tone) {
         LessonTone.Default -> MaterialTheme.colorScheme.surface.copy(alpha = 0.6f) to
                 MaterialTheme.colorScheme.onSurface
@@ -213,26 +220,33 @@ private fun LessonRowCompact(time: String, who: String, tone: LessonTone) {
                 MaterialTheme.colorScheme.onPrimaryContainer
     }
 
-    Row(
+    val shape = RoundedCornerShape(8.dp)
+    Surface(
+        color = bg,
+        contentColor = fg,
+        shape = shape,
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 40.dp)
+            .clip(shape)
+            .clickable(onClick = onClick)
     ) {
-        Text(
-            "$time · $who",
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = fg
-        )
-        when (tone) {
-            LessonTone.Default -> {}
-            LessonTone.Paid    -> Text("✓", color = fg, style = MaterialTheme.typography.labelSmall)
-            LessonTone.Ongoing -> Text("Идёт", color = fg, style = MaterialTheme.typography.labelSmall)
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "$time · $who",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            when (tone) {
+                LessonTone.Default -> {}
+                LessonTone.Paid    -> Text("✓", style = MaterialTheme.typography.labelSmall)
+                LessonTone.Ongoing -> Text("Идёт", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -291,6 +305,7 @@ private fun StatRow(label: String, value: String) {
 /* ------------------------------- Models --------------------------------- */
 
 data class LessonBrief(
+    val id: Long,
     val time: String,    // "09:30"
     val end: String?,    // "10:30" (null — неизвестно)
     val student: String,
@@ -354,11 +369,11 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
     val seed = (date.dayOfMonth + date.monthValue) % 3
     return when (seed) {
         0 -> listOf(
-            LessonBrief("09:30", "10:30", "Анна", 1500_00, true),
-            LessonBrief("13:00", "14:30", "Иван", 2000_00, false),
-            LessonBrief("18:00", "19:00", "Олег", 1500_00, true)
+            LessonBrief(1L, "09:30", "10:30", "Анна", 1500_00, true),
+            LessonBrief(2L, "13:00", "14:30", "Иван", 2000_00, false),
+            LessonBrief(3L, "18:00", "19:00", "Олег", 1500_00, true)
         )
-        1 -> listOf(LessonBrief("16:00", "17:30", "Мария", 1800_00, true))
+        1 -> listOf(LessonBrief(4L, "16:00", "17:30", "Мария", 1800_00, true))
         else -> emptyList()
     }
 }

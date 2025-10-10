@@ -1,5 +1,6 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,12 +35,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,9 +50,13 @@ import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.lessoncard.LessonCardExitAction
+import com.tutorly.ui.lessoncard.LessonCardSheet
+import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -61,11 +66,50 @@ fun StudentDetailsScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onCreateLesson: (Student) -> Unit = {},
+    onLessonEdit: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
 ) {
     val state by vm.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
+    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
+    val zoneId = remember { ZoneId.systemDefault() }
+
+    LessonCardSheet(
+        state = lessonCardState,
+        zoneId = zoneId,
+        onDismissRequest = lessonCardViewModel::requestDismiss,
+        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+        onNoteChange = lessonCardViewModel::onNoteChange,
+        onSaveNote = lessonCardViewModel::saveNote,
+        onMarkPaid = lessonCardViewModel::markPaid,
+        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+        onRequestEdit = lessonCardViewModel::requestEdit,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
+
+    val pendingExit = lessonCardState.pendingExitAction
+    LaunchedEffect(pendingExit) {
+        when (pendingExit) {
+            is LessonCardExitAction.NavigateToEdit -> {
+                val details = pendingExit.details
+                onLessonEdit(
+                    details.id,
+                    details.studentId,
+                    details.startAt.atZone(zoneId)
+                )
+                lessonCardViewModel.consumeExitAction()
+            }
+            LessonCardExitAction.Close -> {
+                lessonCardViewModel.consumeExitAction()
+            }
+            null -> Unit
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -74,7 +118,8 @@ fun StudentDetailsScreen(
                 onBack = onBack,
                 onEdit = if (state.student != null) onEdit else null
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         when {
             state.isLoading -> {
@@ -148,7 +193,8 @@ fun StudentDetailsScreen(
                     LessonsHistoryCard(
                         lessons = lessons,
                         currencyFormatter = currencyFormatter,
-                        locale = locale
+                        locale = locale,
+                        onLessonClick = { lesson -> lessonCardViewModel.open(lesson.id) }
                     )
                 }
             }
@@ -211,7 +257,9 @@ private fun StudentSummaryCard(
     }
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -251,7 +299,12 @@ private fun StudentContactCard(
     student: Student,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -290,13 +343,14 @@ private fun ContactInfoRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            shape = CircleShape
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = CircleShape,
+            tonalElevation = 2.dp
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(12.dp)
             )
         }
@@ -365,7 +419,9 @@ private fun SummaryStatCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -389,7 +445,12 @@ private fun StudentNotesCard(
     note: String,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -412,6 +473,7 @@ private fun LessonsHistoryCard(
     lessons: List<Lesson>,
     currencyFormatter: NumberFormat,
     locale: Locale,
+    onLessonClick: (Lesson) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dateFormatter = remember(locale) {
@@ -420,7 +482,12 @@ private fun LessonsHistoryCard(
     val timeFormatter = remember(locale) {
         DateTimeFormatter.ofPattern("HH:mm", locale)
     }
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -442,10 +509,11 @@ private fun LessonsHistoryCard(
                             lesson = lesson,
                             currencyFormatter = currencyFormatter,
                             dateFormatter = dateFormatter,
-                            timeFormatter = timeFormatter
+                            timeFormatter = timeFormatter,
+                            onClick = onLessonClick
                         )
                         if (index != lessons.lastIndex) {
-                            Divider()
+                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         }
                     }
                 }
@@ -460,6 +528,7 @@ private fun LessonHistoryRow(
     currencyFormatter: NumberFormat,
     dateFormatter: DateTimeFormatter,
     timeFormatter: DateTimeFormatter,
+    onClick: (Lesson) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val zoneId = remember { ZoneId.systemDefault() }
@@ -469,7 +538,9 @@ private fun LessonHistoryRow(
         Duration.between(lesson.startAt, lesson.endAt).toMinutes().toInt().coerceAtLeast(0)
     }
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick(lesson) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -505,28 +576,30 @@ private fun LessonPaymentStatusBadge(
     status: PaymentStatus,
     modifier: Modifier = Modifier
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val (labelRes, container, content) = when (status) {
         PaymentStatus.PAID -> Triple(
             R.string.lesson_status_paid,
-            Color(0xFFE6F4EA),
-            Color(0xFF2E7D32)
+            colorScheme.tertiaryContainer,
+            colorScheme.onTertiaryContainer
         )
         PaymentStatus.DUE, PaymentStatus.UNPAID -> Triple(
             R.string.lesson_status_due,
-            Color(0xFFFFF3E0),
-            Color(0xFFEF6C00)
+            colorScheme.errorContainer,
+            colorScheme.onErrorContainer
         )
         PaymentStatus.CANCELLED -> Triple(
             R.string.lesson_status_cancelled,
-            Color(0xFFE0E0E0),
-            Color(0xFF5F6368)
+            colorScheme.surfaceVariant,
+            colorScheme.onSurfaceVariant
         )
     }
     Surface(
         modifier = modifier,
         color = container,
         contentColor = content,
-        shape = RoundedCornerShape(999.dp)
+        shape = RoundedCornerShape(999.dp),
+        tonalElevation = 1.dp
     ) {
         Text(
             text = stringResource(id = labelRes),

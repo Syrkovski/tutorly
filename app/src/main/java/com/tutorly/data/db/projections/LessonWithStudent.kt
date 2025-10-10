@@ -42,7 +42,8 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         paymentStatusIcon = lesson.paymentStatus.asIcon(),
         priceCents = lesson.priceCents,
         paidCents = lesson.paidCents,
-        lessonTitle = lesson.title
+        lessonTitle = lesson.title,
+        lessonNote = lesson.note
     )
 }
 

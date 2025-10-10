@@ -46,11 +46,15 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
+import com.tutorly.ui.lessoncard.LessonCardExitAction
+import com.tutorly.ui.lessoncard.LessonCardSheet
+import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
@@ -72,10 +76,44 @@ fun CalendarScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val creationState by creationViewModel.uiState.collectAsState()
+    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
+    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var direction by remember { mutableStateOf(0) } // -1 назад, +1 вперёд
     val anchor = uiState.anchor
     val mode = uiState.mode
+    val zoneId = remember { ZoneId.systemDefault() }
+
+    LessonCardSheet(
+        state = lessonCardState,
+        zoneId = zoneId,
+        onDismissRequest = lessonCardViewModel::requestDismiss,
+        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+        onNoteChange = lessonCardViewModel::onNoteChange,
+        onSaveNote = lessonCardViewModel::saveNote,
+        onMarkPaid = lessonCardViewModel::markPaid,
+        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+        onRequestEdit = lessonCardViewModel::requestEdit,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
+
+    val pendingExit = lessonCardState.pendingExitAction
+    LaunchedEffect(pendingExit) {
+        when (pendingExit) {
+            is LessonCardExitAction.NavigateToEdit -> {
+                val details = pendingExit.details
+                onLessonDetails(details.id, details.studentId, details.startAt.atZone(zoneId))
+                lessonCardViewModel.consumeExitAction()
+            }
+            LessonCardExitAction.Close -> {
+                lessonCardViewModel.consumeExitAction()
+            }
+            null -> Unit
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -89,7 +127,7 @@ fun CalendarScreen(
                         origin = LessonCreationOrigin.CALENDAR
                     )
                 )
-                is CalendarEvent.OpenLesson -> onLessonDetails(event.lessonId, event.studentId, event.start)
+                is CalendarEvent.OpenLesson -> lessonCardViewModel.open(event.lessonId)
             }
         }
     }
@@ -263,7 +301,7 @@ fun CalendarScreen(
                         lessons = lessonsForCurrent,
                         currentDateTime = uiState.currentDateTime,
                         onLessonClick = { lesson ->
-                            viewModel.onLessonSelected(lesson)
+                            lessonCardViewModel.open(lesson.id)
                         },
                         onEmptySlot = { startTime ->
                             viewModel.onEmptySlotSelected(currentDate, startTime, DefaultSlotDuration)
@@ -284,7 +322,8 @@ fun CalendarScreen(
                             uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
                         },
                         stats = uiState.stats.toWeeklyStats(),
-                        currentDateTime = uiState.currentDateTime
+                        currentDateTime = uiState.currentDateTime,
+                        onLessonClick = { brief -> lessonCardViewModel.open(brief.id) }
                     )
                     CalendarMode.MONTH -> MonthPlaceholder(currentDate)
                 }
@@ -296,6 +335,7 @@ fun CalendarScreen(
 
 private fun CalendarLesson.toLessonBrief(): LessonBrief {
     return LessonBrief(
+        id = id,
         time = start.format(timeFormatter),
         end = end.format(timeFormatter),
         student = studentName,
@@ -653,6 +693,7 @@ private fun LessonBlock(
 private fun CalendarLesson.subtitleText(): String? {
     val parts = listOfNotNull(
         subjectName?.takeIf { it.isNotBlank() },
+        lessonNote?.takeIf { it.isNotBlank() },
         studentNote?.takeIf { it.isNotBlank() },
         lessonTitle?.takeIf { it.isNotBlank() }
     ).distinct()
@@ -819,3 +860,37 @@ private fun DayTwoLineChip(
         }
     }
 }
+//    LessonCardSheet(
+//        state = lessonCardState,
+//        zoneId = uiState.zoneId,
+//        onDismissRequest = lessonCardViewModel::requestDismiss,
+//        onCancelDismiss = lessonCardViewModel::cancelDismiss,
+//        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
+//        onNoteChange = lessonCardViewModel::onNoteChange,
+//        onSaveNote = lessonCardViewModel::saveNote,
+//        onMarkPaid = lessonCardViewModel::markPaid,
+//        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
+//        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
+//        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
+//        onRequestEdit = lessonCardViewModel::requestEdit,
+//        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+//    )
+//
+//    val pendingExit = lessonCardState.pendingExitAction
+//    LaunchedEffect(pendingExit) {
+//        when (pendingExit) {
+//            is LessonCardExitAction.NavigateToEdit -> {
+//                val details = pendingExit.details
+//                onLessonDetails(
+//                    details.id,
+//                    details.studentId,
+//                    details.startAt.atZone(uiState.zoneId)
+//                )
+//                lessonCardViewModel.consumeExitAction()
+//            }
+//            LessonCardExitAction.Close -> {
+//                lessonCardViewModel.consumeExitAction()
+//            }
+//            null -> Unit
+//        }
+//    }

@@ -23,7 +23,8 @@ data class LessonDetails(
     val paymentStatusIcon: PaymentStatusIcon,
     val priceCents: Int,
     val paidCents: Int,
-    val lessonTitle: String?
+    val lessonTitle: String?,
+    val lessonNote: String?
 ) {
     companion object {
         val DEFAULT_DURATION: Duration = Duration.ofMinutes(DEFAULT_LESSON_DURATION_MINUTES)
