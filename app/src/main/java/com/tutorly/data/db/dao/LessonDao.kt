@@ -32,6 +32,17 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC")
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
 
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM lessons
+        WHERE studentId = :studentId
+        ORDER BY startAt DESC
+        LIMIT :limit
+        """
+    )
+    fun observeRecentWithSubject(studentId: Long, limit: Int): Flow<List<LessonWithSubject>>
+
     @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): Lesson?
 

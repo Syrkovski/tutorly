@@ -40,8 +40,9 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideStudentsRepo(
         studentDao: StudentDao,
-        paymentDao: PaymentDao
-    ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao)
+        paymentDao: PaymentDao,
+        lessonDao: LessonDao
+    ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao, lessonDao)
 
     @Provides @Singleton
     fun providePaymentsRepo(

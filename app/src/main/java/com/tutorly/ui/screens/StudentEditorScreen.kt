@@ -56,6 +56,7 @@ class StudentEditorVM @Inject constructor(
                             name = s.name,
                             phone = s.phone.orEmpty(),
                             messenger = s.messenger.orEmpty(),
+                            grade = s.grade.orEmpty(),
                             note = s.note.orEmpty(),
                             isArchived = s.isArchived,
                             isActive = s.active,
@@ -76,6 +77,10 @@ class StudentEditorVM @Inject constructor(
 
     fun onMessengerChange(value: String) {
         formState = formState.copy(messenger = value)
+    }
+
+    fun onGradeChange(value: String) {
+        formState = formState.copy(grade = value)
     }
 
     fun onNoteChange(value: String) {
@@ -102,6 +107,7 @@ class StudentEditorVM @Inject constructor(
 
         val trimmedPhone = formState.phone.trim().ifBlank { null }
         val trimmedMessenger = formState.messenger.trim().ifBlank { null }
+        val trimmedGrade = formState.grade.trim().ifBlank { null }
         val trimmedNote = formState.note.trim().ifBlank { null }
 
         viewModelScope.launch {
@@ -110,6 +116,7 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone.orEmpty(),
                 messenger = trimmedMessenger.orEmpty(),
+                grade = trimmedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
                 nameError = false
             )
@@ -117,6 +124,7 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                grade = trimmedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
@@ -124,6 +132,7 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                grade = trimmedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
@@ -202,6 +211,7 @@ fun StudentEditorScreen(
             onNameChange = vm::onNameChange,
             onPhoneChange = vm::onPhoneChange,
             onMessengerChange = vm::onMessengerChange,
+            onGradeChange = vm::onGradeChange,
             onNoteChange = vm::onNoteChange,
             onArchivedChange = vm::onArchivedChange,
             onActiveChange = vm::onActiveChange,

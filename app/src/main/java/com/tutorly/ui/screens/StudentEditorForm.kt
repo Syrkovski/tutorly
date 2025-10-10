@@ -31,6 +31,7 @@ fun StudentEditorForm(
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
+    onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onArchivedChange: (Boolean) -> Unit,
     onActiveChange: (Boolean) -> Unit,
@@ -86,6 +87,16 @@ fun StudentEditorForm(
             value = state.messenger,
             onValueChange = onMessengerChange,
             label = { Text(text = stringResource(id = R.string.student_editor_messenger)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+        )
+
+        OutlinedTextField(
+            value = state.grade,
+            onValueChange = onGradeChange,
+            label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = enabled,

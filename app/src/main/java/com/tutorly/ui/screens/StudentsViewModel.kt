@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
@@ -21,10 +22,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOf
 
 @HiltViewModel
 class StudentsViewModel @Inject constructor(
@@ -44,6 +48,7 @@ class StudentsViewModel @Inject constructor(
     private val lessonObservers = mutableMapOf<Long, Job>()
     private val _latestLessons = MutableStateFlow<Map<Long, LessonSnapshot?>>(emptyMap())
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
+    private val _selectedStudentId = MutableStateFlow<Long?>(null)
 
     private val studentsStream = _query
         .map { it.trim() }
@@ -70,14 +75,48 @@ class StudentsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val selectedStudentId: StateFlow<Long?> = _selectedStudentId.asStateFlow()
+
+    val profileUiState: StateFlow<StudentProfileUiState> = _selectedStudentId
+        .flatMapLatest { id ->
+            if (id == null) {
+                flowOf(StudentProfileUiState.Hidden)
+            } else {
+                repo.observeStudentProfile(id)
+                    .map { profile ->
+                        if (profile != null) {
+                            StudentProfileUiState.Content(profile)
+                        } else {
+                            StudentProfileUiState.Error
+                        }
+                    }
+                    .onStart { emit(StudentProfileUiState.Loading) }
+                    .catch { emit(StudentProfileUiState.Error) }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = StudentProfileUiState.Hidden
+        )
+
     fun onQueryChange(value: String) {
         _query.value = value
+    }
+
+    fun openStudentProfile(studentId: Long) {
+        _selectedStudentId.value = studentId
+    }
+
+    fun clearSelectedStudent() {
+        _selectedStudentId.value = null
     }
 
     fun startStudentCreation(
         name: String = "",
         phone: String = "",
         messenger: String = "",
+        grade: String = "",
         note: String = "",
         isArchived: Boolean = false,
         isActive: Boolean = true,
@@ -86,6 +125,7 @@ class StudentsViewModel @Inject constructor(
             name = name,
             phone = phone,
             messenger = messenger,
+            grade = grade,
             note = note,
             isArchived = isArchived,
             isActive = isActive
@@ -106,6 +146,10 @@ class StudentsViewModel @Inject constructor(
 
     fun onEditorMessengerChange(value: String) {
         _editorFormState.update { it.copy(messenger = value) }
+    }
+
+    fun onEditorGradeChange(value: String) {
+        _editorFormState.update { it.copy(grade = value) }
     }
 
     fun onEditorNoteChange(value: String) {
@@ -133,6 +177,7 @@ class StudentsViewModel @Inject constructor(
 
         val trimmedPhone = state.phone.trim().ifBlank { null }
         val trimmedMessenger = state.messenger.trim().ifBlank { null }
+        val trimmedGrade = state.grade.trim().ifBlank { null }
         val trimmedNote = state.note.trim().ifBlank { null }
 
         viewModelScope.launch {
@@ -141,6 +186,7 @@ class StudentsViewModel @Inject constructor(
                     name = trimmedName,
                     phone = trimmedPhone.orEmpty(),
                     messenger = trimmedMessenger.orEmpty(),
+                    grade = trimmedGrade.orEmpty(),
                     note = trimmedNote.orEmpty(),
                     nameError = false,
                     isSaving = true
@@ -151,6 +197,7 @@ class StudentsViewModel @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                grade = trimmedGrade,
                 note = trimmedNote,
                 isArchived = state.isArchived,
                 active = state.isActive,
@@ -245,10 +292,10 @@ class StudentsViewModel @Inject constructor(
     data class StudentListItem(
         val student: Student,
         val hasDebt: Boolean,
-        val profile: StudentProfile
+        val profile: StudentCardProfile
     )
 
-    data class StudentProfile(
+    data class StudentCardProfile(
         val subject: String?,
         val grade: String?,
         val rate: LessonRate?
@@ -270,7 +317,7 @@ class StudentsViewModel @Inject constructor(
         student: Student,
         snapshot: LessonSnapshot?,
         subjects: Map<Long, SubjectPreset>
-    ): StudentProfile {
+    ): StudentCardProfile {
         val subject = snapshot?.subjectId?.let { subjectId ->
             subjects[subjectId]?.name
         } ?: student.note
@@ -278,13 +325,22 @@ class StudentsViewModel @Inject constructor(
             ?.firstOrNull { it.isNotBlank() }
             ?.trim()
 
-        val grade = student.note.extractGrade()
+        val grade = student.grade
+            ?.takeIf { it.isNotBlank() }
+            ?: student.note.extractGrade()
         val rate = snapshot?.takeIf { it.priceCents > 0 && it.durationMinutes > 0 }?.let {
             LessonRate(durationMinutes = it.durationMinutes, priceCents = it.priceCents)
         }
 
-        return StudentProfile(subject = subject, grade = grade, rate = rate)
+        return StudentCardProfile(subject = subject, grade = grade, rate = rate)
     }
+}
+
+sealed interface StudentProfileUiState {
+    data object Hidden : StudentProfileUiState
+    data object Loading : StudentProfileUiState
+    data object Error : StudentProfileUiState
+    data class Content(val profile: StudentProfile) : StudentProfileUiState
 }
 
 private fun String?.extractGrade(): String? {

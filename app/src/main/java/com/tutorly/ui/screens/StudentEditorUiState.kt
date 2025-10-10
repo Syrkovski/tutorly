@@ -4,6 +4,7 @@ data class StudentEditorFormState(
     val name: String = "",
     val phone: String = "",
     val messenger: String = "",
+    val grade: String = "",
     val note: String = "",
     val isArchived: Boolean = false,
     val isActive: Boolean = true,

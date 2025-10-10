@@ -20,6 +20,12 @@ data class LessonWithStudent(
     val payments: List<Payment>
 )
 
+data class LessonWithSubject(
+    @Embedded val lesson: Lesson,
+    @Relation(parentColumn = "subjectId", entityColumn = "id")
+    val subject: SubjectPreset?
+)
+
 fun LessonWithStudent.toLessonDetails(): LessonDetails {
     val normalizedDuration = resolveDuration(
         startAt = lesson.startAt,
