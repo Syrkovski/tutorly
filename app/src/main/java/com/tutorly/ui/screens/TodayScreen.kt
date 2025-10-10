@@ -1,6 +1,5 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.animateItemPlacement
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,7 +75,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
     modifier: Modifier = Modifier,
@@ -193,7 +191,7 @@ private fun EmptyState() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayContent(
     state: TodayUiState.Content,
@@ -277,7 +275,6 @@ private fun TodayLessonRow(
         state = dismissState,
         modifier = Modifier
             .fillMaxWidth()
-            .animateItemPlacement(),
         backgroundContent = { DismissBackground(state = dismissState) }
     ) {
         LessonCard(
