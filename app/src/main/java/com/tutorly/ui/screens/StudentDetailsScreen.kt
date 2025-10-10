@@ -171,7 +171,9 @@ fun StudentDetailsScreen(
                     StudentSummaryCard(
                         student = student,
                         hasDebt = state.hasDebt,
-                        totalDebt = formattedDebt
+                        totalDebt = formattedDebt,
+                        subject = state.subject,
+                        grade = state.grade
                     )
                     Button(
                         onClick = { onCreateLesson(student) },
@@ -247,14 +249,14 @@ private fun StudentSummaryCard(
     student: Student,
     hasDebt: Boolean,
     totalDebt: String,
+    subject: String?,
+    grade: String?,
     modifier: Modifier = Modifier
 ) {
-    val subtitle = remember(student.note) {
-        student.note
-            ?.lineSequence()
-            ?.firstOrNull()
-            ?.takeIf { it.isNotBlank() }
-    }
+    val subjectText = subject?.takeIf { it.isNotBlank() }?.trim()
+        ?: stringResource(id = R.string.students_subject_placeholder)
+    val gradeText = grade?.takeIf { it.isNotBlank() }?.trim()
+        ?: stringResource(id = R.string.students_grade_placeholder)
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
@@ -270,11 +272,18 @@ private fun StudentSummaryCard(
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            Text(
-                text = subtitle ?: stringResource(id = R.string.student_details_header_placeholder),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(id = R.string.students_subject_label) + ": " + subjectText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = stringResource(id = R.string.students_grade_label) + ": " + gradeText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {

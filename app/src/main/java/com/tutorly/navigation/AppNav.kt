@@ -147,9 +147,22 @@ fun AppNavRoot() {
                 val originName = entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
                 val origin = runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(StudentEditorOrigin.NONE)
                 StudentsScreen(
-                    onStudentClick = { id ->
-                        nav.navigate(studentDetailsRoute(id)) {
+                    onStudentEdit = { id ->
+                        nav.navigate(studentEditRoute(id)) {
                             launchSingleTop = true
+                        }
+                    },
+                    onAddLesson = { studentId ->
+                        creationViewModel.start(
+                            LessonCreationConfig(
+                                studentId = studentId,
+                                zoneId = ZonedDateTime.now().zone,
+                                origin = LessonCreationOrigin.STUDENT
+                            )
+                        )
+                        nav.navigate(calendarRoute(nav)) {
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     },
                     onStudentCreatedFromLesson = { newId ->

@@ -27,6 +27,7 @@ class StudentDetailsViewModel @Inject constructor(
         ?: error("studentId is required")
 
     private val studentFlow = studentsRepository.observeStudent(studentId)
+    private val profileFlow = studentsRepository.observeStudentProfile(studentId)
     private val hasDebtFlow = paymentsRepository.observeHasDebt(studentId)
     private val totalDebtFlow = paymentsRepository.observeTotalDebt(studentId)
     private val lessonsFlow = lessonsRepository.observeByStudent(studentId)
@@ -35,14 +36,19 @@ class StudentDetailsViewModel @Inject constructor(
         studentFlow,
         hasDebtFlow,
         totalDebtFlow,
-        lessonsFlow
-    ) { student, hasDebt, totalDebt, lessons ->
+        lessonsFlow,
+        profileFlow
+    ) { student, hasDebt, totalDebt, lessons, profile ->
+        val resolvedStudent = student ?: profile?.student
         UiState(
             isLoading = false,
-            student = student,
+            student = resolvedStudent,
             hasDebt = hasDebt,
             totalDebtCents = totalDebt,
-            lessons = lessons
+            lessons = lessons,
+            subject = profile?.subject?.takeIf { it.isNotBlank() }?.trim()
+                ?: resolvedStudent?.subject?.takeIf { it.isNotBlank() }?.trim(),
+            grade = profile?.grade ?: resolvedStudent?.grade
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
@@ -51,6 +57,8 @@ class StudentDetailsViewModel @Inject constructor(
         val student: Student? = null,
         val hasDebt: Boolean = false,
         val totalDebtCents: Long = 0L,
-        val lessons: List<Lesson> = emptyList()
+        val lessons: List<Lesson> = emptyList(),
+        val subject: String? = null,
+        val grade: String? = null
     )
 }

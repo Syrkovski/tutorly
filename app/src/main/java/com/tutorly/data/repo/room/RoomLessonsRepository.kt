@@ -4,8 +4,10 @@ import com.tutorly.data.db.dao.LessonCountTuple
 import com.tutorly.data.db.dao.LessonDao
 import com.tutorly.data.db.dao.PaymentDao
 import com.tutorly.data.db.projections.toLessonDetails
+import com.tutorly.data.db.projections.toLessonForToday
 import com.tutorly.domain.model.LessonCreateRequest
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
@@ -23,6 +25,9 @@ class RoomLessonsRepository(
 ) : LessonsRepository {
     override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         lessonDao.observeInRange(from, to).map { lessons -> lessons.map { it.toLessonDetails() } }
+
+    override fun observeTodayLessons(dayStart: Instant, dayEnd: Instant): Flow<List<LessonForToday>> =
+        lessonDao.observeInRange(dayStart, dayEnd).map { lessons -> lessons.map { it.toLessonForToday() } }
 
     override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
         combine(
@@ -65,6 +70,7 @@ class RoomLessonsRepository(
             priceCents = request.priceCents,
             paidCents = 0,
             paymentStatus = PaymentStatus.UNPAID,
+            markedAt = null,
             status = LessonStatus.PLANNED,
             note = request.note,
             createdAt = now,
@@ -83,7 +89,7 @@ class RoomLessonsRepository(
     override suspend fun markPaid(id: Long) {
         val lesson = lessonDao.findById(id) ?: return
         val now = Instant.now()
-        lessonDao.updatePayment(id, PaymentStatus.PAID, lesson.priceCents, now)
+        lessonDao.updatePayment(id, PaymentStatus.PAID, lesson.priceCents, now, now)
 
         val existing = paymentDao.findByLesson(id)
         val payment = (existing ?: Payment(
@@ -108,7 +114,7 @@ class RoomLessonsRepository(
     override suspend fun markDue(id: Long) {
         val lesson = lessonDao.findById(id) ?: return
         val now = Instant.now()
-        lessonDao.updatePayment(id, PaymentStatus.DUE, 0, now)
+        lessonDao.updatePayment(id, PaymentStatus.DUE, 0, now, now)
 
         val existing = paymentDao.findByLesson(id)
         val payment = (existing ?: Payment(
@@ -132,4 +138,15 @@ class RoomLessonsRepository(
 
     override suspend fun saveNote(id: Long, note: String?) =
         lessonDao.updateNote(id, note, Instant.now())
+
+    override suspend fun resetPaymentStatus(id: Long) {
+        val lesson = lessonDao.findById(id) ?: return
+        val now = Instant.now()
+        lessonDao.updatePayment(id, PaymentStatus.UNPAID, 0, now, null)
+
+        val existing = paymentDao.findByLesson(id)
+        if (existing != null) {
+            paymentDao.delete(existing)
+        }
+    }
 }

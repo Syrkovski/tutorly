@@ -2,6 +2,7 @@ package com.tutorly.data.db.dao
 
 import androidx.room.*
 import com.tutorly.data.db.projections.LessonWithStudent
+import com.tutorly.data.db.projections.LessonWithSubject
 import com.tutorly.models.*
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
@@ -32,6 +33,17 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt DESC")
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
 
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM lessons
+        WHERE studentId = :studentId
+        ORDER BY startAt DESC
+        LIMIT :limit
+        """
+    )
+    fun observeRecentWithSubject(studentId: Long, limit: Int): Flow<List<LessonWithSubject>>
+
     @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): Lesson?
 
@@ -50,8 +62,14 @@ interface LessonDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
 
-    @Query("UPDATE lessons SET paymentStatus=:status, paidCents=:paid, updatedAt=:now WHERE id=:id")
-    suspend fun updatePayment(id: Long, status: PaymentStatus, paid: Int, now: Instant)
+    @Query("UPDATE lessons SET paymentStatus=:status, paidCents=:paid, markedAt=:markedAt, updatedAt=:now WHERE id=:id")
+    suspend fun updatePayment(
+        id: Long,
+        status: PaymentStatus,
+        paid: Int,
+        now: Instant,
+        markedAt: Instant?
+    )
 
     @Query("UPDATE lessons SET note=:note, updatedAt=:now WHERE id=:id")
     suspend fun updateNote(id: Long, note: String?, now: Instant)

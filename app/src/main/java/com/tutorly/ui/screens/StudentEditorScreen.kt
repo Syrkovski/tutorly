@@ -1,10 +1,16 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,9 +59,13 @@ class StudentEditorVM @Inject constructor(
                     if (s != null) {
                         loadedStudent = s
                         formState = StudentEditorFormState(
+                            studentId = s.id,
                             name = s.name,
                             phone = s.phone.orEmpty(),
                             messenger = s.messenger.orEmpty(),
+                            rate = formatRateInput(s.rateCents),
+                            subject = s.subject.orEmpty(),
+                            grade = s.grade.orEmpty(),
                             note = s.note.orEmpty(),
                             isArchived = s.isArchived,
                             isActive = s.active,
@@ -76,6 +86,18 @@ class StudentEditorVM @Inject constructor(
 
     fun onMessengerChange(value: String) {
         formState = formState.copy(messenger = value)
+    }
+
+    fun onRateChange(value: String) {
+        formState = formState.copy(rate = value)
+    }
+
+    fun onSubjectChange(value: String) {
+        formState = formState.copy(subject = value)
+    }
+
+    fun onGradeChange(value: String) {
+        formState = formState.copy(grade = value)
     }
 
     fun onNoteChange(value: String) {
@@ -102,6 +124,15 @@ class StudentEditorVM @Inject constructor(
 
         val trimmedPhone = formState.phone.trim().ifBlank { null }
         val trimmedMessenger = formState.messenger.trim().ifBlank { null }
+        val rateInput = formState.rate.trim()
+        val parsedRate = parseRateInput(rateInput)
+        val normalizedRate = if (rateInput.isNotEmpty() && parsedRate != null) {
+            formatRateInput(parsedRate)
+        } else {
+            rateInput
+        }
+        val trimmedSubject = formState.subject.trim().ifBlank { null }
+        val trimmedGrade = formState.grade.trim().ifBlank { null }
         val trimmedNote = formState.note.trim().ifBlank { null }
 
         viewModelScope.launch {
@@ -110,6 +141,9 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone.orEmpty(),
                 messenger = trimmedMessenger.orEmpty(),
+                rate = normalizedRate,
+                subject = trimmedSubject.orEmpty(),
+                grade = trimmedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
                 nameError = false
             )
@@ -117,6 +151,9 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                rateCents = parsedRate,
+                subject = trimmedSubject,
+                grade = trimmedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
@@ -124,6 +161,9 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                rateCents = parsedRate,
+                subject = trimmedSubject,
+                grade = trimmedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
@@ -153,6 +193,25 @@ fun StudentEditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val isEditing = vm.formState.studentId != null
+
+    val attemptSave = {
+        if (!vm.formState.isSaving) {
+            vm.save(
+                onSaved = onSaved,
+                onError = { message ->
+                    coroutineScope.launch {
+                        val text = if (message.isNotBlank()) {
+                            message
+                        } else {
+                            context.getString(R.string.student_editor_save_error)
+                        }
+                        snackbarHostState.showSnackbar(text)
+                    }
+                }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -168,23 +227,7 @@ fun StudentEditorScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = {
-                            if (!vm.formState.isSaving) {
-                                vm.save(
-                                    onSaved = onSaved,
-                                    onError = { message ->
-                                        coroutineScope.launch {
-                                            val text = if (message.isNotBlank()) {
-                                                message
-                                            } else {
-                                                context.getString(R.string.student_editor_save_error)
-                                            }
-                                            snackbarHostState.showSnackbar(text)
-                                        }
-                                    }
-                                )
-                            }
-                        },
+                        onClick = attemptSave,
                         enabled = !vm.formState.isSaving
                     ) {
                         Icon(
@@ -197,37 +240,50 @@ fun StudentEditorScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { inner ->
-        StudentEditorForm(
-            state = vm.formState,
-            onNameChange = vm::onNameChange,
-            onPhoneChange = vm::onPhoneChange,
-            onMessengerChange = vm::onMessengerChange,
-            onNoteChange = vm::onNoteChange,
-            onArchivedChange = vm::onArchivedChange,
-            onActiveChange = vm::onActiveChange,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            focusOnStart = false,
-            enabled = !vm.formState.isSaving,
-            onSubmit = {
-                if (!vm.formState.isSaving) {
-                    vm.save(
-                        onSaved = onSaved,
-                        onError = { message ->
-                            coroutineScope.launch {
-                                val text = if (message.isNotBlank()) {
-                                    message
-                                } else {
-                                    context.getString(R.string.student_editor_save_error)
-                                }
-                                snackbarHostState.showSnackbar(text)
-                            }
-                        }
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            StudentEditorForm(
+                state = vm.formState,
+                onNameChange = vm::onNameChange,
+                onPhoneChange = vm::onPhoneChange,
+                onMessengerChange = vm::onMessengerChange,
+                onRateChange = vm::onRateChange,
+                onSubjectChange = vm::onSubjectChange,
+                onGradeChange = vm::onGradeChange,
+                onNoteChange = vm::onNoteChange,
+                onArchivedChange = vm::onArchivedChange,
+                onActiveChange = vm::onActiveChange,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxWidth(),
+                focusOnStart = false,
+                enabled = !vm.formState.isSaving,
+                onSubmit = attemptSave
+            )
+
+            Button(
+                onClick = attemptSave,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
+            ) {
+                if (vm.formState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = stringResource(
+                            id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                        )
                     )
                 }
             }
-        )
+        }
     }
 }

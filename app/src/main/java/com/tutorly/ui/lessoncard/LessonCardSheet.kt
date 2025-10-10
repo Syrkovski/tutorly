@@ -263,7 +263,7 @@ private fun LessonMetadataBlock(state: LessonCardUiState, zoneId: ZoneId) {
     val start = remember(details.startAt, zoneId) { ZonedDateTime.ofInstant(details.startAt, zoneId) }
     val end = remember(details.endAt, zoneId) { ZonedDateTime.ofInstant(details.endAt, zoneId) }
 
-    val subject = details.subjectName?.takeIf { it.isNotBlank() }
+    val subject = details.subjectName?.takeIf { it.isNotBlank() }?.trim()
         ?: stringResource(R.string.lesson_card_subject_placeholder)
 
     Card(

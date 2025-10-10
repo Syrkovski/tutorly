@@ -1,5 +1,6 @@
 package com.tutorly.domain.repo
 
+import com.tutorly.domain.model.StudentProfile
 import com.tutorly.models.Student
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,8 @@ interface StudentsRepository {
     // observable — для UI
     fun observeStudents(query: String): Flow<List<Student>>
     fun observeStudent(id: Long): Flow<Student?>
+
+    fun observeStudentProfile(studentId: Long, recentLessonsLimit: Int = 5): Flow<StudentProfile?>
 
     // crud
     suspend fun upsert(student: Student): Long

@@ -14,6 +14,9 @@ data class Student(
     val name: String,
     val phone: String? = null,
     val messenger: String? = null,   // "Telegram: @user" (по желанию)
+    val rateCents: Int? = null,
+    val subject: String? = null,
+    val grade: String? = null,
     val note: String? = null,
     val isArchived: Boolean = false,
     val createdAt: Instant = Instant.now(),

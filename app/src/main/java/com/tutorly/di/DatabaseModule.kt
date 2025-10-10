@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
+import com.tutorly.data.db.migrations.MIGRATION_5_6
 import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.room.RoomLessonsRepository
 import com.tutorly.data.repo.room.RoomPaymentsRepository
@@ -29,6 +30,7 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideDb(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "tutorly.db")
+            .addMigrations(MIGRATION_5_6)
             .fallbackToDestructiveMigration() // на MVP ок
             .build()
 
@@ -40,8 +42,9 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideStudentsRepo(
         studentDao: StudentDao,
-        paymentDao: PaymentDao
-    ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao)
+        paymentDao: PaymentDao,
+        lessonDao: LessonDao
+    ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao, lessonDao)
 
     @Provides @Singleton
     fun providePaymentsRepo(
