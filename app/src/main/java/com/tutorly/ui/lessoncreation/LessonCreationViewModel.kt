@@ -53,12 +53,25 @@ class LessonCreationViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             cachedSubjects = subjectPresetsRepository.all()
+            _uiState.update { state ->
+                val options = cachedSubjects.map { it.toOption() }
+                val selected = state.selectedSubjectId?.takeIf { id -> options.any { it.id == id } }
+                state.copy(
+                    subjects = options,
+                    selectedSubjectId = selected
+                )
+            }
+            val currentSelected = _uiState.value.selectedSubjectId
+            if (currentSelected != null && cachedSubjects.any { it.id == currentSelected }) {
+                onSubjectSelected(currentSelected)
+            }
         }
     }
 
     fun start(config: LessonCreationConfig) {
         pendingStudentConfig = null
         viewModelScope.launch {
+            cachedSubjects = subjectPresetsRepository.all()
             val settings = userSettingsRepository.get()
             val locale = Locale(settings.locale)
             val currencySymbol = runCatching { Currency.getInstance(settings.currency).getSymbol(locale) }
@@ -76,13 +89,14 @@ class LessonCreationViewModel @Inject constructor(
             priceEdited = false
 
             val students = loadStudents("")
+            val subjectOptions = cachedSubjects.map { it.toOption() }
 
             _uiState.value = LessonCreationUiState(
                 isVisible = true,
                 studentQuery = "",
                 students = students,
                 selectedStudent = null,
-                subjects = cachedSubjects.map { it.toOption() },
+                subjects = subjectOptions,
                 selectedSubjectId = null,
                 date = roundedStart.toLocalDate(),
                 time = roundedStart.toLocalTime(),

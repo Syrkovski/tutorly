@@ -104,19 +104,22 @@ fun StudentsScreen(
     val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editorOrigin by rememberSaveable { mutableStateOf(StudentEditorOrigin.NONE) }
+    var pendingProfileId by remember { mutableStateOf<Long?>(null) }
+
+    val openCreationEditor: (StudentEditorOrigin) -> Unit = { origin ->
+        editorOrigin = origin
+        pendingProfileId = null
+        vm.startStudentCreation()
+        showEditor = true
+    }
 
     LaunchedEffect(initialEditorOrigin) {
         if (initialEditorOrigin != StudentEditorOrigin.NONE) {
             editorOrigin = initialEditorOrigin
+            pendingProfileId = null
             vm.startStudentCreation()
             showEditor = true
         }
-    }
-
-    val openEditor: (StudentEditorOrigin) -> Unit = { origin ->
-        editorOrigin = origin
-        vm.startStudentCreation()
-        showEditor = true
     }
 
     val closeEditor = {
@@ -127,14 +130,23 @@ fun StudentsScreen(
 
     val handleSave = {
         if (!formState.isSaving) {
-            vm.submitNewStudent(
-                onSuccess = { newId, name ->
+            vm.submitStudent(
+                onSuccess = { id, name, isNew ->
                     closeEditor()
-                    val message = context.getString(R.string.student_added_message, name)
-                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                    if (editorOrigin == StudentEditorOrigin.LESSON_CREATION) {
-                        onStudentCreatedFromLesson(newId)
+                    val message = if (isNew) {
+                        context.getString(R.string.student_added_message, name)
+                    } else {
+                        context.getString(R.string.student_updated_message, name)
                     }
+                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                    if (isNew) {
+                        if (editorOrigin == StudentEditorOrigin.LESSON_CREATION) {
+                            onStudentCreatedFromLesson(id)
+                        }
+                    } else {
+                        pendingProfileId?.let { vm.openStudentProfile(it) }
+                    }
+                    pendingProfileId = null
                 },
                 onError = { error ->
                     val message = if (error.isNotBlank()) {
@@ -154,7 +166,7 @@ fun StudentsScreen(
         containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { openEditor(StudentEditorOrigin.STUDENTS) },
+                onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -206,6 +218,7 @@ fun StudentsScreen(
         ModalBottomSheet(
             onDismissRequest = {
                 if (!formState.isSaving) {
+                    pendingProfileId = null
                     closeEditor()
                 }
             },
@@ -222,7 +235,12 @@ fun StudentsScreen(
                 onNoteChange = vm::onEditorNoteChange,
                 onArchivedChange = vm::onEditorArchivedChange,
                 onActiveChange = vm::onEditorActiveChange,
-                onCancel = { if (!formState.isSaving) closeEditor() },
+                onCancel = {
+                    if (!formState.isSaving) {
+                        pendingProfileId = null
+                        closeEditor()
+                    }
+                },
                 onSave = handleSave
             )
         }
@@ -238,8 +256,17 @@ fun StudentsScreen(
                 state = profileUiState,
                 onClose = vm::clearSelectedStudent,
                 onEdit = { studentId ->
-                    vm.clearSelectedStudent()
-                    onStudentEdit(studentId)
+                    val profileStudent = (profileUiState as? StudentProfileUiState.Content)?.profile?.student
+                    if (profileStudent != null && profileStudent.id == studentId) {
+                        vm.clearSelectedStudent()
+                        editorOrigin = StudentEditorOrigin.STUDENTS
+                        pendingProfileId = studentId
+                        vm.startStudentEdit(profileStudent)
+                        showEditor = true
+                    } else {
+                        vm.clearSelectedStudent()
+                        onStudentEdit(studentId)
+                    }
                 },
                 onAddLesson = { studentId ->
                     vm.clearSelectedStudent()
@@ -264,6 +291,7 @@ private fun StudentEditorSheet(
     onCancel: () -> Unit,
     onSave: () -> Unit,
 ) {
+    val isEditing = state.studentId != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -277,7 +305,9 @@ private fun StudentEditorSheet(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(id = R.string.add_student),
+                text = stringResource(
+                    id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
+                ),
                 style = MaterialTheme.typography.titleLarge
             )
             IconButton(onClick = onCancel, enabled = !state.isSaving) {
@@ -326,7 +356,11 @@ private fun StudentEditorSheet(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text(text = stringResource(id = R.string.add_student))
+                    Text(
+                        text = stringResource(
+                            id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                        )
+                    )
                 }
             }
         }

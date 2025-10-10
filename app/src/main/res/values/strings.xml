@@ -15,6 +15,7 @@
     <string name="students_rate_label_custom">Ставка за %1$d мин</string>
     <string name="students_rate_placeholder">Нет данных</string>
     <string name="student_editor_title">Ученик</string>
+    <string name="student_editor_edit_title">Редактировать ученика</string>
     <string name="student_editor_close">Закрыть</string>
     <string name="student_editor_save">Сохранить ученика</string>
     <string name="student_editor_name">Имя*</string>
@@ -29,6 +30,7 @@
     <string name="student_editor_cancel">Отмена</string>
     <string name="student_editor_save_error">Не удалось сохранить ученика</string>
     <string name="student_added_message">Ученик «%1$s» добавлен</string>
+    <string name="student_updated_message">Данные ученика «%1$s» обновлены</string>
     <string name="student_profile_error">Не удалось загрузить профиль</string>
     <string name="student_profile_contact_call">Позвонить</string>
     <string name="student_profile_contact_message">Написать</string>

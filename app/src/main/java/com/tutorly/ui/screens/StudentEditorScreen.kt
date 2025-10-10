@@ -53,6 +53,7 @@ class StudentEditorVM @Inject constructor(
                     if (s != null) {
                         loadedStudent = s
                         formState = StudentEditorFormState(
+                            studentId = s.id,
                             name = s.name,
                             phone = s.phone.orEmpty(),
                             messenger = s.messenger.orEmpty(),

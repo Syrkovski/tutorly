@@ -296,7 +296,9 @@ private fun DurationPriceSection(
     var durationInput by remember(state.durationMinutes) {
         mutableStateOf(state.durationMinutes.takeIf { it > 0 }?.toString() ?: "")
     }
-    var priceInput by remember(state.priceCents) { mutableStateOf(state.priceCents.takeIf { it >= 0 }?.toString() ?: "") }
+    var priceInput by remember(state.priceCents) {
+        mutableStateOf(state.priceCents.takeIf { it >= 0 }?.let { (it / 100).toString() } ?: "")
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -319,7 +321,7 @@ private fun DurationPriceSection(
             onValueChange = { value ->
                 val digits = value.filter { it.isDigit() }
                 priceInput = digits
-                onPriceChange(digits.toIntOrNull() ?: 0)
+                onPriceChange((digits.toIntOrNull() ?: 0) * 100)
             },
             label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),

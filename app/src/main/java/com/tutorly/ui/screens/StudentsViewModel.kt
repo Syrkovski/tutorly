@@ -49,6 +49,7 @@ class StudentsViewModel @Inject constructor(
     private val _latestLessons = MutableStateFlow<Map<Long, LessonSnapshot?>>(emptyMap())
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
     private val _selectedStudentId = MutableStateFlow<Long?>(null)
+    private var editingStudent: Student? = null
 
     private val studentsStream = _query
         .map { it.trim() }
@@ -122,7 +123,9 @@ class StudentsViewModel @Inject constructor(
         isArchived: Boolean = false,
         isActive: Boolean = true,
     ) {
+        editingStudent = null
         _editorFormState.value = StudentEditorFormState(
+            studentId = null,
             name = name,
             phone = phone,
             messenger = messenger,
@@ -134,7 +137,23 @@ class StudentsViewModel @Inject constructor(
         )
     }
 
+    fun startStudentEdit(student: Student) {
+        editingStudent = student
+        _editorFormState.value = StudentEditorFormState(
+            studentId = student.id,
+            name = student.name,
+            phone = student.phone.orEmpty(),
+            messenger = student.messenger.orEmpty(),
+            subject = student.subject.orEmpty(),
+            grade = student.grade.orEmpty(),
+            note = student.note.orEmpty(),
+            isArchived = student.isArchived,
+            isActive = student.active
+        )
+    }
+
     fun resetStudentForm() {
+        editingStudent = null
         _editorFormState.value = StudentEditorFormState()
     }
 
@@ -170,8 +189,8 @@ class StudentsViewModel @Inject constructor(
         _editorFormState.update { it.copy(isActive = value) }
     }
 
-    fun submitNewStudent(
-        onSuccess: (Long, String) -> Unit,
+    fun submitStudent(
+        onSuccess: (Long, String, Boolean) -> Unit,
         onError: (String) -> Unit,
     ) {
         val state = _editorFormState.value
@@ -187,6 +206,8 @@ class StudentsViewModel @Inject constructor(
         val trimmedGrade = state.grade.trim().ifBlank { null }
         val trimmedNote = state.note.trim().ifBlank { null }
 
+        val isEditing = editingStudent != null || state.studentId != null
+
         viewModelScope.launch {
             _editorFormState.update {
                 it.copy(
@@ -201,27 +222,62 @@ class StudentsViewModel @Inject constructor(
                 )
             }
 
-            val student = Student(
-                name = trimmedName,
-                phone = trimmedPhone,
-                messenger = trimmedMessenger,
-                subject = trimmedSubject,
-                grade = trimmedGrade,
-                note = trimmedNote,
-                isArchived = state.isArchived,
-                active = state.isActive,
-                updatedAt = Instant.now()
-            )
+            val now = Instant.now()
 
-            runCatching { repo.upsert(student) }
-                .onSuccess { newId ->
-                    _editorFormState.value = StudentEditorFormState()
-                    onSuccess(newId, trimmedName)
+            if (isEditing) {
+                val base = editingStudent ?: state.studentId?.let { repo.getByIdSafe(it) }
+                if (base == null) {
+                    editingStudent = null
+                    _editorFormState.update { it.copy(studentId = null, isSaving = false) }
+                    submitStudent(onSuccess, onError)
+                    return@launch
                 }
-                .onFailure { throwable ->
-                    _editorFormState.update { it.copy(isSaving = false) }
-                    onError(throwable.message ?: "")
-                }
+
+                val updated = base.copy(
+                    name = trimmedName,
+                    phone = trimmedPhone,
+                    messenger = trimmedMessenger,
+                    subject = trimmedSubject,
+                    grade = trimmedGrade,
+                    note = trimmedNote,
+                    isArchived = state.isArchived,
+                    active = state.isActive,
+                    updatedAt = now
+                )
+
+                runCatching { repo.upsert(updated) }
+                    .onSuccess { id ->
+                        editingStudent = updated.copy(id = id)
+                        _editorFormState.update { it.copy(isSaving = false) }
+                        onSuccess(id, trimmedName, false)
+                    }
+                    .onFailure { throwable ->
+                        _editorFormState.update { it.copy(isSaving = false) }
+                        onError(throwable.message ?: "")
+                    }
+            } else {
+                val student = Student(
+                    name = trimmedName,
+                    phone = trimmedPhone,
+                    messenger = trimmedMessenger,
+                    subject = trimmedSubject,
+                    grade = trimmedGrade,
+                    note = trimmedNote,
+                    isArchived = state.isArchived,
+                    active = state.isActive,
+                    updatedAt = now
+                )
+
+                runCatching { repo.upsert(student) }
+                    .onSuccess { newId ->
+                        _editorFormState.value = StudentEditorFormState()
+                        onSuccess(newId, trimmedName, true)
+                    }
+                    .onFailure { throwable ->
+                        _editorFormState.update { it.copy(isSaving = false) }
+                        onError(throwable.message ?: "")
+                    }
+            }
         }
     }
 
@@ -364,3 +420,6 @@ private fun String?.extractGrade(): String? {
     val gradeNumber = match?.groups?.get(2)?.value
     return gradeNumber?.let { "$it класс" }
 }
+
+private suspend fun StudentsRepository.getByIdSafe(id: Long): Student? =
+    runCatching { getById(id) }.getOrNull()

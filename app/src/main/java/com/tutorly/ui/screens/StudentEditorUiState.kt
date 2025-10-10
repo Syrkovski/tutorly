@@ -1,6 +1,7 @@
 package com.tutorly.ui.screens
 
 data class StudentEditorFormState(
+    val studentId: Long? = null,
     val name: String = "",
     val phone: String = "",
     val messenger: String = "",
