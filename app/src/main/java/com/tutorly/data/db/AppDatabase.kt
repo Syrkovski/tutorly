@@ -15,7 +15,7 @@ import com.tutorly.models.*
         Payment::class,
         SubjectPreset::class
     ],
-    version = 4, // ↑ увеличь версию
+    version = 5, // ↑ увеличь версию
     exportSchema = true
 )
 @TypeConverters(InstantConverter::class, EnumConverters::class)

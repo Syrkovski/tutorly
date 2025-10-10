@@ -117,6 +117,7 @@ class StudentsViewModel @Inject constructor(
         name: String = "",
         phone: String = "",
         messenger: String = "",
+        rate: String = "",
         subject: String = "",
         grade: String = "",
         note: String = "",
@@ -129,6 +130,7 @@ class StudentsViewModel @Inject constructor(
             name = name,
             phone = phone,
             messenger = messenger,
+            rate = rate,
             subject = subject,
             grade = grade,
             note = note,
@@ -144,6 +146,7 @@ class StudentsViewModel @Inject constructor(
             name = student.name,
             phone = student.phone.orEmpty(),
             messenger = student.messenger.orEmpty(),
+            rate = formatRateInput(student.rateCents),
             subject = student.subject.orEmpty(),
             grade = student.grade.orEmpty(),
             note = student.note.orEmpty(),
@@ -167,6 +170,10 @@ class StudentsViewModel @Inject constructor(
 
     fun onEditorMessengerChange(value: String) {
         _editorFormState.update { it.copy(messenger = value) }
+    }
+
+    fun onEditorRateChange(value: String) {
+        _editorFormState.update { it.copy(rate = value) }
     }
 
     fun onEditorSubjectChange(value: String) {
@@ -205,6 +212,13 @@ class StudentsViewModel @Inject constructor(
         val trimmedSubject = state.subject.trim().ifBlank { null }
         val trimmedGrade = state.grade.trim().ifBlank { null }
         val trimmedNote = state.note.trim().ifBlank { null }
+        val rateInput = state.rate.trim()
+        val parsedRate = parseRateInput(rateInput)
+        val normalizedRate = if (rateInput.isNotEmpty() && parsedRate != null) {
+            formatRateInput(parsedRate)
+        } else {
+            rateInput
+        }
 
         val isEditing = editingStudent != null || state.studentId != null
 
@@ -214,6 +228,7 @@ class StudentsViewModel @Inject constructor(
                     name = trimmedName,
                     phone = trimmedPhone.orEmpty(),
                     messenger = trimmedMessenger.orEmpty(),
+                    rate = normalizedRate,
                     subject = trimmedSubject.orEmpty(),
                     grade = trimmedGrade.orEmpty(),
                     note = trimmedNote.orEmpty(),
@@ -237,6 +252,7 @@ class StudentsViewModel @Inject constructor(
                     name = trimmedName,
                     phone = trimmedPhone,
                     messenger = trimmedMessenger,
+                    rateCents = parsedRate,
                     subject = trimmedSubject,
                     grade = trimmedGrade,
                     note = trimmedNote,
@@ -260,6 +276,7 @@ class StudentsViewModel @Inject constructor(
                     name = trimmedName,
                     phone = trimmedPhone,
                     messenger = trimmedMessenger,
+                    rateCents = parsedRate,
                     subject = trimmedSubject,
                     grade = trimmedGrade,
                     note = trimmedNote,
@@ -400,6 +417,8 @@ class StudentsViewModel @Inject constructor(
             ?: student.note.extractGrade()
         val rate = snapshot?.takeIf { it.priceCents > 0 && it.durationMinutes > 0 }?.let {
             LessonRate(durationMinutes = it.durationMinutes, priceCents = it.priceCents)
+        } ?: student.rateCents?.takeIf { it > 0 }?.let {
+            LessonRate(durationMinutes = 0, priceCents = it)
         }
 
         return StudentCardProfile(subject = subject, grade = grade, rate = rate)

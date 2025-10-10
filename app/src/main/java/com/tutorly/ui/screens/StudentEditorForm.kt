@@ -29,6 +29,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 
@@ -39,6 +40,7 @@ fun StudentEditorForm(
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
+    onRateChange: (String) -> Unit,
     onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -88,26 +90,6 @@ fun StudentEditorForm(
                 color = MaterialTheme.colorScheme.error
             )
         }
-
-        OutlinedTextField(
-            value = state.phone,
-            onValueChange = onPhoneChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_phone)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
-        )
-
-        OutlinedTextField(
-            value = state.messenger,
-            onValueChange = onMessengerChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_messenger)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
-        )
 
         OutlinedTextField(
             value = state.subject,
@@ -167,6 +149,39 @@ fun StudentEditorForm(
                 }
             }
         }
+
+        OutlinedTextField(
+            value = state.rate,
+            onValueChange = onRateChange,
+            label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next
+            )
+        )
+
+        OutlinedTextField(
+            value = state.phone,
+            onValueChange = onPhoneChange,
+            label = { Text(text = stringResource(id = R.string.student_editor_phone)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+        )
+
+        OutlinedTextField(
+            value = state.messenger,
+            onValueChange = onMessengerChange,
+            label = { Text(text = stringResource(id = R.string.student_editor_messenger)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+        )
 
         OutlinedTextField(
             value = state.note,

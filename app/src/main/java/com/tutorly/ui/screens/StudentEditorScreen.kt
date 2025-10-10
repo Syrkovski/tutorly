@@ -57,6 +57,7 @@ class StudentEditorVM @Inject constructor(
                             name = s.name,
                             phone = s.phone.orEmpty(),
                             messenger = s.messenger.orEmpty(),
+                            rate = formatRateInput(s.rateCents),
                             subject = s.subject.orEmpty(),
                             grade = s.grade.orEmpty(),
                             note = s.note.orEmpty(),
@@ -79,6 +80,10 @@ class StudentEditorVM @Inject constructor(
 
     fun onMessengerChange(value: String) {
         formState = formState.copy(messenger = value)
+    }
+
+    fun onRateChange(value: String) {
+        formState = formState.copy(rate = value)
     }
 
     fun onSubjectChange(value: String) {
@@ -113,6 +118,13 @@ class StudentEditorVM @Inject constructor(
 
         val trimmedPhone = formState.phone.trim().ifBlank { null }
         val trimmedMessenger = formState.messenger.trim().ifBlank { null }
+        val rateInput = formState.rate.trim()
+        val parsedRate = parseRateInput(rateInput)
+        val normalizedRate = if (rateInput.isNotEmpty() && parsedRate != null) {
+            formatRateInput(parsedRate)
+        } else {
+            rateInput
+        }
         val trimmedSubject = formState.subject.trim().ifBlank { null }
         val trimmedGrade = formState.grade.trim().ifBlank { null }
         val trimmedNote = formState.note.trim().ifBlank { null }
@@ -123,6 +135,7 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone.orEmpty(),
                 messenger = trimmedMessenger.orEmpty(),
+                rate = normalizedRate,
                 subject = trimmedSubject.orEmpty(),
                 grade = trimmedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
@@ -132,6 +145,7 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                rateCents = parsedRate,
                 subject = trimmedSubject,
                 grade = trimmedGrade,
                 note = trimmedNote,
@@ -141,6 +155,7 @@ class StudentEditorVM @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                rateCents = parsedRate,
                 subject = trimmedSubject,
                 grade = trimmedGrade,
                 note = trimmedNote,
@@ -221,6 +236,7 @@ fun StudentEditorScreen(
             onNameChange = vm::onNameChange,
             onPhoneChange = vm::onPhoneChange,
             onMessengerChange = vm::onMessengerChange,
+            onRateChange = vm::onRateChange,
             onSubjectChange = vm::onSubjectChange,
             onGradeChange = vm::onGradeChange,
             onNoteChange = vm::onNoteChange,

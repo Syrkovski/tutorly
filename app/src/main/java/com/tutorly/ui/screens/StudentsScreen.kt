@@ -32,7 +32,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +63,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -165,13 +163,13 @@ fun StudentsScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(id = R.string.add_student))
-            }
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+                text = { Text(text = stringResource(id = R.string.add_student)) }
+            )
         }
     ) { innerPadding ->
         Column(
@@ -230,6 +228,7 @@ fun StudentsScreen(
                 onNameChange = vm::onEditorNameChange,
                 onPhoneChange = vm::onEditorPhoneChange,
                 onMessengerChange = vm::onEditorMessengerChange,
+                onRateChange = vm::onEditorRateChange,
                 onSubjectChange = vm::onEditorSubjectChange,
                 onGradeChange = vm::onEditorGradeChange,
                 onNoteChange = vm::onEditorNoteChange,
@@ -283,6 +282,7 @@ private fun StudentEditorSheet(
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
+    onRateChange: (String) -> Unit,
     onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -323,6 +323,7 @@ private fun StudentEditorSheet(
             onNameChange = onNameChange,
             onPhoneChange = onPhoneChange,
             onMessengerChange = onMessengerChange,
+            onRateChange = onRateChange,
             onSubjectChange = onSubjectChange,
             onGradeChange = onGradeChange,
             onNoteChange = onNoteChange,
@@ -383,9 +384,15 @@ private fun StudentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val currencyFormatter = remember {
+        NumberFormat.getCurrencyInstance(Locale("ru", "RU")).apply {
+            currency = Currency.getInstance("RUB")
+        }
+    }
     val subject = item.profile.subject?.takeIf { it.isNotBlank() }?.trim()
     val grade = item.profile.grade?.takeIf { it.isNotBlank() }?.trim()
-    val subtitle = listOfNotNull(subject, grade)
+    val rate = item.profile.rate?.let { formatCurrency(it.priceCents.toLong(), currencyFormatter) }
+    val subtitle = listOfNotNull(subject, grade, rate)
         .joinToString(separator = " • ")
         .takeIf { it.isNotBlank() }
 
@@ -967,6 +974,7 @@ private fun formatCurrency(amountCents: Long, formatter: NumberFormat): String {
 @Composable
 private fun rateLabelForDuration(rate: StudentProfileLessonRate): String {
     return when (rate.durationMinutes) {
+        0 -> stringResource(id = R.string.students_rate_label_generic)
         60 -> stringResource(id = R.string.students_rate_label_hour)
         90 -> stringResource(id = R.string.students_rate_label_hour_half)
         else -> stringResource(id = R.string.students_rate_label_custom, rate.durationMinutes)
