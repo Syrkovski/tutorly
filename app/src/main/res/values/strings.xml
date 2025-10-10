@@ -7,6 +7,8 @@
     <string name="students_subject_placeholder">Не указан</string>
     <string name="students_grade_label">Класс</string>
     <string name="students_grade_placeholder">Не указан</string>
+    <string name="student_editor_grade_option">%1$d класс</string>
+    <string name="student_editor_grade_other">Другое</string>
     <string name="students_rate_label_generic">Ставка</string>
     <string name="students_rate_label_hour">Ставка за час</string>
     <string name="students_rate_label_hour_half">Ставка за 1,5 часа</string>

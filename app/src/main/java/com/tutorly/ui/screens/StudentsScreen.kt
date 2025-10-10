@@ -349,7 +349,7 @@ private fun StudentCard(
     val subject = item.profile.subject?.takeIf { it.isNotBlank() }?.trim()
     val grade = item.profile.grade?.takeIf { it.isNotBlank() }?.trim()
     val subtitle = listOfNotNull(subject, grade)
-        .joinToString(separator = " · ")
+        .joinToString(separator = " • ")
         .takeIf { it.isNotBlank() }
 
     val phone = item.student.phone?.takeIf { it.isNotBlank() }?.trim()
@@ -593,12 +593,16 @@ private fun StudentProfileHeader(
             val subject = profile.subject?.takeIf { it.isNotBlank() }
                 ?: stringResource(id = R.string.students_subject_placeholder)
             val grade = profile.grade?.takeIf { it.isNotBlank() }
-            val subtitle = buildList {
-                add(subject)
-                grade?.let { add(it) }
-            }.joinToString(separator = " · ")
+                ?: stringResource(id = R.string.students_grade_placeholder)
             Text(
-                text = subtitle,
+                text = stringResource(id = R.string.students_subject_label) + ": " + subject,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stringResource(id = R.string.students_grade_label) + ": " + grade,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
