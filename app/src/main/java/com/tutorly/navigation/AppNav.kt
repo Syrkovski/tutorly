@@ -165,6 +165,11 @@ fun AppNavRoot() {
                             restoreState = true
                         }
                     },
+                    onLessonDetails = { lessonId, studentId, start ->
+                        nav.navigate(lessonDetailsRoute(lessonId, studentId, start)) {
+                            launchSingleTop = true
+                        }
+                    },
                     onStudentCreatedFromLesson = { newId ->
                         val reopened = creationViewModel.onStudentCreated(newId)
                         nav.navigate(calendarRoute(nav)) {

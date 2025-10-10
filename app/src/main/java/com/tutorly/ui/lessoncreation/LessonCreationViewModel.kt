@@ -177,8 +177,10 @@ class LessonCreationViewModel @Inject constructor(
             latest != null -> Duration.between(latest.startAt, latest.endAt).toMinutes().toInt()
             else -> state.durationMinutes
         }
+        val studentRate = selected.rateCents?.takeIf { it > 0 }
         val price = when {
             priceEdited -> state.priceCents
+            studentRate != null -> studentRate
             latest != null -> latest.priceCents
             else -> state.priceCents
         }
@@ -187,6 +189,7 @@ class LessonCreationViewModel @Inject constructor(
             it.copy(
                 selectedStudent = selected,
                 students = mergeStudentOption(it.students, selected),
+                studentQuery = selected.name,
                 selectedSubjectId = subjectId,
                 durationMinutes = duration,
                 priceCents = price
@@ -380,7 +383,7 @@ private fun SubjectPreset.toOption(): SubjectOption = SubjectOption(
     defaultPriceCents = defaultPriceCents
 )
 
-private fun Student.toOption(): StudentOption = StudentOption(id = id, name = name)
+private fun Student.toOption(): StudentOption = StudentOption(id = id, name = name, rateCents = rateCents)
 
 private fun roundToStep(start: ZonedDateTime, stepMinutes: Int): ZonedDateTime {
     val minute = start.minute

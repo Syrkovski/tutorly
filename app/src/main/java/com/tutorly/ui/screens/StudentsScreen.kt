@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Email
@@ -73,22 +72,23 @@ import androidx.compose.runtime.setValue
 import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
-import com.tutorly.domain.model.StudentProfileLessonRate
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.PaymentBadge
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
-import kotlin.collections.buildList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentsScreen(
     onStudentEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
+    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit,
     onStudentCreatedFromLesson: (Long) -> Unit = {},
     initialEditorOrigin: StudentEditorOrigin = StudentEditorOrigin.NONE,
     modifier: Modifier = Modifier,
@@ -276,6 +276,10 @@ fun StudentsScreen(
                 onAddLesson = { studentId ->
                     vm.clearSelectedStudent()
                     onAddLesson(studentId)
+                },
+                onLessonDetails = { lessonId, studentId, start ->
+                    vm.clearSelectedStudent()
+                    onLessonDetails(lessonId, studentId, start)
                 }
             )
         }
@@ -491,6 +495,7 @@ fun StudentProfileSheet(
     onClose: () -> Unit,
     onEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
+    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit,
     onCall: ((String) -> Unit)? = null,
     onMessage: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -533,7 +538,7 @@ fun StudentProfileSheet(
                 profile = state.profile,
                 onEdit = onEdit,
                 onAddLesson = onAddLesson,
-                onClose = onClose,
+                onLessonDetails = onLessonDetails,
                 onCall = onCall,
                 onMessage = onMessage,
                 modifier = modifier
@@ -542,25 +547,38 @@ fun StudentProfileSheet(
     }
 }
 
+
 @Composable
 private fun StudentProfileContent(
     profile: StudentProfile,
     onEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
-    onClose: () -> Unit,
+    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit,
     onCall: ((String) -> Unit)?,
     onMessage: ((String) -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    val currencyFormatter = remember {
-        NumberFormat.getCurrencyInstance(Locale("ru", "RU")).apply {
+    val locale = remember { Locale("ru", "RU") }
+    val currencyFormatter = remember(locale) {
+        NumberFormat.getCurrencyInstance(locale).apply {
             currency = Currency.getInstance("RUB")
         }
     }
     val zoneId = remember { ZoneId.systemDefault() }
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault()) }
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()) }
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
+    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
+    val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
+
+    val groupedLessons = remember(profile.recentLessons, zoneId) {
+        val sorted = profile.recentLessons.sortedByDescending { it.startAt }
+        val groups = linkedMapOf<YearMonth, MutableList<StudentProfileLesson>>()
+        sorted.forEach { lesson ->
+            val key = YearMonth.from(lesson.startAt.atZone(zoneId))
+            groups.getOrPut(key) { mutableListOf() }.add(lesson)
+        }
+        groups.map { it.key to it.value.toList() }
+    }
 
     Box(modifier = modifier.fillMaxWidth()) {
         LazyColumn(
@@ -573,7 +591,7 @@ private fun StudentProfileContent(
                 StudentProfileHeader(
                     profile = profile,
                     onEdit = onEdit,
-                    onClose = onClose
+                    currencyFormatter = currencyFormatter
                 )
             }
             item {
@@ -602,15 +620,34 @@ private fun StudentProfileContent(
                     )
                 }
             } else {
-                items(profile.recentLessons, key = { it.id }) { lesson ->
-                    StudentProfileLessonCard(
-                        lesson = lesson,
-                        fallbackSubject = profile.subject,
-                        currencyFormatter = currencyFormatter,
-                        zoneId = zoneId,
-                        dateFormatter = dateFormatter,
-                        timeFormatter = timeFormatter
-                    )
+                groupedLessons.forEach { (month, lessons) ->
+                    item(key = "month-$month") {
+                        val monthTitle = remember(month) {
+                            month.format(monthFormatter).replaceFirstChar { char ->
+                                if (char.isLowerCase()) char.titlecase(locale) else char.toString()
+                            }
+                        }
+                        Text(
+                            text = monthTitle,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+                        )
+                    }
+                    items(lessons, key = { it.id }) { lesson ->
+                        StudentProfileLessonCard(
+                            lesson = lesson,
+                            fallbackSubject = profile.subject,
+                            currencyFormatter = currencyFormatter,
+                            zoneId = zoneId,
+                            dateFormatter = dateFormatter,
+                            timeFormatter = timeFormatter,
+                            onClick = { selected ->
+                                val start = selected.startAt.atZone(zoneId)
+                                onLessonDetails(selected.id, profile.student.id, start)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -627,11 +664,13 @@ private fun StudentProfileContent(
     }
 }
 
+
+
 @Composable
 private fun StudentProfileHeader(
     profile: StudentProfile,
     onEdit: (Long) -> Unit,
-    onClose: () -> Unit,
+    currencyFormatter: NumberFormat,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -651,40 +690,44 @@ private fun StudentProfileHeader(
                 overflow = TextOverflow.Ellipsis
             )
             val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
-                ?: stringResource(id = R.string.students_subject_placeholder)
             val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
-                ?: stringResource(id = R.string.students_grade_placeholder)
-            Text(
-                text = stringResource(id = R.string.students_subject_label) + ": " + subject,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = stringResource(id = R.string.students_grade_label) + ": " + grade,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            val details = listOfNotNull(subject, grade).joinToString(separator = " ")
+            if (details.isNotEmpty()) {
+                Text(
+                    text = details,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            val rateText = profile.rate?.let { rate ->
+                val price = formatCurrency(rate.priceCents.toLong(), currencyFormatter)
+                if (rate.durationMinutes > 0) {
+                    "$price • ${rate.durationMinutes} мин"
+                } else {
+                    price
+                }
+            } ?: profile.student.rateCents?.takeIf { it > 0 }?.let { cents ->
+                formatCurrency(cents.toLong(), currencyFormatter)
+            }
+            if (!rateText.isNullOrBlank()) {
+                Text(
+                    text = rateText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(id = R.string.student_profile_close)
-                )
-            }
-            IconButton(onClick = { onEdit(profile.student.id) }) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = stringResource(id = R.string.student_details_edit)
-                )
-            }
+        IconButton(onClick = { onEdit(profile.student.id) }) {
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = stringResource(id = R.string.student_details_edit)
+            )
         }
     }
 }
+
 
 @Composable
 private fun StudentProfileContacts(
@@ -772,6 +815,7 @@ private fun ProfileContactRow(
     }
 }
 
+
 @Composable
 private fun StudentProfileMetricsSection(
     profile: StudentProfile,
@@ -782,17 +826,12 @@ private fun StudentProfileMetricsSection(
     val metrics = profile.metrics
     val totalLessons = metrics.totalLessons.toString()
     val totalPaid = formatCurrency(metrics.totalPaidCents, currencyFormatter)
-    val averageRate = metrics.averagePriceCents?.let { formatCurrency(it.toLong(), currencyFormatter) }
-        ?: stringResource(id = R.string.students_rate_placeholder)
+    val paidLessons = metrics.paidLessons.toString()
     val debtText = if (metrics.outstandingCents > 0) {
         formatCurrency(metrics.outstandingCents, currencyFormatter)
     } else {
         stringResource(id = R.string.student_details_no_debt)
     }
-    val rateLabel = profile.rate?.let { rateLabelForDuration(it) }
-        ?: stringResource(id = R.string.student_profile_metrics_average)
-    val rateValue = profile.rate?.let { formatCurrency(it.priceCents.toLong(), currencyFormatter) }
-        ?: averageRate
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -817,8 +856,8 @@ private fun StudentProfileMetricsSection(
                 value = totalPaid
             )
             ProfileMetricCard(
-                label = rateLabel,
-                value = rateValue
+                label = stringResource(id = R.string.student_details_stats_paid_lessons),
+                value = paidLessons
             )
             ProfileMetricCard(
                 label = stringResource(id = R.string.student_details_stats_debt),
@@ -829,11 +868,12 @@ private fun StudentProfileMetricsSection(
                     }
                 } else {
                     null
-                    }
-            )}
+                }
+            )
         }
-
+    }
 }
+
 
 @Composable
 private fun ProfileMetricCard(
@@ -907,6 +947,7 @@ private fun StudentProfileEmptyHistory(
     }
 }
 
+
 @Composable
 private fun StudentProfileLessonCard(
     lesson: StudentProfileLesson,
@@ -915,6 +956,7 @@ private fun StudentProfileLessonCard(
     zoneId: ZoneId,
     dateFormatter: DateTimeFormatter,
     timeFormatter: DateTimeFormatter,
+    onClick: (StudentProfileLesson) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val start = remember(lesson.startAt, zoneId) { lesson.startAt.atZone(zoneId) }
@@ -935,7 +977,9 @@ private fun StudentProfileLessonCard(
     val isPaid = lesson.paymentStatus == PaymentStatus.PAID
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick(lesson) },
         shape = MaterialTheme.shapes.large,
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceContainerLow
@@ -975,20 +1019,10 @@ private fun StudentProfileLessonCard(
     }
 }
 
+
 private fun formatCurrency(amountCents: Long, formatter: NumberFormat): String {
     return formatter.format(amountCents / 100.0)
 }
-
-@Composable
-private fun rateLabelForDuration(rate: StudentProfileLessonRate): String {
-    return when (rate.durationMinutes) {
-        0 -> stringResource(id = R.string.students_rate_label_generic)
-        60 -> stringResource(id = R.string.students_rate_label_hour)
-        90 -> stringResource(id = R.string.students_rate_label_hour_half)
-        else -> stringResource(id = R.string.students_rate_label_custom, rate.durationMinutes)
-    }
-}
-
 
 @Composable
 private fun StudentAvatar(

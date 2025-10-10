@@ -57,6 +57,7 @@
     <string name="student_details_stats_lessons">Занятий</string>
     <string name="student_details_stats_earned">Получено</string>
     <string name="student_details_stats_paid">Оплачено</string>
+    <string name="student_details_stats_paid_lessons">Оплаченных занятий</string>
     <string name="student_details_stats_debt">Долг</string>
     <string name="student_details_history_title">История занятий</string>
     <string name="student_details_history_empty">Пока нет занятий</string>
@@ -105,6 +106,8 @@
     <string name="lesson_create_new_student">+ Новый ученик</string>
     <string name="lesson_create_subject_label">Предмет</string>
     <string name="lesson_create_duration_label">Длительность</string>
+    <string name="lesson_create_duration_chip">%1$d мин</string>
+    <string name="lesson_create_duration_custom_label">Своя длительность</string>
     <string name="lesson_create_minutes_suffix">мин</string>
     <string name="lesson_create_price_label">Стоимость (%1$s)</string>
     <string name="lesson_create_note_label">Заметка</string>
@@ -130,4 +133,18 @@
     <string name="today_note_placeholder">Добавьте заметку о занятии</string>
     <string name="today_note_cancel">Отмена</string>
     <string name="today_note_save">Сохранить</string>
+    <string name="lesson_details_title">Занятие</string>
+    <string name="lesson_details_not_found">Занятие не найдено</string>
+    <string name="lesson_details_student_sheet_title">Выберите ученика</string>
+    <string name="lesson_details_empty_students">Нет доступных учеников</string>
+    <string name="lesson_details_student_placeholder">Без ученика</string>
+    <string name="lesson_details_date_label">Дата</string>
+    <string name="lesson_details_time_label">Начало</string>
+    <string name="lesson_details_duration_label">Длительность</string>
+    <string name="lesson_details_price_label">Стоимость</string>
+    <string name="lesson_details_price_dialog_title">Изменить стоимость</string>
+    <string name="lesson_details_price_hint">Введите стоимость</string>
+    <string name="lesson_details_duration_dialog_title">Длительность занятия</string>
+    <string name="lesson_details_duration_custom_hint">Своя длительность</string>
+    <string name="lesson_details_save">Сохранить</string>
 </resources>
