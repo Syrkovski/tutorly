@@ -217,6 +217,7 @@ fun StudentsScreen(
                 onNameChange = vm::onEditorNameChange,
                 onPhoneChange = vm::onEditorPhoneChange,
                 onMessengerChange = vm::onEditorMessengerChange,
+                onSubjectChange = vm::onEditorSubjectChange,
                 onGradeChange = vm::onEditorGradeChange,
                 onNoteChange = vm::onEditorNoteChange,
                 onArchivedChange = vm::onEditorArchivedChange,
@@ -255,6 +256,7 @@ private fun StudentEditorSheet(
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
+    onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onArchivedChange: (Boolean) -> Unit,
@@ -291,6 +293,7 @@ private fun StudentEditorSheet(
             onNameChange = onNameChange,
             onPhoneChange = onPhoneChange,
             onMessengerChange = onMessengerChange,
+            onSubjectChange = onSubjectChange,
             onGradeChange = onGradeChange,
             onNoteChange = onNoteChange,
             onArchivedChange = onArchivedChange,
@@ -481,6 +484,7 @@ fun StudentProfileSheet(
                 profile = state.profile,
                 onEdit = onEdit,
                 onAddLesson = onAddLesson,
+                onClose = onClose,
                 onCall = onCall,
                 onMessage = onMessage,
                 modifier = modifier
@@ -494,6 +498,7 @@ private fun StudentProfileContent(
     profile: StudentProfile,
     onEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
+    onClose: () -> Unit,
     onCall: ((String) -> Unit)?,
     onMessage: ((String) -> Unit)?,
     modifier: Modifier = Modifier
@@ -516,7 +521,11 @@ private fun StudentProfileContent(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                StudentProfileHeader(profile = profile, onEdit = onEdit)
+                StudentProfileHeader(
+                    profile = profile,
+                    onEdit = onEdit,
+                    onClose = onClose
+                )
             }
             item {
                 StudentProfileContacts(
@@ -547,6 +556,7 @@ private fun StudentProfileContent(
                 items(profile.recentLessons, key = { it.id }) { lesson ->
                     StudentProfileLessonCard(
                         lesson = lesson,
+                        fallbackSubject = profile.subject,
                         currencyFormatter = currencyFormatter,
                         zoneId = zoneId,
                         dateFormatter = dateFormatter,
@@ -572,6 +582,7 @@ private fun StudentProfileContent(
 private fun StudentProfileHeader(
     profile: StudentProfile,
     onEdit: (Long) -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -590,9 +601,9 @@ private fun StudentProfileHeader(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            val subject = profile.subject?.takeIf { it.isNotBlank() }
+            val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
                 ?: stringResource(id = R.string.students_subject_placeholder)
-            val grade = profile.grade?.takeIf { it.isNotBlank() }
+            val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
                 ?: stringResource(id = R.string.students_grade_placeholder)
             Text(
                 text = stringResource(id = R.string.students_subject_label) + ": " + subject,
@@ -609,11 +620,19 @@ private fun StudentProfileHeader(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        IconButton(onClick = { onEdit(profile.student.id) }) {
-            Icon(
-                imageVector = Icons.Filled.Edit,
-                contentDescription = stringResource(id = R.string.student_details_edit)
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            IconButton(onClick = onClose) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(id = R.string.student_profile_close)
+                )
+            }
+            IconButton(onClick = { onEdit(profile.student.id) }) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = stringResource(id = R.string.student_details_edit)
+                )
+            }
         }
     }
 }
@@ -842,6 +861,7 @@ private fun StudentProfileEmptyHistory(
 @Composable
 private fun StudentProfileLessonCard(
     lesson: StudentProfileLesson,
+    fallbackSubject: String?,
     currencyFormatter: NumberFormat,
     zoneId: ZoneId,
     dateFormatter: DateTimeFormatter,
@@ -857,8 +877,10 @@ private fun StudentProfileLessonCard(
         timeFormatter.format(end),
         lesson.durationMinutes
     )
-    val title = lesson.title?.takeIf { it.isNotBlank() }
-        ?: lesson.subjectName?.takeIf { it.isNotBlank() }
+    val fallbackSubjectText = fallbackSubject?.takeIf { it.isNotBlank() }?.trim()
+    val title = lesson.title?.takeIf { it.isNotBlank() }?.trim()
+        ?: lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
+        ?: fallbackSubjectText
         ?: stringResource(id = R.string.lesson_card_subject_placeholder)
     val amount = formatCurrency(lesson.priceCents.toLong(), currencyFormatter)
     val isPaid = lesson.paymentStatus == PaymentStatus.PAID

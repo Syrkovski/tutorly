@@ -46,7 +46,8 @@ class StudentDetailsViewModel @Inject constructor(
             hasDebt = hasDebt,
             totalDebtCents = totalDebt,
             lessons = lessons,
-            subject = profile?.subject,
+            subject = profile?.subject?.takeIf { it.isNotBlank() }?.trim()
+                ?: resolvedStudent?.subject?.takeIf { it.isNotBlank() }?.trim(),
             grade = profile?.grade ?: resolvedStudent?.grade
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())

@@ -692,7 +692,7 @@ private fun LessonBlock(
 
 private fun CalendarLesson.subtitleText(): String? {
     val parts = listOfNotNull(
-        subjectName?.takeIf { it.isNotBlank() },
+        subjectName?.takeIf { it.isNotBlank() }?.trim(),
         lessonNote?.takeIf { it.isNotBlank() },
         studentNote?.takeIf { it.isNotBlank() },
         lessonTitle?.takeIf { it.isNotBlank() }

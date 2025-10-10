@@ -253,9 +253,9 @@ private fun StudentSummaryCard(
     grade: String?,
     modifier: Modifier = Modifier
 ) {
-    val subjectText = subject?.takeIf { it.isNotBlank() }
+    val subjectText = subject?.takeIf { it.isNotBlank() }?.trim()
         ?: stringResource(id = R.string.students_subject_placeholder)
-    val gradeText = grade?.takeIf { it.isNotBlank() }
+    val gradeText = grade?.takeIf { it.isNotBlank() }?.trim()
         ?: stringResource(id = R.string.students_grade_placeholder)
     Card(
         modifier = modifier.fillMaxWidth(),

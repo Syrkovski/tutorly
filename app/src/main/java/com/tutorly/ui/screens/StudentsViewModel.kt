@@ -116,6 +116,7 @@ class StudentsViewModel @Inject constructor(
         name: String = "",
         phone: String = "",
         messenger: String = "",
+        subject: String = "",
         grade: String = "",
         note: String = "",
         isArchived: Boolean = false,
@@ -125,6 +126,7 @@ class StudentsViewModel @Inject constructor(
             name = name,
             phone = phone,
             messenger = messenger,
+            subject = subject,
             grade = grade,
             note = note,
             isArchived = isArchived,
@@ -146,6 +148,10 @@ class StudentsViewModel @Inject constructor(
 
     fun onEditorMessengerChange(value: String) {
         _editorFormState.update { it.copy(messenger = value) }
+    }
+
+    fun onEditorSubjectChange(value: String) {
+        _editorFormState.update { it.copy(subject = value) }
     }
 
     fun onEditorGradeChange(value: String) {
@@ -177,6 +183,7 @@ class StudentsViewModel @Inject constructor(
 
         val trimmedPhone = state.phone.trim().ifBlank { null }
         val trimmedMessenger = state.messenger.trim().ifBlank { null }
+        val trimmedSubject = state.subject.trim().ifBlank { null }
         val trimmedGrade = state.grade.trim().ifBlank { null }
         val trimmedNote = state.note.trim().ifBlank { null }
 
@@ -186,6 +193,7 @@ class StudentsViewModel @Inject constructor(
                     name = trimmedName,
                     phone = trimmedPhone.orEmpty(),
                     messenger = trimmedMessenger.orEmpty(),
+                    subject = trimmedSubject.orEmpty(),
                     grade = trimmedGrade.orEmpty(),
                     note = trimmedNote.orEmpty(),
                     nameError = false,
@@ -197,6 +205,7 @@ class StudentsViewModel @Inject constructor(
                 name = trimmedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
+                subject = trimmedSubject,
                 grade = trimmedGrade,
                 note = trimmedNote,
                 isArchived = state.isArchived,
@@ -318,15 +327,20 @@ class StudentsViewModel @Inject constructor(
         snapshot: LessonSnapshot?,
         subjects: Map<Long, SubjectPreset>
     ): StudentCardProfile {
-        val subject = snapshot?.subjectId?.let { subjectId ->
-            subjects[subjectId]?.name
-        } ?: student.note
-            ?.lineSequence()
-            ?.firstOrNull { it.isNotBlank() }
+        val subject = student.subject
+            ?.takeIf { it.isNotBlank() }
             ?.trim()
+            ?: snapshot?.subjectId?.let { subjectId ->
+                subjects[subjectId]?.name?.takeIf { it.isNotBlank() }?.trim()
+            }
+            ?: student.note
+                ?.lineSequence()
+                ?.firstOrNull { it.isNotBlank() }
+                ?.trim()
 
         val grade = student.grade
             ?.takeIf { it.isNotBlank() }
+            ?.trim()
             ?: student.note.extractGrade()
         val rate = snapshot?.takeIf { it.priceCents > 0 && it.durationMinutes > 0 }?.let {
             LessonRate(durationMinutes = it.durationMinutes, priceCents = it.priceCents)

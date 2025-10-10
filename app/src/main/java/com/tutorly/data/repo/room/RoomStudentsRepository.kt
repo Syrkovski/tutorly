@@ -59,12 +59,16 @@ class RoomStudentsRepository @Inject constructor(
 
             val metrics = buildMetrics(lessons)
             val rate = recentLessons.firstOrNull()?.lesson?.let(::buildRate)
-            val subjectName = recentLessons.firstOrNull()?.subject?.name
-            val profileLessons = recentLessons.map(::toProfileLesson)
+            val recentSubject = recentLessons.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
+            val primarySubject = student.subject?.takeIf { it.isNotBlank() }?.trim()
+                ?: recentSubject
+            val profileLessons = recentLessons.map { projection ->
+                toProfileLesson(projection, primarySubject)
+            }
 
             StudentProfile(
                 student = student,
-                subject = subjectName,
+                subject = primarySubject,
                 grade = student.grade,
                 rate = rate,
                 hasDebt = hasDebt,
@@ -134,7 +138,10 @@ private fun buildRate(lesson: com.tutorly.models.Lesson): StudentProfileLessonRa
     return StudentProfileLessonRate(durationMinutes = minutes, priceCents = lesson.priceCents)
 }
 
-private fun toProfileLesson(projection: LessonWithSubject): StudentProfileLesson {
+private fun toProfileLesson(
+    projection: LessonWithSubject,
+    fallbackSubject: String?
+): StudentProfileLesson {
     val lesson = projection.lesson
     val duration = Duration.between(lesson.startAt, lesson.endAt)
     val minutes = duration.toMinutes().toInt().coerceAtLeast(0)
@@ -142,7 +149,8 @@ private fun toProfileLesson(projection: LessonWithSubject): StudentProfileLesson
     return StudentProfileLesson(
         id = lesson.id,
         title = lesson.title,
-        subjectName = projection.subject?.name,
+        subjectName = projection.subject?.name?.takeIf { it.isNotBlank() }?.trim()
+            ?: fallbackSubject?.takeIf { it.isNotBlank() }?.trim(),
         startAt = lesson.startAt,
         endAt = lesson.endAt,
         durationMinutes = minutes,

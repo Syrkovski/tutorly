@@ -34,6 +34,9 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
     )
     val normalizedEnd = lesson.startAt.plus(normalizedDuration)
 
+    val subjectName = subject?.name?.takeIf { it.isNotBlank() }?.trim()
+        ?: student.subject?.takeIf { it.isNotBlank() }?.trim()
+
     return LessonDetails(
         id = lesson.id,
         studentId = lesson.studentId,
@@ -42,7 +45,7 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         duration = normalizedDuration,
         studentName = student.name,
         studentNote = student.note,
-        subjectName = subject?.name,
+        subjectName = subjectName,
         subjectColorArgb = subject?.colorArgb,
         paymentStatus = lesson.paymentStatus,
         paymentStatusIcon = lesson.paymentStatus.asIcon(),
