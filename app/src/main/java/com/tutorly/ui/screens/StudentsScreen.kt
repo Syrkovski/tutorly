@@ -73,11 +73,12 @@ import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.lessoncard.LessonCardSheet
+import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.components.PaymentBadge
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
@@ -88,7 +89,6 @@ import java.util.Locale
 fun StudentsScreen(
     onStudentEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
-    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit,
     onStudentCreatedFromLesson: (Long) -> Unit = {},
     initialEditorOrigin: StudentEditorOrigin = StudentEditorOrigin.NONE,
     modifier: Modifier = Modifier,
@@ -98,6 +98,21 @@ fun StudentsScreen(
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
     val profileUiState by vm.profileUiState.collectAsState()
+    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
+    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
+    LessonCardSheet(
+        state = lessonCardState,
+        onDismissRequest = lessonCardViewModel::dismiss,
+        onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onDateSelect = lessonCardViewModel::onDateSelected,
+        onTimeSelect = lessonCardViewModel::onTimeSelected,
+        onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onPriceChange = lessonCardViewModel::onPriceChanged,
+        onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
+        onNoteChange = lessonCardViewModel::onNoteChanged,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -277,9 +292,9 @@ fun StudentsScreen(
                     vm.clearSelectedStudent()
                     onAddLesson(studentId)
                 },
-                onLessonDetails = { lessonId, studentId, start ->
+                onLessonClick = { lessonId ->
                     vm.clearSelectedStudent()
-                    onLessonDetails(lessonId, studentId, start)
+                    lessonCardViewModel.open(lessonId)
                 }
             )
         }
@@ -495,7 +510,7 @@ fun StudentProfileSheet(
     onClose: () -> Unit,
     onEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
-    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit,
+    onLessonClick: (Long) -> Unit,
     onCall: ((String) -> Unit)? = null,
     onMessage: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -538,7 +553,7 @@ fun StudentProfileSheet(
                 profile = state.profile,
                 onEdit = onEdit,
                 onAddLesson = onAddLesson,
-                onLessonDetails = onLessonDetails,
+                onLessonClick = onLessonClick,
                 onCall = onCall,
                 onMessage = onMessage,
                 modifier = modifier
@@ -553,7 +568,7 @@ private fun StudentProfileContent(
     profile: StudentProfile,
     onEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
-    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit,
+    onLessonClick: (Long) -> Unit,
     onCall: ((String) -> Unit)?,
     onMessage: ((String) -> Unit)?,
     modifier: Modifier = Modifier
@@ -642,10 +657,7 @@ private fun StudentProfileContent(
                             zoneId = zoneId,
                             dateFormatter = dateFormatter,
                             timeFormatter = timeFormatter,
-                            onClick = { selected ->
-                                val start = selected.startAt.atZone(zoneId)
-                                onLessonDetails(selected.id, profile.student.id, start)
-                            }
+                            onClick = { onLessonClick(lesson.id) }
                         )
                     }
                 }
@@ -956,7 +968,7 @@ private fun StudentProfileLessonCard(
     zoneId: ZoneId,
     dateFormatter: DateTimeFormatter,
     timeFormatter: DateTimeFormatter,
-    onClick: (StudentProfileLesson) -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val start = remember(lesson.startAt, zoneId) { lesson.startAt.atZone(zoneId) }
@@ -979,7 +991,7 @@ private fun StudentProfileLessonCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick(lesson) },
+            .clickable { onClick() },
         shape = MaterialTheme.shapes.large,
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceContainerLow

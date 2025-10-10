@@ -50,13 +50,11 @@ import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.ui.components.PaymentBadge
-import com.tutorly.ui.lessoncard.LessonCardExitAction
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -66,7 +64,6 @@ fun StudentDetailsScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onCreateLesson: (Student) -> Unit = {},
-    onLessonEdit: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
 ) {
@@ -74,42 +71,18 @@ fun StudentDetailsScreen(
     val scrollState = rememberScrollState()
     val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
     val lessonCardState by lessonCardViewModel.uiState.collectAsState()
-    val zoneId = remember { ZoneId.systemDefault() }
-
     LessonCardSheet(
         state = lessonCardState,
-        zoneId = zoneId,
-        onDismissRequest = lessonCardViewModel::requestDismiss,
-        onCancelDismiss = lessonCardViewModel::cancelDismiss,
-        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
-        onNoteChange = lessonCardViewModel::onNoteChange,
-        onSaveNote = lessonCardViewModel::saveNote,
-        onMarkPaid = lessonCardViewModel::markPaid,
-        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
-        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
-        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
-        onRequestEdit = lessonCardViewModel::requestEdit,
+        onDismissRequest = lessonCardViewModel::dismiss,
+        onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onDateSelect = lessonCardViewModel::onDateSelected,
+        onTimeSelect = lessonCardViewModel::onTimeSelected,
+        onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onPriceChange = lessonCardViewModel::onPriceChanged,
+        onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
+        onNoteChange = lessonCardViewModel::onNoteChanged,
         onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
     )
-
-    val pendingExit = lessonCardState.pendingExitAction
-    LaunchedEffect(pendingExit) {
-        when (pendingExit) {
-            is LessonCardExitAction.NavigateToEdit -> {
-                val details = pendingExit.details
-                onLessonEdit(
-                    details.id,
-                    details.studentId,
-                    details.startAt.atZone(zoneId)
-                )
-                lessonCardViewModel.consumeExitAction()
-            }
-            LessonCardExitAction.Close -> {
-                lessonCardViewModel.consumeExitAction()
-            }
-            null -> Unit
-        }
-    }
 
     Scaffold(
         topBar = {

@@ -47,7 +47,6 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
-import com.tutorly.ui.lessoncard.LessonCardExitAction
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.time.DayOfWeek
@@ -72,7 +71,6 @@ enum class CalendarMode { DAY, WEEK, MONTH }
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
-    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
     onAddStudent: () -> Unit = {},
     creationViewModel: LessonCreationViewModel,
     viewModel: CalendarViewModel = hiltViewModel()
@@ -89,34 +87,16 @@ fun CalendarScreen(
 
     LessonCardSheet(
         state = lessonCardState,
-        zoneId = zoneId,
-        onDismissRequest = lessonCardViewModel::requestDismiss,
-        onCancelDismiss = lessonCardViewModel::cancelDismiss,
-        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
-        onNoteChange = lessonCardViewModel::onNoteChange,
-        onSaveNote = lessonCardViewModel::saveNote,
-        onMarkPaid = lessonCardViewModel::markPaid,
-        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
-        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
-        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
-        onRequestEdit = lessonCardViewModel::requestEdit,
+        onDismissRequest = lessonCardViewModel::dismiss,
+        onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onDateSelect = lessonCardViewModel::onDateSelected,
+        onTimeSelect = lessonCardViewModel::onTimeSelected,
+        onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onPriceChange = lessonCardViewModel::onPriceChanged,
+        onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
+        onNoteChange = lessonCardViewModel::onNoteChanged,
         onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
     )
-
-    val pendingExit = lessonCardState.pendingExitAction
-    LaunchedEffect(pendingExit) {
-        when (pendingExit) {
-            is LessonCardExitAction.NavigateToEdit -> {
-                val details = pendingExit.details
-                onLessonDetails(details.id, details.studentId, details.startAt.atZone(zoneId))
-                lessonCardViewModel.consumeExitAction()
-            }
-            LessonCardExitAction.Close -> {
-                lessonCardViewModel.consumeExitAction()
-            }
-            null -> Unit
-        }
-    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -952,37 +932,3 @@ private fun DayTwoLineChip(
         }
     }
 }
-//    LessonCardSheet(
-//        state = lessonCardState,
-//        zoneId = uiState.zoneId,
-//        onDismissRequest = lessonCardViewModel::requestDismiss,
-//        onCancelDismiss = lessonCardViewModel::cancelDismiss,
-//        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
-//        onNoteChange = lessonCardViewModel::onNoteChange,
-//        onSaveNote = lessonCardViewModel::saveNote,
-//        onMarkPaid = lessonCardViewModel::markPaid,
-//        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
-//        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
-//        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
-//        onRequestEdit = lessonCardViewModel::requestEdit,
-//        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
-//    )
-//
-//    val pendingExit = lessonCardState.pendingExitAction
-//    LaunchedEffect(pendingExit) {
-//        when (pendingExit) {
-//            is LessonCardExitAction.NavigateToEdit -> {
-//                val details = pendingExit.details
-//                onLessonDetails(
-//                    details.id,
-//                    details.studentId,
-//                    details.startAt.atZone(uiState.zoneId)
-//                )
-//                lessonCardViewModel.consumeExitAction()
-//            }
-//            LessonCardExitAction.Close -> {
-//                lessonCardViewModel.consumeExitAction()
-//            }
-//            null -> Unit
-//        }
-//    }

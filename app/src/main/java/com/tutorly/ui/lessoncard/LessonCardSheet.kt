@@ -1,5 +1,8 @@
 package com.tutorly.ui.lessoncard
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,55 +12,58 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
-import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
 import java.text.NumberFormat
-import java.time.ZoneId
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -67,96 +73,158 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun LessonCardSheet(
     state: LessonCardUiState,
-    zoneId: ZoneId,
     onDismissRequest: () -> Unit,
-    onCancelDismiss: () -> Unit,
-    onConfirmDismiss: () -> Unit,
+    onStudentSelect: (Long) -> Unit,
+    onDateSelect: (LocalDate) -> Unit,
+    onTimeSelect: (LocalTime) -> Unit,
+    onDurationSelect: (Int) -> Unit,
+    onPriceChange: (Int) -> Unit,
+    onStatusSelect: (PaymentStatus) -> Unit,
     onNoteChange: (String) -> Unit,
-    onSaveNote: () -> Unit,
-    onMarkPaid: () -> Unit,
-    onRequestMarkDue: () -> Unit,
-    onDismissMarkDue: () -> Unit,
-    onConfirmMarkDue: () -> Unit,
-    onRequestEdit: () -> Unit,
     onSnackbarConsumed: () -> Unit,
 ) {
-    if (!state.isVisible) {
-        return
-    }
+    if (!state.isVisible) return
 
-    val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    val snackbarText = state.snackbarMessage?.let { message ->
-        when (message) {
-            LessonCardMessage.NoteSaved -> stringResource(R.string.lesson_card_snackbar_note_saved)
-            is LessonCardMessage.PaymentMarked -> when (message.status) {
-                PaymentStatus.PAID -> stringResource(R.string.lesson_card_snackbar_paid)
-                PaymentStatus.DUE, PaymentStatus.UNPAID -> stringResource(R.string.lesson_card_snackbar_due)
-                PaymentStatus.CANCELLED -> stringResource(R.string.lesson_card_snackbar_due)
+    var showStudentPicker by remember { mutableStateOf(false) }
+    var showDurationDialog by remember { mutableStateOf(false) }
+    var showPriceDialog by remember { mutableStateOf(false) }
+    var showNoteDialog by remember { mutableStateOf(false) }
+    var statusMenuExpanded by remember { mutableStateOf(false) }
+
+    val locale = state.locale
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
+    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
+    val currencyFormatter = remember(locale, state.currencyCode) {
+        runCatching {
+            NumberFormat.getCurrencyInstance(locale).apply {
+                currency = java.util.Currency.getInstance(state.currencyCode)
             }
-            is LessonCardMessage.Error -> stringResource(R.string.lesson_card_snackbar_error)
+        }.getOrElse { NumberFormat.getCurrencyInstance(locale) }
+    }
+    val priceText = remember(state.priceCents, currencyFormatter) {
+        currencyFormatter.format(state.priceCents / 100.0)
+    }
+    val formattedDate = remember(state.date, locale) {
+        dateFormatter.format(state.date).replaceFirstChar { char ->
+            if (char.isLowerCase()) char.titlecase(locale) else char.toString()
         }
+    }
+    val startDateTime = remember(state.date, state.time, state.zoneId) {
+        ZonedDateTime.of(state.date, state.time, state.zoneId)
+    }
+    val statusDisplay = remember(state.paymentStatus, startDateTime) {
+        paymentStatusDisplay(state.paymentStatus, startDateTime)
+    }
+
+    val snackbarText = when (val message = state.snackbarMessage) {
+        is LessonCardMessage.Error -> message.message ?: stringResource(R.string.lesson_card_snackbar_error)
+        null -> null
     }
 
     LaunchedEffect(snackbarText) {
-        snackbarText?.let {
-            snackbarHostState.showSnackbar(it)
+        if (snackbarText != null) {
+            snackbarHostState.showSnackbar(snackbarText)
             onSnackbarConsumed()
         }
     }
 
     ModalBottomSheet(
         onDismissRequest = {
-            if (state.isNoteDirty) {
-                scope.launch { sheetState.show() }
-                onDismissRequest()
-            } else {
-                onDismissRequest()
-            }
+            scope.launch { sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
         },
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp,
+        containerColor = Color.White,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (state.isLoading) {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
-                    )
-                }
-                LessonHeader(state = state, onClose = onDismissRequest)
-                LessonMetadataBlock(state = state, zoneId = zoneId)
-                LessonPaymentBlock(state = state, onMarkPaid = onMarkPaid, onRequestMarkDue = onRequestMarkDue)
-                LessonNoteBlock(
-                    state = state,
-                    onNoteChange = onNoteChange,
-                    onSaveNote = onSaveNote
-                )
-                OutlinedButton(
-                    onClick = onRequestEdit,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = state.details != null
+            if (state.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = stringResource(R.string.lesson_card_edit))
+                    CircularProgressIndicator()
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    if (state.isSaving) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+
+                    LessonHeader(
+                        name = state.studentName,
+                        grade = state.studentGrade,
+                        subject = state.subjectName,
+                        onClick = { if (state.studentOptions.isNotEmpty()) showStudentPicker = true }
+                    )
+
+                    DateRow(
+                        dateText = formattedDate,
+                        onClick = {
+                            val context = LocalContext.current
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day -> onDateSelect(LocalDate.of(year, month + 1, day)) },
+                                state.date.year,
+                                state.date.monthValue - 1,
+                                state.date.dayOfMonth
+                            ).show()
+                        }
+                    )
+
+                    TimeDurationRow(
+                        timeLabel = stringResource(id = R.string.lesson_details_time_label),
+                        timeText = state.time.format(timeFormatter),
+                        durationLabel = stringResource(id = R.string.lesson_details_duration_label),
+                        durationText = stringResource(id = R.string.lesson_card_duration_value, state.durationMinutes),
+                        onTimeClick = {
+                            val context = LocalContext.current
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute -> onTimeSelect(LocalTime.of(hour, minute)) },
+                                state.time.hour,
+                                state.time.minute,
+                                true
+                            ).show()
+                        },
+                        onDurationClick = { showDurationDialog = true }
+                    )
+
+                    PriceRow(
+                        price = priceText,
+                        statusLabel = stringResource(id = statusDisplay.labelRes),
+                        statusSymbol = statusDisplay.symbol,
+                        startDateTime = startDateTime,
+                        statusMenuExpanded = statusMenuExpanded,
+                        onPriceClick = { showPriceDialog = true },
+                        onStatusClick = { if (!state.isPaymentActionRunning) statusMenuExpanded = true },
+                        onStatusDismiss = { statusMenuExpanded = false },
+                        onStatusSelect = onStatusSelect,
+                        isStatusBusy = state.isPaymentActionRunning
+                    )
+
+                    NoteRow(
+                        note = state.note,
+                        onClick = { showNoteDialog = true }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
+
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
@@ -166,58 +234,72 @@ internal fun LessonCardSheet(
         }
     }
 
-    if (state.showUnsavedExitDialog) {
-        AlertDialog(
-            onDismissRequest = onCancelDismiss,
-            title = { Text(stringResource(R.string.lesson_card_unsaved_title)) },
-            text = { Text(stringResource(R.string.lesson_card_unsaved_message)) },
-            confirmButton = {
-                TextButton(onClick = onConfirmDismiss) {
-                    Text(stringResource(R.string.lesson_card_unsaved_discard))
-                }
+    if (showStudentPicker) {
+        StudentPickerDialog(
+            options = state.studentOptions,
+            onSelect = {
+                onStudentSelect(it)
+                showStudentPicker = false
             },
-            dismissButton = {
-                TextButton(onClick = onCancelDismiss) {
-                    Text(stringResource(R.string.lesson_card_unsaved_keep))
-                }
+            onDismiss = { showStudentPicker = false }
+        )
+    }
+
+    if (showDurationDialog) {
+        DurationDialog(
+            currentMinutes = state.durationMinutes,
+            onDismiss = { showDurationDialog = false },
+            onConfirm = {
+                onDurationSelect(it)
+                showDurationDialog = false
             }
         )
     }
 
-    if (state.showMarkDueDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissMarkDue,
-            title = { Text(stringResource(R.string.lesson_card_mark_due_title)) },
-            text = { Text(stringResource(R.string.lesson_card_mark_due_message)) },
-            confirmButton = {
-                TextButton(onClick = onConfirmMarkDue) {
-                    Text(stringResource(R.string.lesson_card_mark_due_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissMarkDue) {
-                    Text(stringResource(R.string.lesson_card_mark_due_cancel))
-                }
+    if (showPriceDialog) {
+        PriceDialog(
+            currentPriceCents = state.priceCents,
+            currencySymbol = state.currencySymbol,
+            onDismiss = { showPriceDialog = false },
+            onConfirm = {
+                onPriceChange(it)
+                showPriceDialog = false
+            }
+        )
+    }
+
+    if (showNoteDialog) {
+        NoteDialog(
+            currentNote = state.note.orEmpty(),
+            onDismiss = { showNoteDialog = false },
+            onConfirm = {
+                onNoteChange(it)
+                showNoteDialog = false
             }
         )
     }
 }
 
 @Composable
-private fun LessonHeader(state: LessonCardUiState, onClose: () -> Unit) {
-    val details = state.details
+private fun LessonHeader(
+    name: String,
+    grade: String?,
+    subject: String?,
+    onClick: () -> Unit,
+) {
+    val initials = remember(name) {
+        name.split(" ").filter { it.isNotBlank() }.take(2).map { it.first().uppercase() }.joinToString("")
+    }
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val name = details?.studentName.orEmpty()
-        val initials = remember(name) {
-            name.split(" ").filter { it.isNotBlank() }.take(2).map { it.first().uppercase() }.joinToString("")
-        }
         Surface(
-            modifier = Modifier
-                .sizeAvatar()
-                .clip(CircleShape),
+            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -229,17 +311,17 @@ private fun LessonHeader(state: LessonCardUiState, onClose: () -> Unit) {
                 )
             }
         }
-        Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = name.ifBlank { stringResource(R.string.lesson_card_student_placeholder) },
+                text = name.ifBlank { stringResource(id = R.string.lesson_card_student_placeholder) },
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            details?.lessonTitle?.takeIf { it.isNotBlank() }?.let { title ->
+            val subtitle = listOfNotNull(grade, subject).filter { it.isNotBlank() }.joinToString(" • ")
+            if (subtitle.isNotBlank()) {
                 Text(
-                    text = title,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -247,233 +329,437 @@ private fun LessonHeader(state: LessonCardUiState, onClose: () -> Unit) {
                 )
             }
         }
-        IconButton(onClick = onClose) {
-            Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(R.string.lesson_card_close))
-        }
-    }
-}
-
-@Composable
-private fun LessonMetadataBlock(state: LessonCardUiState, zoneId: ZoneId) {
-    val details = state.details ?: return
-    val locale = remember { Locale.getDefault() }
-    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM", locale) }
-    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
-    val durationMinutes = remember(details.duration) { details.duration.toMinutes().toInt().coerceAtLeast(0) }
-    val start = remember(details.startAt, zoneId) { ZonedDateTime.ofInstant(details.startAt, zoneId) }
-    val end = remember(details.endAt, zoneId) { ZonedDateTime.ofInstant(details.endAt, zoneId) }
-
-    val subject = details.subjectName?.takeIf { it.isNotBlank() }?.trim()
-        ?: stringResource(R.string.lesson_card_subject_placeholder)
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(text = subject, style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                InfoCell(
-                    label = stringResource(R.string.lesson_card_time_label),
-                    value = stringResource(
-                        R.string.lesson_card_time_value,
-                        dateFormatter.format(start),
-                        timeFormatter.format(start),
-                        timeFormatter.format(end)
-                    ),
-                    leadingIcon = Icons.Default.Schedule
-                )
-                InfoCell(
-                    label = stringResource(R.string.lesson_card_duration_label),
-                    value = stringResource(R.string.lesson_card_duration_value, durationMinutes),
-                    leadingIcon = null
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LessonPaymentBlock(
-    state: LessonCardUiState,
-    onMarkPaid: () -> Unit,
-    onRequestMarkDue: () -> Unit,
-) {
-    val details = state.details ?: return
-    val locale = remember { Locale.getDefault() }
-    val currencyFormatter = remember(locale) { NumberFormat.getCurrencyInstance(locale) }
-    val amount = remember(details.priceCents) { currencyFormatter.format(details.priceCents / 100.0) }
-    val colorScheme = MaterialTheme.colorScheme
-    val statusChip = remember(details.paymentStatus, colorScheme) {
-        paymentStatusChip(details.paymentStatus, colorScheme)
-    }
-
-    Card { 
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(R.string.lesson_card_price_label), style = MaterialTheme.typography.labelMedium)
-                    Text(text = amount, style = MaterialTheme.typography.titleLarge)
-                }
-                StatusChip(statusChip)
-            }
-            val isPaid = details.paymentStatus == PaymentStatus.PAID
-            val actionLabel = if (isPaid) {
-                stringResource(R.string.lesson_card_mark_due)
-            } else {
-                stringResource(R.string.lesson_card_mark_paid)
-            }
-            val onClick = if (isPaid) onRequestMarkDue else onMarkPaid
-            val enabled = !state.isPaymentActionRunning && details.paymentStatus != PaymentStatus.CANCELLED
-            Button(
-                onClick = onClick,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = enabled
-            ) {
-                if (state.isPaymentActionRunning) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text(actionLabel)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LessonNoteBlock(
-    state: LessonCardUiState,
-    onNoteChange: (String) -> Unit,
-    onSaveNote: () -> Unit,
-) {
-    if (state.details == null) return
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedTextField(
-            value = state.noteDraft,
-            onValueChange = onNoteChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.lesson_card_note_label)) },
-            placeholder = { Text(stringResource(R.string.lesson_card_note_placeholder)) },
-            supportingText = {
-                Text(
-                    stringResource(
-                        R.string.lesson_card_note_counter,
-                        state.noteDraft.length,
-                        LESSON_CARD_NOTE_LIMIT
-                    )
-                )
-            },
-            maxLines = 4,
-            shape = RoundedCornerShape(12.dp)
-        )
-        Button(
-            onClick = onSaveNote,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = state.isNoteDirty && !state.isSavingNote
-        ) {
-            if (state.isSavingNote) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            } else {
-                Text(stringResource(R.string.lesson_card_note_save))
-            }
-        }
-    }
-}
-
-private data class PaymentStatusChip(
-    val labelRes: Int,
-    val icon: PaymentStatusIcon?,
-    val background: Color,
-    val foreground: Color,
-)
-
-private fun paymentStatusChip(status: PaymentStatus, colorScheme: ColorScheme): PaymentStatusChip {
-    val (label, background, foreground) = when (status) {
-        PaymentStatus.PAID -> Triple(
-            R.string.lesson_status_paid,
-            colorScheme.tertiary.copy(alpha = 0.1f),
-            colorScheme.tertiary
-        )
-        PaymentStatus.DUE, PaymentStatus.UNPAID -> Triple(
-            R.string.lesson_status_due,
-            colorScheme.error.copy(alpha = 0.1f),
-            colorScheme.error
-        )
-        PaymentStatus.CANCELLED -> Triple(
-            R.string.lesson_status_cancelled,
-            colorScheme.surfaceVariant,
-            colorScheme.onSurfaceVariant
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-    val icon = when (status) {
-        PaymentStatus.PAID -> PaymentStatusIcon.PAID
-        PaymentStatus.DUE, PaymentStatus.UNPAID -> PaymentStatusIcon.OUTSTANDING
-        PaymentStatus.CANCELLED -> PaymentStatusIcon.CANCELLED
-    }
-    return PaymentStatusChip(label, icon, background, foreground)
 }
 
 @Composable
-private fun StatusChip(chip: PaymentStatusChip) {
-    Surface(color = chip.background, contentColor = chip.foreground, shape = RoundedCornerShape(12.dp)) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            chip.icon?.let { icon ->
-                when (icon) {
-                    PaymentStatusIcon.PAID -> Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                    PaymentStatusIcon.OUTSTANDING -> Icon(imageVector = Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp))
-                    PaymentStatusIcon.CANCELLED -> Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            }
-            Text(text = stringResource(chip.labelRes), style = MaterialTheme.typography.labelMedium)
-        }
-    }
-}
-
-@Composable
-private fun RowScope.InfoCell(
-    label: String,
-    value: String,
-    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector?,
+private fun DateRow(
+    dateText: String,
+    onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.weight(1f),
-        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
-        shadowElevation = 0.dp,
-        shape = RoundedCornerShape(16.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            leadingIcon?.let { icon ->
-                Surface(
+            Icon(
+                imageVector = Icons.Outlined.CalendarMonth,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Column {
+                Text(
+                    text = stringResource(id = R.string.lesson_card_date_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = dateText,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeDurationRow(
+    timeLabel: String,
+    timeText: String,
+    durationLabel: String,
+    durationText: String,
+    onTimeClick: () -> Unit,
+    onDurationClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TimeCard(
+            label = timeLabel,
+            value = timeText,
+            icon = Icons.Outlined.Schedule,
+            onClick = onTimeClick
+        )
+        TimeCard(
+            label = durationLabel,
+            value = durationText,
+            icon = Icons.Outlined.Timelapse,
+            onClick = onDurationClick
+        )
+    }
+}
+
+@Composable
+private fun TimeCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .weight(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PriceRow(
+    price: String,
+    statusLabel: String,
+    statusSymbol: String,
+    startDateTime: ZonedDateTime,
+    statusMenuExpanded: Boolean,
+    onPriceClick: () -> Unit,
+    onStatusClick: () -> Unit,
+    onStatusDismiss: () -> Unit,
+    onStatusSelect: (PaymentStatus) -> Unit,
+    isStatusBusy: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onPriceClick)
+        ) {
+            Text(
+                text = stringResource(id = R.string.lesson_card_price_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = price,
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+        Box {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .clickable(onClick = onStatusClick)
+                    .padding(vertical = 4.dp)
+            ) {
+                Row(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    if (isStatusBusy) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(text = statusSymbol, style = MaterialTheme.typography.titleMedium)
+                    }
+                    Text(
+                        text = statusLabel,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = statusMenuExpanded,
+                onDismissRequest = onStatusDismiss
+            ) {
+                listOf(PaymentStatus.UNPAID, PaymentStatus.PAID, PaymentStatus.DUE).forEach { status ->
+                    val display = paymentStatusDisplay(status, startDateTime)
+                    DropdownMenuItem(
+                        text = { Text("${display.symbol} ${stringResource(id = display.labelRes)}") },
+                        onClick = {
+                            onStatusSelect(status)
+                            onStatusDismiss()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteRow(
+    note: String?,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.lesson_card_note_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            val content = note?.takeIf { it.isNotBlank() }
+            if (content == null) {
+                Text(
+                    text = stringResource(id = R.string.lesson_card_note_placeholder),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudentPickerDialog(
+    options: List<LessonStudentOption>,
+    onSelect: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_card_student_picker_title)) },
+        text = {
+            if (options.isEmpty()) {
+                Text(text = stringResource(id = R.string.lesson_card_student_picker_empty))
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(options, key = { it.id }) { option ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(option.id) }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = option.name,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            val subtitle = listOfNotNull(option.grade, option.subject)
+                                .filter { it.isNotBlank() }
+                                .joinToString(" • ")
+                            if (subtitle.isNotBlank()) {
+                                Text(
+                                    text = subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(text = value, style = MaterialTheme.typography.bodyMedium)
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
         }
-    }
+    )
 }
 
-private fun Modifier.sizeAvatar(): Modifier = this.then(Modifier.size(48.dp))
+@Composable
+private fun DurationDialog(
+    currentMinutes: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    var customInput by remember(currentMinutes) {
+        mutableStateOf(currentMinutes.takeIf { it > 0 }?.toString().orEmpty())
+    }
+    val presets = listOf(25, 60, 90, 120)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_card_duration_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    presets.forEach { preset ->
+                        SuggestionChip(
+                            onClick = {
+                                customInput = preset.toString()
+                            },
+                            label = { Text(text = preset.toString()) },
+                            colors = SuggestionChipDefaults.suggestionChipColors()
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = customInput,
+                    onValueChange = { value ->
+                        customInput = value.filter { it.isDigit() }
+                    },
+                    label = { Text(text = stringResource(id = R.string.lesson_card_duration_hint)) },
+                    suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                customInput.toIntOrNull()?.takeIf { it > 0 }?.let(onConfirm)
+            }) {
+                Text(text = stringResource(id = R.string.lesson_details_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_create_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun PriceDialog(
+    currentPriceCents: Int,
+    currencySymbol: String,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    var input by remember(currentPriceCents) {
+        mutableStateOf(currentPriceCents.takeIf { it >= 0 }?.let { (it / 100).toString() } ?: "")
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_card_price_title)) },
+        text = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { value ->
+                    input = value.filter { it.isDigit() }
+                },
+                label = { Text(text = stringResource(id = R.string.lesson_card_price_hint, currencySymbol)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                input.toIntOrNull()?.let { onConfirm(it * 100) }
+            }) {
+                Text(text = stringResource(id = R.string.lesson_details_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_create_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun NoteDialog(
+    currentNote: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var noteInput by remember(currentNote) { mutableStateOf(currentNote) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_card_note_title)) },
+        text = {
+            OutlinedTextField(
+                value = noteInput,
+                onValueChange = { value ->
+                    noteInput = value.take(LESSON_CARD_NOTE_LIMIT)
+                },
+                label = { Text(text = stringResource(id = R.string.lesson_card_note_hint)) },
+                modifier = Modifier.height(120.dp)
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(noteInput) }) {
+                Text(text = stringResource(id = R.string.lesson_details_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_create_cancel))
+            }
+        }
+    )
+}
+
+private data class PaymentStatusDisplay(val symbol: String, val labelRes: Int)
+
+private fun paymentStatusDisplay(status: PaymentStatus, start: ZonedDateTime): PaymentStatusDisplay {
+    val isFuture = start.isAfter(ZonedDateTime.now(start.zone))
+    val labelRes = when (status) {
+        PaymentStatus.UNPAID -> R.string.lesson_card_status_planned
+        PaymentStatus.PAID -> if (isFuture) R.string.lesson_card_status_prepaid else R.string.lesson_status_paid
+        PaymentStatus.DUE -> R.string.lesson_status_due
+        PaymentStatus.CANCELLED -> R.string.lesson_status_cancelled
+    }
+    val symbol = when (status) {
+        PaymentStatus.UNPAID -> "•"
+        PaymentStatus.PAID -> if (isFuture) "◎" else "✓"
+        PaymentStatus.DUE -> "–"
+        PaymentStatus.CANCELLED -> "×"
+    }
+    return PaymentStatusDisplay(symbol, labelRes)
+}
