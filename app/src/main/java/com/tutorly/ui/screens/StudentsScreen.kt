@@ -991,7 +991,7 @@ private fun StudentProfileLessonCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable { onClick() },
         shape = MaterialTheme.shapes.large,
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceContainerLow
