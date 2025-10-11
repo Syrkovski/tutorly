@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -394,13 +395,15 @@ private fun TimeDurationRow(
             label = timeLabel,
             value = timeText,
             icon = Icons.Outlined.Schedule,
-            onClick = onTimeClick
+            onClick = onTimeClick,
+            modifier = Modifier.weight(1f)
         )
         TimeCard(
             label = durationLabel,
             value = durationText,
             icon = Icons.Outlined.Timelapse,
-            onClick = onDurationClick
+            onClick = onDurationClick,
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -411,11 +414,10 @@ private fun TimeCard(
     value: String,
     icon: ImageVector,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier
-            .weight(1f)
-            .clickable(onClick = onClick),
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
