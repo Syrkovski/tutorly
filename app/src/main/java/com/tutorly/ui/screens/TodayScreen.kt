@@ -281,7 +281,7 @@ private fun TodayLessonRow(
             lesson = lesson,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable { onClick() }
         )
     }
 }

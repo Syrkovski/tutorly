@@ -134,6 +134,38 @@ internal fun LessonCardSheet(
         }
     }
 
+    val onStudentClick: () -> Unit = {
+        if (state.studentOptions.isNotEmpty()) {
+            showStudentPicker = true
+        }
+    }
+    val onDateClick: () -> Unit = {
+        DatePickerDialog(
+            context,
+            { _, year, month, day -> onDateSelect(LocalDate.of(year, month + 1, day)) },
+            state.date.year,
+            state.date.monthValue - 1,
+            state.date.dayOfMonth
+        ).show()
+    }
+    val onTimeClick: () -> Unit = {
+        TimePickerDialog(
+            context,
+            { _, hour, minute -> onTimeSelect(LocalTime.of(hour, minute)) },
+            state.time.hour,
+            state.time.minute,
+            true
+        ).show()
+    }
+    val onDurationClick: () -> Unit = { showDurationDialog = true }
+    val onPriceClick: () -> Unit = { showPriceDialog = true }
+    val onStatusClick: () -> Unit = {
+        if (!state.isPaymentActionRunning) {
+            statusMenuExpanded = true
+        }
+    }
+    val onNoteClick: () -> Unit = { showNoteDialog = true }
+
     ModalBottomSheet(
         onDismissRequest = {
             scope.launch { sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
@@ -170,20 +202,12 @@ internal fun LessonCardSheet(
                         name = state.studentName,
                         grade = state.studentGrade,
                         subject = state.subjectName,
-                        onClick = { if (state.studentOptions.isNotEmpty()) showStudentPicker = true }
+                        onClick = onStudentClick
                     )
 
                     DateRow(
                         dateText = formattedDate,
-                        onClick = {
-                            DatePickerDialog(
-                                context,
-                                { _, year, month, day -> onDateSelect(LocalDate.of(year, month + 1, day)) },
-                                state.date.year,
-                                state.date.monthValue - 1,
-                                state.date.dayOfMonth
-                            ).show()
-                        }
+                        onClick = onDateClick
                     )
 
                     TimeDurationRow(
@@ -191,16 +215,8 @@ internal fun LessonCardSheet(
                         timeText = state.time.format(timeFormatter),
                         durationLabel = stringResource(id = R.string.lesson_details_duration_label),
                         durationText = stringResource(id = R.string.lesson_card_duration_value, state.durationMinutes),
-                        onTimeClick = {
-                            TimePickerDialog(
-                                context,
-                                { _, hour, minute -> onTimeSelect(LocalTime.of(hour, minute)) },
-                                state.time.hour,
-                                state.time.minute,
-                                true
-                            ).show()
-                        },
-                        onDurationClick = { showDurationDialog = true }
+                        onTimeClick = onTimeClick,
+                        onDurationClick = onDurationClick
                     )
 
                     PriceRow(
@@ -209,8 +225,8 @@ internal fun LessonCardSheet(
                         statusSymbol = statusDisplay.symbol,
                         startDateTime = startDateTime,
                         statusMenuExpanded = statusMenuExpanded,
-                        onPriceClick = { showPriceDialog = true },
-                        onStatusClick = { if (!state.isPaymentActionRunning) statusMenuExpanded = true },
+                        onPriceClick = onPriceClick,
+                        onStatusClick = onStatusClick,
                         onStatusDismiss = { statusMenuExpanded = false },
                         onStatusSelect = onStatusSelect,
                         isStatusBusy = state.isPaymentActionRunning
@@ -218,7 +234,7 @@ internal fun LessonCardSheet(
 
                     NoteRow(
                         note = state.note,
-                        onClick = { showNoteDialog = true }
+                        onClick = onNoteClick
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -293,7 +309,7 @@ private fun LessonHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -345,7 +361,7 @@ private fun DateRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
@@ -416,7 +432,7 @@ private fun TimeCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
@@ -469,7 +485,7 @@ private fun PriceRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .clickable(onClick = onPriceClick)
+                .clickable { onPriceClick() }
         ) {
             Text(
                 text = stringResource(id = R.string.lesson_card_price_label),
@@ -486,7 +502,7 @@ private fun PriceRow(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
-                    .clickable(onClick = onStatusClick)
+                    .clickable { onStatusClick() }
                     .padding(vertical = 4.dp)
             ) {
                 Row(
@@ -536,7 +552,7 @@ private fun NoteRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant

@@ -831,7 +831,7 @@ private fun MonthDayCell(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick)
+            .clickable { onClick() }
     ) {
         Column(
             modifier = Modifier

@@ -116,7 +116,7 @@ private fun DayTile(
         modifier = Modifier
             .height(height)
             .clip(dayShape)
-            .clickable(onClick = onClick)
+            .clickable { onClick() }
     ) {
         Column(
             Modifier
@@ -197,7 +197,7 @@ private fun LessonRowCompact(lesson: LessonBrief, tone: LessonTone, onClick: () 
             .fillMaxWidth()
             .defaultMinSize(minHeight = 40.dp)
             .clip(shape)
-            .clickable(onClick = onClick)
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
