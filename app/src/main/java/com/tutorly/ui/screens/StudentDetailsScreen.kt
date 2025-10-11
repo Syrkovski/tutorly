@@ -522,7 +522,7 @@ private fun LessonHistoryRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick(lesson) },
+            .clickable(onClick = { onClick(lesson) }),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {

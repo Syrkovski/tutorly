@@ -309,7 +309,7 @@ private fun LessonHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -361,7 +361,7 @@ private fun DateRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
@@ -432,7 +432,7 @@ private fun TimeCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
@@ -485,7 +485,7 @@ private fun PriceRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onPriceClick() }
+                .clickable(onClick = onPriceClick)
         ) {
             Text(
                 text = stringResource(id = R.string.lesson_card_price_label),
@@ -502,7 +502,7 @@ private fun PriceRow(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
-                    .clickable { onStatusClick() }
+                    .clickable(onClick = onStatusClick)
                     .padding(vertical = 4.dp)
             ) {
                 Row(
@@ -552,7 +552,7 @@ private fun NoteRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
