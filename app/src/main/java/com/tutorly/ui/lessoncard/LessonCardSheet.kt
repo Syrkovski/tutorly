@@ -86,6 +86,7 @@ internal fun LessonCardSheet(
 ) {
     if (!state.isVisible) return
 
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -175,7 +176,6 @@ internal fun LessonCardSheet(
                     DateRow(
                         dateText = formattedDate,
                         onClick = {
-                            val context = LocalContext.current
                             DatePickerDialog(
                                 context,
                                 { _, year, month, day -> onDateSelect(LocalDate.of(year, month + 1, day)) },
@@ -192,7 +192,6 @@ internal fun LessonCardSheet(
                         durationLabel = stringResource(id = R.string.lesson_details_duration_label),
                         durationText = stringResource(id = R.string.lesson_card_duration_value, state.durationMinutes),
                         onTimeClick = {
-                            val context = LocalContext.current
                             TimePickerDialog(
                                 context,
                                 { _, hour, minute -> onTimeSelect(LocalTime.of(hour, minute)) },
