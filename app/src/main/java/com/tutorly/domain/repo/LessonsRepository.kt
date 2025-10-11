@@ -14,6 +14,7 @@ interface LessonsRepository {
     fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats>
     fun observeLessonDetails(id: Long): Flow<LessonDetails?>
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
+    suspend fun getById(id: Long): Lesson?
     suspend fun upsert(lesson: Lesson): Long
     suspend fun create(request: LessonCreateRequest): Long
     suspend fun findConflicts(start: Instant, end: Instant): List<LessonDetails>

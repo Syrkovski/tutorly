@@ -62,7 +62,8 @@ data class SubjectOption(
 
 data class StudentOption(
     val id: Long,
-    val name: String
+    val name: String,
+    val rateCents: Int?
 )
 
 data class ConflictInfo(

@@ -18,6 +18,7 @@ data class LessonDetails(
     val studentName: String,
     val studentNote: String?,
     val subjectName: String?,
+    val studentGrade: String?,
     val subjectColorArgb: Int?,
     val paymentStatus: PaymentStatus,
     val paymentStatusIcon: PaymentStatusIcon,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import java.text.NumberFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -36,7 +36,6 @@ fun WeekMosaic(
     anchor: LocalDate,
     onOpenDay: (LocalDate) -> Unit,
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
-    stats: WeeklyStats? = null,
     currentDateTime: ZonedDateTime,
     onLessonClick: (LessonBrief) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
@@ -59,27 +58,6 @@ fun WeekMosaic(
         }
     }
 
-    val weekly = remember(days, dayDataProvider, stats) {
-        stats ?: run {
-            var total = 0
-            var paid = 0
-            var debts = 0
-            var earned = 0L
-            days.forEach { d ->
-                val ls = dayDataProvider(d)
-                total += ls.size
-                paid += ls.count { it.paid }
-                debts += ls.count { !it.paid }
-                earned += ls.filter { it.paid }.sumOf { it.priceCents }
-            }
-            WeeklyStats(totalLessons = total, paidCount = paid, debtCount = debts, earnedCents = earned)
-        }
-    }
-
-    val tiles = remember(dayCards, weekly) {
-        dayCards.map { WeekTile.Day(it) } + WeekTile.Stats(weekly)
-    }
-
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val gridH =
             maxHeight - contentPadding.calculateTopPadding() - contentPadding.calculateBottomPadding()
@@ -92,21 +70,15 @@ fun WeekMosaic(
             verticalArrangement = Arrangement.spacedBy(vSpacing),
             horizontalArrangement = Arrangement.spacedBy(hSpacing)
         ) {
-            items(tiles) { tile ->
-                when (tile) {
-                    is WeekTile.Day -> DayTile(
-                        model = tile.model,
-                        height = cellH,
-                        onClick = { onOpenDay(tile.model.date) },
-                        today = today,
-                        now = now,
-                        onLessonClick = onLessonClick
-                    )
-                    is WeekTile.Stats -> StatsTile(
-                        stats = tile.stats,
-                        height = cellH
-                    )
-                }
+            items(dayCards) { model ->
+                DayTile(
+                    model = model,
+                    height = cellH,
+                    onClick = { onOpenDay(model.date) },
+                    today = today,
+                    now = now,
+                    onLessonClick = onLessonClick
+                )
             }
         }
     }
@@ -175,8 +147,7 @@ private fun DayTile(
                 )
                 ongoing.forEach {
                     LessonRowCompact(
-                        time = timeRangeText(it),
-                        who = it.student,
+                        lesson = it,
                         tone = LessonTone.Ongoing,
                         onClick = { onLessonClick(it) }
                     )
@@ -187,9 +158,8 @@ private fun DayTile(
             val toShow = if (isToday) others else model.brief
             toShow.forEach {
                 LessonRowCompact(
-                    time = timeRangeText(it),
-                    who = it.student,
-                    tone = if (it.paid) LessonTone.Paid else LessonTone.Default,
+                    lesson = it,
+                    tone = LessonTone.Default,
                     onClick = { onLessonClick(it) }
                 )
             }
@@ -207,15 +177,13 @@ private fun DayTile(
     }
 }
 
-private enum class LessonTone { Default, Paid, Ongoing }
+private enum class LessonTone { Default, Ongoing }
 
 @Composable
-private fun LessonRowCompact(time: String, who: String, tone: LessonTone, onClick: () -> Unit) {
+private fun LessonRowCompact(lesson: LessonBrief, tone: LessonTone, onClick: () -> Unit) {
     val (bg, fg) = when (tone) {
         LessonTone.Default -> MaterialTheme.colorScheme.surface.copy(alpha = 0.6f) to
                 MaterialTheme.colorScheme.onSurface
-        LessonTone.Paid -> MaterialTheme.colorScheme.secondaryContainer to
-                MaterialTheme.colorScheme.onSecondaryContainer
         LessonTone.Ongoing -> MaterialTheme.colorScheme.primaryContainer to
                 MaterialTheme.colorScheme.onPrimaryContainer
     }
@@ -233,22 +201,44 @@ private fun LessonRowCompact(time: String, who: String, tone: LessonTone, onClic
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            SubjectAvatar(name = lesson.subjectName, colorArgb = lesson.subjectColorArgb)
             Text(
-                "$time · $who",
+                text = buildLessonTitle(lesson),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            when (tone) {
-                LessonTone.Default -> {}
-                LessonTone.Paid    -> Text("✓", style = MaterialTheme.typography.labelSmall)
-                LessonTone.Ongoing -> Text("Идёт", style = MaterialTheme.typography.labelSmall)
-            }
         }
     }
+}
+
+@Composable
+private fun SubjectAvatar(name: String?, colorArgb: Int?): Unit {
+    val label = name?.firstOrNull()?.uppercaseChar()?.toString() ?: "•"
+    val background = colorArgb?.let { Color(it) } ?: MaterialTheme.colorScheme.secondaryContainer
+    val content = if (colorArgb != null) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(background),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = content
+        )
+    }
+}
+
+private fun buildLessonTitle(lesson: LessonBrief): String {
+    val extras = lesson.grade?.takeIf { it.isNotBlank() }
+    return listOfNotNull(lesson.student, extras).joinToString(" • ")
 }
 
 @Composable
@@ -264,53 +254,16 @@ private fun MiniBadge(text: String) {
     )
 }
 
-@Composable
-private fun StatsTile(
-    stats: WeeklyStats,
-    height: Dp
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.height(height)
-    ) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(10.dp), // компакт
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "Итоги недели",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                StatRow("Всего занятий", stats.totalLessons.toString())
-                StatRow("Оплачено", stats.paidCount.toString())
-                StatRow("Долгов", stats.debtCount.toString())
-                StatRow("Заработано", formatMoney(stats.earnedCents))
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Text(value, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
 /* ------------------------------- Models --------------------------------- */
 
 data class LessonBrief(
     val id: Long,
-    val time: String,    // "09:30"
-    val end: String?,    // "10:30" (null — неизвестно)
+    val start: LocalTime,
+    val end: LocalTime?,
     val student: String,
-    val priceCents: Long,
-    val paid: Boolean
+    val grade: String?,
+    val subjectName: String?,
+    val subjectColorArgb: Int?
 )
 
 private data class DayCardModel(
@@ -318,18 +271,6 @@ private data class DayCardModel(
     val brief: List<LessonBrief>,
     val totalLessons: Int
 )
-
-data class WeeklyStats(
-    val totalLessons: Int,
-    val paidCount: Int,
-    val debtCount: Int,
-    val earnedCents: Long
-)
-
-private sealed interface WeekTile {
-    data class Day(val model: DayCardModel) : WeekTile
-    data class Stats(val stats: WeeklyStats) : WeekTile
-}
 
 /* ------------------------------ Helpers --------------------------------- */
 
@@ -339,28 +280,11 @@ private fun dayTitle(d: LocalDate): String {
     return "$dow ${d.dayOfMonth}"
 }
 
-private fun timeRangeText(l: LessonBrief): String =
-    if (l.end.isNullOrBlank()) l.time else "${l.time}–${l.end}"
-
 private fun LessonBrief.isOngoingOn(day: LocalDate, now: LocalDateTime): Boolean {
     if (now.toLocalDate() != day) return false
-    val start = parseLocalTime(time) ?: return false
-    val endT  = parseLocalTime(end) ?: return false
-    val nowT = now.toLocalTime()
-    return nowT >= start && nowT < endT
-}
-
-private fun parseLocalTime(hhmm: String?): LocalTime? = try {
-    if (hhmm == null) null else LocalTime.parse(hhmm)
-} catch (_: Throwable) { null }
-
-private fun formatMoney(amountCents: Long): String {
-    val rubles = amountCents / 100
-    val kopecks = (amountCents % 100).toInt()
-    val nf = NumberFormat.getInstance(Locale("ru", "RU"))
-    val base = nf.format(rubles)
-    return if (kopecks == 0) "$base ₽"
-    else String.format(Locale("ru", "RU"), "%s,%02d ₽", base, kopecks)
+    val endTime = end ?: return false
+    val nowTime = now.toLocalTime()
+    return nowTime >= start && nowTime < endTime
 }
 
 /* ----------------------------- Demo data -------------------------------- */
@@ -369,11 +293,11 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
     val seed = (date.dayOfMonth + date.monthValue) % 3
     return when (seed) {
         0 -> listOf(
-            LessonBrief(1L, "09:30", "10:30", "Анна", 1500_00, true),
-            LessonBrief(2L, "13:00", "14:30", "Иван", 2000_00, false),
-            LessonBrief(3L, "18:00", "19:00", "Олег", 1500_00, true)
+            LessonBrief(1L, LocalTime.of(9, 30), LocalTime.of(10, 30), "Анна", null, "Математика", null),
+            LessonBrief(2L, LocalTime.of(13, 0), LocalTime.of(14, 30), "Иван", "7 класс", "Физика", null),
+            LessonBrief(3L, LocalTime.of(18, 0), LocalTime.of(19, 0), "Олег", null, "Русский", null)
         )
-        1 -> listOf(LessonBrief(4L, "16:00", "17:30", "Мария", 1800_00, true))
+        1 -> listOf(LessonBrief(4L, LocalTime.of(16, 0), LocalTime.of(17, 30), "Мария", "10 класс", "Химия", null))
         else -> emptyList()
     }
 }

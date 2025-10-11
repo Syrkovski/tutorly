@@ -1,6 +1,5 @@
 package com.tutorly.navigation
 
-import android.net.Uri
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
@@ -27,10 +26,8 @@ import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.components.AppBottomBar
 import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.screens.*
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZonedDateTime
-
 
 const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
@@ -41,14 +38,6 @@ private const val ROUTE_STUDENTS_PATTERN = "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_
 const val ROUTE_FINANCE = "finance"
 const val ROUTE_STUDENT_DETAILS = "student/{studentId}"
 const val ROUTE_STUDENT_EDIT = "student/{studentId}/edit"
-const val ROUTE_LESSON_NEW = "lesson/new"
-const val ROUTE_LESSON_DETAILS = "lesson/{lessonId}"
-
-private const val ARG_LESSON_ID = "lessonId"
-private const val ARG_START_TIME = "startTime"
-private const val ARG_STUDENT_ID = "studentId"
-private const val NO_STUDENT_ID = -1L
-
 private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
 private fun studentEditRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
 
@@ -119,11 +108,6 @@ fun AppNavRoot() {
             ) { entry ->
                 val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
                 CalendarScreen(
-                    onLessonDetails = { lessonId, studentId, start ->
-                        nav.navigate(lessonDetailsRoute(lessonId, studentId, start)) {
-                            launchSingleTop = true
-                        }
-                    },
                     onAddStudent = {
                         nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
                             launchSingleTop = true
@@ -204,11 +188,6 @@ fun AppNavRoot() {
                             launchSingleTop = true
                             restoreState = true
                         }
-                    },
-                    onLessonEdit = { lessonId, targetStudentId, start ->
-                        nav.navigate(lessonDetailsRoute(lessonId, targetStudentId, start)) {
-                            launchSingleTop = true
-                        }
                     }
                 )
             }
@@ -221,51 +200,6 @@ fun AppNavRoot() {
                     onSaved = {
                         nav.popBackStack()
                     }
-                )
-            }
-            composable(
-                route = "$ROUTE_LESSON_NEW?$ARG_START_TIME={$ARG_START_TIME}&$ARG_STUDENT_ID={$ARG_STUDENT_ID}",
-                arguments = listOf(
-                    navArgument(ARG_START_TIME) {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    },
-                    navArgument(ARG_STUDENT_ID) {
-                        type = NavType.LongType
-                        defaultValue = NO_STUDENT_ID
-                    }
-                )
-            ) { entry ->
-                val startInstant = entry.arguments?.getString(ARG_START_TIME).toInstantOrNull()
-                val studentId = entry.arguments?.getLong(ARG_STUDENT_ID)?.takeIf { it != NO_STUDENT_ID }
-                LessonEditorScreen(
-                    startTime = startInstant,
-                    studentId = studentId,
-                    onClose = { nav.popBackStack() }
-                )
-            }
-            composable(
-                route = "$ROUTE_LESSON_DETAILS?$ARG_START_TIME={$ARG_START_TIME}&$ARG_STUDENT_ID={$ARG_STUDENT_ID}",
-                arguments = listOf(
-                    navArgument(ARG_LESSON_ID) { type = NavType.LongType },
-                    navArgument(ARG_START_TIME) {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    },
-                    navArgument(ARG_STUDENT_ID) {
-                        type = NavType.LongType
-                        defaultValue = NO_STUDENT_ID
-                    }
-                )
-            ) { entry ->
-                val lessonId = entry.arguments?.getLong(ARG_LESSON_ID) ?: return@composable
-                val startInstant = entry.arguments?.getString(ARG_START_TIME).toInstantOrNull()
-                val studentId = entry.arguments?.getLong(ARG_STUDENT_ID)?.takeIf { it != NO_STUDENT_ID }
-                LessonDetailsScreen(
-                    lessonId = lessonId,
-                    studentId = studentId,
-                    startTime = startInstant,
-                    onBack = { nav.popBackStack() }
                 )
             }
             composable(ROUTE_FINANCE)  { FinanceScreen() }
@@ -285,23 +219,3 @@ private fun buildCalendarRoute(date: String?, mode: String?): String {
     val tab = mode?.takeIf { it.isNotBlank() } ?: CalendarMode.DAY.name
     return "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}=$anchor&${CalendarViewModel.ARG_CALENDAR_MODE}=$tab"
 }
-
-private fun lessonCreateRoute(start: ZonedDateTime, studentId: Long?): String {
-    val params = listOf(
-        "${ARG_START_TIME}=${Uri.encode(start.toInstant().toString())}",
-        "${ARG_STUDENT_ID}=${studentId ?: NO_STUDENT_ID}"
-    )
-    return "${ROUTE_LESSON_NEW}?${params.joinToString("&")}"
-}
-
-private fun lessonDetailsRoute(lessonId: Long, studentId: Long, start: ZonedDateTime): String {
-    val params = listOf(
-        "${ARG_START_TIME}=${Uri.encode(start.toInstant().toString())}",
-        "${ARG_STUDENT_ID}=$studentId"
-    )
-    return "lesson/$lessonId?${params.joinToString("&")}"
-}
-
-private fun String?.toInstantOrNull(): Instant? =
-    this?.takeIf { it.isNotBlank() }?.let { runCatching { Instant.parse(it) }.getOrNull() }
-

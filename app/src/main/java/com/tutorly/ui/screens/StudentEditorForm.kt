@@ -1,18 +1,24 @@
 package com.tutorly.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -27,9 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 
@@ -101,14 +111,10 @@ fun StudentEditorForm(
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
         )
 
-        ExposedDropdownMenuBox(
-            expanded = isGradeDropdownExpanded,
-            onExpandedChange = {
-                if (enabled) {
-                    isGradeDropdownExpanded = !isGradeDropdownExpanded
-                }
-            }
-        ) {
+        var gradeFieldSize by remember { mutableStateOf(IntSize.Zero) }
+        val gradeDropdownWidth = with(LocalDensity.current) { gradeFieldSize.width.toDp() }
+        val gradeDropdownModifier = if (gradeDropdownWidth > 0.dp) Modifier.width(gradeDropdownWidth) else Modifier
+        Box {
             OutlinedTextField(
                 value = state.grade,
                 onValueChange = {
@@ -117,19 +123,35 @@ fun StudentEditorForm(
                 label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .menuAnchor()
-                    .focusRequester(gradeFocusRequester),
+                    .onGloballyPositioned { gradeFieldSize = it.size }
+                    .focusRequester(gradeFocusRequester)
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            isGradeDropdownExpanded = false
+                        } else if (enabled) {
+                            isGradeDropdownExpanded = true
+                        }
+                    },
                 singleLine = true,
                 enabled = enabled,
                 trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGradeDropdownExpanded)
+                    IconButton(
+                        onClick = { isGradeDropdownExpanded = !isGradeDropdownExpanded },
+                        enabled = enabled
+                    ) {
+                        Icon(
+                            imageVector = if (isGradeDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
             )
 
-            ExposedDropdownMenu(
+            DropdownMenu(
                 expanded = isGradeDropdownExpanded,
-                onDismissRequest = { isGradeDropdownExpanded = false }
+                onDismissRequest = { isGradeDropdownExpanded = false },
+                modifier = gradeDropdownModifier
             ) {
                 gradeOptions.forEach { option ->
                     DropdownMenuItem(
@@ -143,8 +165,7 @@ fun StudentEditorForm(
                                 onGradeChange(option)
                             }
                         },
-                        enabled = enabled,
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        enabled = enabled
                     )
                 }
             }

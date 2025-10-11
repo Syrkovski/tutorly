@@ -57,6 +57,8 @@ class RoomLessonsRepository(
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
         lessonDao.observeByStudent(studentId)
 
+    override suspend fun getById(id: Long): Lesson? = lessonDao.findById(id)
+
     override suspend fun upsert(lesson: Lesson): Long = lessonDao.upsert(lesson)
 
     override suspend fun create(request: LessonCreateRequest): Long {

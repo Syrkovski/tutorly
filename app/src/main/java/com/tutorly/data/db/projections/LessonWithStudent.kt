@@ -47,6 +47,7 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         studentName = student.name,
         studentNote = student.note,
         subjectName = subjectName,
+        studentGrade = student.grade,
         subjectColorArgb = subject?.colorArgb,
         paymentStatus = lesson.paymentStatus,
         paymentStatusIcon = lesson.paymentStatus.asIcon(),

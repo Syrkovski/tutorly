@@ -59,6 +59,8 @@ class InMemoryLessonsRepository : LessonsRepository {
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
         lessonsFlow.map { lessons -> lessons.filter { it.studentId == studentId } }
 
+    override suspend fun getById(id: Long): Lesson? = store[id]
+
     override suspend fun upsert(lesson: Lesson): Long {
         val id = if (lesson.id == 0L) seq.getAndIncrement() else lesson.id
         store[id] = lesson.copy(id = id)
@@ -192,6 +194,7 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         studentName = "Student #$studentId",
         studentNote = null,
         subjectName = null,
+        studentGrade = null,
         subjectColorArgb = null,
         paymentStatus = paymentStatus,
         paymentStatusIcon = paymentStatus.asIcon(),
