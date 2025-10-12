@@ -402,10 +402,18 @@ class StudentsViewModel @Inject constructor(
             return LessonProgress(paidLessons = 0, completedLessons = 0)
         }
 
-        val completed = lessons.count { it.status == LessonStatus.DONE }
-        val paid = lessons.count { it.paymentStatus == PaymentStatus.PAID }
+        val now = Instant.now()
+        val completedLessons = lessons.filter { lesson ->
+            lesson.startAt <= now &&
+                lesson.status != LessonStatus.CANCELED &&
+                lesson.paymentStatus != PaymentStatus.CANCELLED
+        }
+        val paidLessons = completedLessons.count { it.paymentStatus == PaymentStatus.PAID }
 
-        return LessonProgress(paidLessons = paid, completedLessons = completed)
+        return LessonProgress(
+            paidLessons = paidLessons,
+            completedLessons = completedLessons.size
+        )
     }
 
     private fun buildProfile(
