@@ -116,10 +116,10 @@
     <string name="today_section_upcoming">Предстоящие</string>
     <string name="today_all_marked_title">Все готово!</string>
     <string name="today_all_marked_subtitle">Вы отметили все занятия за сегодня</string>
-    <string name="today_stats_total_amount_label">Доход за день</string>
-    <string name="today_stats_total_lessons_label">Количество уроков</string>
-    <string name="today_stats_paid_amount_label">Заработок за день (из того, что оплачено)</string>
-    <string name="today_stats_paid_lessons_label">Количество уроков</string>
+    <string name="today_stats_income_label">Доход за день (оплачено/всего)</string>
+    <string name="today_stats_income_value">%1$s / %2$s</string>
+    <string name="today_stats_lessons_label">Количество занятий (оплаченных/всего)</string>
+    <string name="today_stats_lessons_value">%1$d / %2$d</string>
     <string name="today_duration_format">%1$d мин</string>
     <string name="today_snackbar_paid">Отмечено: оплачено</string>
     <string name="today_snackbar_due">Отмечено: долг</string>

@@ -283,6 +283,16 @@ private fun TodayStatsRow(stats: TodayStats) {
     val paidAmount = remember(stats.paidAmountCents, currencyFormatter) {
         formatCurrency(stats.paidAmountCents, currencyFormatter)
     }
+    val incomeValue = stringResource(
+        R.string.today_stats_income_value,
+        paidAmount,
+        totalAmount
+    )
+    val lessonsValue = stringResource(
+        R.string.today_stats_lessons_value,
+        stats.paidLessons,
+        stats.totalLessons
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -290,17 +300,13 @@ private fun TodayStatsRow(stats: TodayStats) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TodayStatsCard(
-            title = stringResource(R.string.today_stats_total_amount_label),
-            titleValue = totalAmount,
-            subtitle = stringResource(R.string.today_stats_total_lessons_label),
-            subtitleValue = stats.totalLessons.toString(),
+            label = stringResource(R.string.today_stats_income_label),
+            value = incomeValue,
             modifier = Modifier.weight(1f)
         )
         TodayStatsCard(
-            title = stringResource(R.string.today_stats_paid_amount_label),
-            titleValue = paidAmount,
-            subtitle = stringResource(R.string.today_stats_paid_lessons_label),
-            subtitleValue = stats.paidLessons.toString(),
+            label = stringResource(R.string.today_stats_lessons_label),
+            value = lessonsValue,
             modifier = Modifier.weight(1f)
         )
     }
@@ -308,10 +314,8 @@ private fun TodayStatsRow(stats: TodayStats) {
 
 @Composable
 private fun TodayStatsCard(
-    title: String,
-    titleValue: String,
-    subtitle: String,
-    subtitleValue: String,
+    label: String,
+    value: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -325,33 +329,18 @@ private fun TodayStatsCard(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            TodayStatsRowContent(label = title, value = titleValue)
-            TodayStatsRowContent(label = subtitle, value = subtitleValue)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-    }
-}
-
-@Composable
-private fun TodayStatsRowContent(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.End,
-            modifier = Modifier.padding(start = 12.dp)
-        )
     }
 }
 
