@@ -20,6 +20,7 @@ interface LessonsRepository {
     suspend fun create(request: LessonCreateRequest): Long
     suspend fun findConflicts(start: Instant, end: Instant): List<LessonDetails>
     suspend fun latestLessonForStudent(studentId: Long): Lesson?
+    suspend fun delete(id: Long)
     suspend fun markPaid(id: Long)
     suspend fun markDue(id: Long)
     suspend fun resetPaymentStatus(id: Long)

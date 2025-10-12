@@ -83,6 +83,10 @@
     <string name="lesson_card_student_picker_title">Выберите ученика</string>
     <string name="lesson_card_student_picker_empty">Нет доступных учеников</string>
     <string name="lesson_card_date_label">Дата</string>
+    <string name="lesson_card_delete">Удалить занятие</string>
+    <string name="lesson_card_delete_title">Удалить занятие?</string>
+    <string name="lesson_card_delete_message">Этот урок будет удалён без возможности восстановления. Продолжить?</string>
+    <string name="lesson_card_delete_confirm">Удалить</string>
     <string name="lesson_card_duration_title">Длительность занятия</string>
     <string name="lesson_card_duration_hint">Введите длительность</string>
     <string name="lesson_card_price_title">Изменить стоимость</string>

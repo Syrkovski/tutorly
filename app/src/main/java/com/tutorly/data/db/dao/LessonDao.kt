@@ -83,6 +83,9 @@ interface LessonDao {
 
     @Query("UPDATE lessons SET note=:note, updatedAt=:now WHERE id=:id")
     suspend fun updateNote(id: Long, note: String?, now: Instant)
+
+    @Query("DELETE FROM lessons WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
 
 data class LessonCountTuple(

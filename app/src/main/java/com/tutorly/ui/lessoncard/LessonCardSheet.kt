@@ -2,6 +2,7 @@ package com.tutorly.ui.lessoncard
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -81,6 +84,7 @@ internal fun LessonCardSheet(
     onPriceChange: (Int) -> Unit,
     onStatusSelect: (PaymentStatus) -> Unit,
     onNoteChange: (String) -> Unit,
+    onDeleteLesson: () -> Unit,
     onSnackbarConsumed: () -> Unit,
 ) {
     if (!state.isVisible) return
@@ -94,6 +98,7 @@ internal fun LessonCardSheet(
     var showDurationDialog by remember { mutableStateOf(false) }
     var showPriceDialog by remember { mutableStateOf(false) }
     var showNoteDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
 
     val locale = state.locale
@@ -236,6 +241,28 @@ internal fun LessonCardSheet(
                         onClick = onNoteClick
                     )
 
+                    if (state.lessonId != null) {
+                        OutlinedButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !state.isSaving && !state.isDeleting && !state.isLoading,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                        ) {
+                            if (state.isDeleting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            } else {
+                                Text(text = stringResource(id = R.string.lesson_card_delete))
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
@@ -291,6 +318,16 @@ internal fun LessonCardSheet(
                 onNoteChange(it)
                 showNoteDialog = false
             }
+        )
+    }
+
+    if (showDeleteDialog) {
+        DeleteLessonDialog(
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteLesson()
+            },
+            onDismiss = { showDeleteDialog = false }
         )
     }
 }
@@ -751,6 +788,33 @@ private fun NoteDialog(
         confirmButton = {
             TextButton(onClick = { onConfirm(noteInput) }) {
                 Text(text = stringResource(id = R.string.lesson_details_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_create_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeleteLessonDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_card_delete_title)) },
+        text = { Text(text = stringResource(id = R.string.lesson_card_delete_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(text = stringResource(id = R.string.lesson_card_delete_confirm))
             }
         },
         dismissButton = {
