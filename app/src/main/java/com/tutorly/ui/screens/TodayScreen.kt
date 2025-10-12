@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -565,6 +567,7 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LessonCard(
     lesson: LessonForToday,
@@ -580,8 +583,9 @@ private fun LessonCard(
     val subjectTitle = lesson.lessonTitle?.takeIf { it.isNotBlank() }?.trim()
         ?: lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
         ?: stringResource(id = R.string.lesson_card_subject_placeholder)
+    val grade = lesson.studentGrade?.takeIf { it.isNotBlank() }?.trim()
+    val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
     val durationLabel = stringResource(R.string.today_duration_format, durationMinutes)
-    val metaParts = listOf(subjectTitle, timeText, durationLabel, amount)
 
     Card(
         modifier = modifier,
@@ -589,58 +593,74 @@ private fun LessonCard(
         colors = TutorlyCardDefaults.colors(),
         elevation = TutorlyCardDefaults.elevation()
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = lesson.studentName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                PaymentStatusChip(status = lesson.paymentStatus)
-            }
-            Text(
-                text = metaParts.joinToString(separator = " • "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            val note = lesson.note?.takeIf { it.isNotBlank() }
-            if (note != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.StickyNote2,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        text = lesson.studentName,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    LessonMetaPill(text = timeText)
+                    LessonMetaPill(text = durationLabel)
+                    LessonMetaPill(text = amount)
+                }
+                val note = lesson.note?.takeIf { it.isNotBlank() }
+                if (note != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.StickyNote2,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
+            PaymentStatusChip(
+                status = lesson.paymentStatus,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 12.dp)
+            )
         }
     }
 }
 
 @Composable
-private fun PaymentStatusChip(status: PaymentStatus) {
+private fun PaymentStatusChip(status: PaymentStatus, modifier: Modifier = Modifier) {
     if (status == PaymentStatus.UNPAID) return
     val (label, container, content) = when (status) {
         PaymentStatus.PAID -> Triple(
@@ -666,13 +686,31 @@ private fun PaymentStatusChip(status: PaymentStatus) {
     }
     Surface(
         color = container,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 4.dp,
+        modifier = modifier
     ) {
         Text(
             text = label,
             color = content,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = RoundedCornerShape(50),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
 }
@@ -697,7 +735,7 @@ private fun TodayTopBar(state: TodayUiState) {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )

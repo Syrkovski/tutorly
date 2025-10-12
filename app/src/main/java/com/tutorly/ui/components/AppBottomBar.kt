@@ -14,6 +14,7 @@ import com.tutorly.navigation.ROUTE_CALENDAR
 import com.tutorly.navigation.ROUTE_FINANCE
 import com.tutorly.navigation.ROUTE_STUDENTS
 import com.tutorly.navigation.ROUTE_TODAY
+import androidx.compose.ui.graphics.Color
 
 enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui.graphics.vector.ImageVector){
     Calendar(ROUTE_CALENDAR, "Календарь", Icons.Outlined.CalendarMonth),
@@ -25,7 +26,7 @@ enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui
 @Composable
 fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         tonalElevation = NavigationBarDefaults.Elevation
     ) {
         Tab.entries.forEach { tab ->

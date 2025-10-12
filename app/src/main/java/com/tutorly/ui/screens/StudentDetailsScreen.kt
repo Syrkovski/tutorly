@@ -260,7 +260,7 @@ private fun StudentProfileTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )

@@ -28,7 +28,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
             )
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             titleContentColor = MaterialTheme.colorScheme.onSurface
         ),
         actions = {

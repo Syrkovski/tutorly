@@ -73,6 +73,7 @@ fun LessonWithStudent.toLessonForToday(): LessonForToday {
         id = lesson.id,
         studentId = lesson.studentId,
         studentName = student.name,
+        studentGrade = student.grade,
         subjectName = subjectName,
         lessonTitle = lesson.title,
         startAt = lesson.startAt,

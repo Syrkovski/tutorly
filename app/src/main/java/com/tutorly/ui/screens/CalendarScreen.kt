@@ -50,6 +50,7 @@ import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.theme.NowRed
+import com.tutorly.ui.theme.RailBlue
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
@@ -442,8 +443,7 @@ fun PlanScreenHeader(
 
 /* --------------------------- DAY TIMELINE -------------------------------- */
 
-private val GridColor = Color(0xFFE9F0FF)
-private val SpineColor = Color(0xFF2D7FF9).copy(alpha = 0.6f)
+private val SpineColor = RailBlue.copy(alpha = 0.6f)
 private val LabelWidth = 64.dp
 private val HourHeight = 64.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
@@ -538,6 +538,7 @@ private fun DayTimeline(
                 }
         ) {
             // 1) Сетка фоном
+            val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
             Canvas(Modifier.matchParentSize()) {
                 val rowH = HourHeight.toPx()
                 val leftPad = LabelWidth.toPx()
@@ -546,7 +547,7 @@ private fun DayTimeline(
                 repeat(hours.size + 1) { i ->
                     val y = i * rowH
                     drawLine(
-                        color = GridColor,
+                        color = gridLineColor,
                         start = androidx.compose.ui.geometry.Offset(0f, y),
                         end = androidx.compose.ui.geometry.Offset(size.width, y),
                         strokeWidth = 1.dp.toPx()
@@ -942,13 +943,22 @@ private fun DayTwoLineChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (selected) Color(0x1A2D7FF9) else Color(0xFFF2F3F7)
-    val fg = if (selected) Color(0xFF2D7FF9) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+    val background = if (selected) {
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val foreground = if (selected) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Surface(
-        color = bg,
+        color = background,
         shape = MaterialTheme.shapes.medium,
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
+        shadowElevation = if (selected) 6.dp else 4.dp
     ) {
         Column(
             Modifier
@@ -961,12 +971,12 @@ private fun DayTwoLineChip(
                 date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
                     .replaceFirstChar { it.titlecase(Locale("ru")) },
                 style = MaterialTheme.typography.labelSmall,
-                color = fg
+                color = foreground
             )
             Text(
                 "${date.dayOfMonth}",
                 style = MaterialTheme.typography.labelLarge,
-                color = fg
+                color = foreground
             )
         }
     }

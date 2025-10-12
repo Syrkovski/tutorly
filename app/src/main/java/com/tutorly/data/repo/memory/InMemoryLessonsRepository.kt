@@ -226,6 +226,7 @@ private fun Lesson.toTodayStub(): LessonForToday {
         id = id,
         studentId = studentId,
         studentName = "Student #$studentId",
+        studentGrade = null,
         subjectName = null,
         lessonTitle = title,
         startAt = startAt,
