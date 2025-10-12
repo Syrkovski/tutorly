@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Singleton
 class RoomPaymentsRepository @Inject constructor(
-    private val paymentDao: PaymentDao
+    private val paymentDao: PaymentDao,
+    private val prepaymentAllocator: StudentPrepaymentAllocator
 ) : PaymentsRepository {
 
     override fun observePaymentsByStudent(studentId: Long): Flow<List<Payment>> =
@@ -36,4 +37,8 @@ class RoomPaymentsRepository @Inject constructor(
 
     override suspend fun delete(payment: Payment) =
         paymentDao.delete(payment)
+
+    override suspend fun applyPrepayment(studentId: Long) {
+        prepaymentAllocator.sync(studentId)
+    }
 }

@@ -1,6 +1,5 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,14 +17,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.CurrencyRuble
+import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
@@ -34,6 +33,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -193,7 +193,7 @@ fun StudentDetailsScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
     ) { innerPadding ->
         when (val currentState = state) {
             StudentProfileUiState.Hidden, StudentProfileUiState.Loading -> {
@@ -227,7 +227,7 @@ fun StudentDetailsScreen(
                     profile = currentState.profile,
                     onEdit = onEdit,
                     onAddLesson = openLessonCreation,
-                    onAddPrepayment = { showPrepaymentSheet = true },
+                    onPrepaymentClick = { showPrepaymentSheet = true },
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
@@ -272,7 +272,7 @@ private fun StudentProfileContent(
     profile: StudentProfile,
     onEdit: (Long, StudentEditTarget) -> Unit,
     onAddLesson: (Long) -> Unit,
-    onAddPrepayment: (Long) -> Unit,
+    onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -319,18 +319,21 @@ private fun StudentProfileContent(
         }
 
         item {
+            StudentProfileMetricsSection(
+                profile = profile,
+                numberFormatter = numberFormatter,
+                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) },
+                onPrepaymentClick = { onPrepaymentClick(profile.student.id) }
+            )
+        }
+
+        item {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                ProfileInfoCard(
-                    icon = Icons.Outlined.Phone,
-                    label = stringResource(id = R.string.student_details_phone_label),
-                    value = profile.student.phone,
-                    onClick = { onEdit(profile.student.id, StudentEditTarget.PHONE) }
-                )
-                ProfileInfoCard(
-                    icon = Icons.Outlined.Email,
-                    label = stringResource(id = R.string.student_details_messenger_label),
-                    value = profile.student.messenger,
-                    onClick = { onEdit(profile.student.id, StudentEditTarget.MESSENGER) }
+                ProfileContactsCard(
+                    phone = profile.student.phone,
+                    messenger = profile.student.messenger,
+                    onPhoneClick = { onEdit(profile.student.id, StudentEditTarget.PHONE) },
+                    onMessengerClick = { onEdit(profile.student.id, StudentEditTarget.MESSENGER) }
                 )
                 ProfileInfoCard(
                     icon = Icons.Outlined.StickyNote2,
@@ -339,24 +342,6 @@ private fun StudentProfileContent(
                     onClick = { onEdit(profile.student.id, StudentEditTarget.NOTES) },
                     valueMaxLines = 4
                 )
-            }
-        }
-
-        item {
-            StudentProfileMetricsSection(
-                profile = profile,
-                numberFormatter = numberFormatter,
-                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) }
-            )
-        }
-
-        item {
-            Button(
-                onClick = { onAddPrepayment(profile.student.id) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(text = stringResource(id = R.string.student_profile_add_prepayment))
             }
         }
 
@@ -412,8 +397,8 @@ private fun StudentProfileHeader(
             .fillMaxWidth()
             .clickable { onEdit(StudentEditTarget.PROFILE) },
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Row(
             modifier = Modifier
@@ -427,16 +412,16 @@ private fun StudentProfileHeader(
                 Text(
                     text = profile.student.name,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
                 val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
-                val details = listOfNotNull(subject, grade).joinToString(separator = " • ")
+                val details = listOfNotNull(grade, subject).joinToString(separator = " • ")
                 if (details.isNotEmpty()) {
                     Text(
                         text = details,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -462,29 +447,22 @@ private fun ProfileInfoCard(
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.large)
             .clickable { onClick() },
-        color = if (hasValue) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = 1.dp
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(36.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = label,
@@ -508,6 +486,7 @@ private fun StudentProfileMetricsSection(
     profile: StudentProfile,
     numberFormatter: NumberFormat,
     onRateClick: () -> Unit,
+    onPrepaymentClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val lessonsCount = profile.metrics.totalLessons.toString()
@@ -524,38 +503,48 @@ private fun StudentProfileMetricsSection(
         numberFormatter.format(cents / 100.0)
     } ?: stringResource(id = R.string.students_rate_placeholder)
     val earnedValue = numberFormatter.format(profile.metrics.totalPaidCents / 100.0)
+    val prepaymentValue = numberFormatter.format(profile.metrics.prepaymentCents / 100.0)
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = stringResource(id = R.string.student_profile_metrics_title),
-            style = MaterialTheme.typography.titleMedium
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ProfileMetricTile(
-                icon = Icons.Outlined.CalendarToday,
-                value = lessonsCount,
-                label = stringResource(id = R.string.student_profile_metrics_lessons_label),
-                modifier = Modifier.weight(1f)
-            )
-            ProfileMetricTile(
-                icon = Icons.Outlined.Schedule,
-                value = rateValue,
-                label = stringResource(id = R.string.student_profile_metrics_rate_label),
+            Column(
                 modifier = Modifier.weight(1f),
-                onClick = onRateClick
-            )
-            ProfileMetricTile(
-                icon = Icons.Outlined.CurrencyRuble,
-                value = earnedValue,
-                label = stringResource(id = R.string.student_profile_metrics_earned_label),
-                modifier = Modifier.weight(1f)
-            )
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileMetricTile(
+                    icon = Icons.Outlined.CalendarToday,
+                    value = lessonsCount,
+                    label = stringResource(id = R.string.student_profile_metrics_lessons_label)
+                )
+                ProfileMetricTile(
+                    icon = Icons.Outlined.Schedule,
+                    value = rateValue,
+                    label = stringResource(id = R.string.student_profile_metrics_rate_label),
+                    onClick = onRateClick
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileMetricTile(
+                    icon = Icons.Outlined.CreditCard,
+                    value = earnedValue,
+                    label = stringResource(id = R.string.student_profile_metrics_earned_label)
+                )
+                ProfileMetricTile(
+                    icon = Icons.Outlined.Savings,
+                    value = prepaymentValue,
+                    label = stringResource(id = R.string.student_profile_metrics_prepayment_label),
+                    onClick = onPrepaymentClick
+                )
+            }
         }
     }
 }
@@ -580,8 +569,9 @@ private fun ProfileMetricTile(
     Surface(
         modifier = tileModifier,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 1.dp
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
@@ -614,6 +604,93 @@ private fun ProfileMetricTile(
 }
 
 @Composable
+private fun ProfileContactsCard(
+    phone: String?,
+    messenger: String?,
+    onPhoneClick: () -> Unit,
+    onMessengerClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(id = R.string.student_details_contact_title),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ProfileContactRow(
+                icon = Icons.Outlined.Phone,
+                label = stringResource(id = R.string.student_details_phone_label),
+                value = phone,
+                placeholder = stringResource(id = R.string.student_profile_contact_placeholder),
+                onClick = onPhoneClick
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            ProfileContactRow(
+                icon = Icons.Outlined.Email,
+                label = stringResource(id = R.string.student_details_messenger_label),
+                value = messenger,
+                placeholder = stringResource(id = R.string.student_profile_contact_placeholder),
+                onClick = onMessengerClick,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileContactRow(
+    icon: ImageVector,
+    label: String,
+    value: String?,
+    placeholder: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasValue = !value.isNullOrBlank()
+    val displayValue = value?.takeIf { it.isNotBlank() } ?: placeholder
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = displayValue,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (hasValue) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
 private fun StudentProfileEmptyHistory(
     onAddLesson: () -> Unit,
     modifier: Modifier = Modifier
@@ -621,8 +698,9 @@ private fun StudentProfileEmptyHistory(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+        tonalElevation = 0.dp,
+        shadowElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -677,9 +755,9 @@ private fun StudentProfileLessonCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = MaterialTheme.shapes.large,
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        tonalElevation = 0.dp,
+        shadowElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
@@ -739,7 +817,7 @@ private fun StudentAvatar(
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

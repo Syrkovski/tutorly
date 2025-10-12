@@ -14,10 +14,10 @@ internal fun parseMoneyInput(input: String): Int? {
     if (raw.isEmpty()) return null
     val normalized = raw.replace(',', '.')
     val decimal = runCatching { java.math.BigDecimal(normalized) }.getOrNull() ?: return null
-    if (decimal < java.math.BigDecimal.ZERO) return null
     val cents = decimal.multiply(java.math.BigDecimal(100)).setScale(0, java.math.RoundingMode.HALF_UP)
     val bigInt = runCatching { cents.toBigIntegerExact() }.getOrNull() ?: return null
     val max = java.math.BigInteger.valueOf(Int.MAX_VALUE.toLong())
-    if (bigInt > max) return null
+    val min = java.math.BigInteger.valueOf(Int.MIN_VALUE.toLong())
+    if (bigInt > max || bigInt < min) return null
     return bigInt.toInt()
 }

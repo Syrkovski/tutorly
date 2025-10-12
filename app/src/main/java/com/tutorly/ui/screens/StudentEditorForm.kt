@@ -12,8 +12,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.outlined.CurrencyRuble
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -207,6 +215,9 @@ private fun ProfileSection(
             singleLine = true,
             enabled = enabled,
             isError = state.nameError,
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+            },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
         )
         if (state.nameError) {
@@ -224,6 +235,9 @@ private fun ProfileSection(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = enabled,
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+            },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
         )
 
@@ -248,6 +262,9 @@ private fun ProfileSection(
                     },
                 singleLine = true,
                 enabled = enabled,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.School, contentDescription = null)
+                },
                 trailingIcon = {
                     IconButton(
                         onClick = { onGradeDropdownExpandedChange(!isGradeDropdownExpanded) },
@@ -312,6 +329,9 @@ private fun RateSection(
             .focusRequester(focusRequester),
         singleLine = true,
         enabled = enabled,
+        leadingIcon = {
+            Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
+        },
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = KeyboardType.Decimal,
             imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
@@ -342,6 +362,9 @@ private fun PhoneSection(
             .focusRequester(focusRequester),
         singleLine = true,
         enabled = enabled,
+        leadingIcon = {
+            Icon(imageVector = Icons.Filled.Phone, contentDescription = null)
+        },
         keyboardOptions = KeyboardOptions.Default.copy(
             imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
         ),
@@ -395,6 +418,9 @@ private fun MessengerSection(
                     },
                 enabled = enabled,
                 readOnly = selectedType != StudentMessengerType.OTHER,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Message, contentDescription = null)
+                },
                 trailingIcon = {
                     IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }, enabled = enabled) {
                         Icon(
@@ -438,6 +464,9 @@ private fun MessengerSection(
                 .focusRequester(focusRequester),
             singleLine = true,
             enabled = enabled,
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.AlternateEmail, contentDescription = null)
+            },
             keyboardOptions = KeyboardOptions.Default.copy(
                 imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
             ),
@@ -467,6 +496,9 @@ private fun NotesSection(
             .focusRequester(focusRequester),
         minLines = 3,
         enabled = enabled,
+        leadingIcon = {
+            Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+        },
         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = {
             onSubmit?.invoke()

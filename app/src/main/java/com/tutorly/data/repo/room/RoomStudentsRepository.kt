@@ -48,16 +48,21 @@ class RoomStudentsRepository @Inject constructor(
         val hasDebtFlow = paymentDao.observeHasDebt(studentId, PaymentStatus.outstandingStatuses)
         val lessonsFlow = lessonDao.observeByStudent(studentId)
         val recentLessonsFlow = lessonDao.observeRecentWithSubject(studentId, recentLessonsLimit)
+        val prepaymentFlow = combine(
+            paymentDao.observePrepaymentDeposits(studentId, PaymentStatus.PAID),
+            paymentDao.observePrepaymentAllocations(studentId, PaymentStatus.PAID, PREPAYMENT_METHOD)
+        ) { deposits, allocations -> deposits - allocations }
 
         return combine(
             studentFlow,
             hasDebtFlow,
             lessonsFlow,
-            recentLessonsFlow
-        ) { student, hasDebt, lessons, recentLessons ->
+            recentLessonsFlow,
+            prepaymentFlow
+        ) { student, hasDebt, lessons, recentLessons, prepaymentCents ->
             student ?: return@combine null
 
-            val metrics = buildMetrics(lessons)
+            val metrics = buildMetrics(lessons, prepaymentCents)
             val rate = recentLessons.firstOrNull()?.lesson?.let(::buildRate)
             val recentSubject = recentLessons.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
             val primarySubject = student.subject?.takeIf { it.isNotBlank() }?.trim()
@@ -97,7 +102,10 @@ class RoomStudentsRepository @Inject constructor(
         paymentDao.observeHasDebt(studentId, PaymentStatus.outstandingStatuses)
 }
 
-private fun buildMetrics(lessons: List<com.tutorly.models.Lesson>): StudentProfileMetrics {
+private fun buildMetrics(
+    lessons: List<com.tutorly.models.Lesson>,
+    prepaymentCents: Long
+): StudentProfileMetrics {
     if (lessons.isEmpty()) {
         return StudentProfileMetrics(
             totalLessons = 0,
@@ -105,7 +113,8 @@ private fun buildMetrics(lessons: List<com.tutorly.models.Lesson>): StudentProfi
             debtLessons = 0,
             totalPaidCents = 0,
             averagePriceCents = null,
-            outstandingCents = 0
+            outstandingCents = 0,
+            prepaymentCents = prepaymentCents
         )
     }
 
@@ -132,7 +141,8 @@ private fun buildMetrics(lessons: List<com.tutorly.models.Lesson>): StudentProfi
         debtLessons = debt,
         totalPaidCents = totalPaid,
         averagePriceCents = averagePrice?.toInt(),
-        outstandingCents = outstandingCents
+        outstandingCents = outstandingCents,
+        prepaymentCents = prepaymentCents
     )
 }
 

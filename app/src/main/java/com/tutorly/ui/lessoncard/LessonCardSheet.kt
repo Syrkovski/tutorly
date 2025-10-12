@@ -71,6 +71,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -175,104 +176,108 @@ internal fun LessonCardSheet(
             scope.launch { sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
         },
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = Color.Transparent,
+        contentColor = Color.Unspecified,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    if (state.isSaving) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        TutorlyBottomSheetContainer {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                if (state.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        if (state.isSaving) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
 
-                    LessonHeader(
-                        name = state.studentName,
-                        grade = state.studentGrade,
-                        subject = state.subjectName,
-                        onClick = onStudentClick
-                    )
+                        LessonHeader(
+                            name = state.studentName,
+                            grade = state.studentGrade,
+                            subject = state.subjectName,
+                            onClick = onStudentClick
+                        )
 
-                    DateRow(
-                        dateText = formattedDate,
-                        onClick = onDateClick
-                    )
+                        DateRow(
+                            dateText = formattedDate,
+                            onClick = onDateClick
+                        )
 
-                    TimeDurationRow(
-                        timeLabel = stringResource(id = R.string.lesson_details_time_label),
-                        timeText = state.time.format(timeFormatter),
-                        durationLabel = stringResource(id = R.string.lesson_details_duration_label),
-                        durationText = stringResource(id = R.string.lesson_card_duration_value, state.durationMinutes),
-                        onTimeClick = onTimeClick,
-                        onDurationClick = onDurationClick
-                    )
+                        TimeDurationRow(
+                            timeLabel = stringResource(id = R.string.lesson_details_time_label),
+                            timeText = state.time.format(timeFormatter),
+                            durationLabel = stringResource(id = R.string.lesson_details_duration_label),
+                            durationText = stringResource(id = R.string.lesson_card_duration_value, state.durationMinutes),
+                            onTimeClick = onTimeClick,
+                            onDurationClick = onDurationClick
+                        )
 
-                    PriceRow(
-                        price = priceText,
-                        statusLabel = stringResource(id = statusDisplay.labelRes),
-                        statusSymbol = statusDisplay.symbol,
-                        startDateTime = startDateTime,
-                        statusMenuExpanded = statusMenuExpanded,
-                        onPriceClick = onPriceClick,
-                        onStatusClick = onStatusClick,
-                        onStatusDismiss = { statusMenuExpanded = false },
-                        onStatusSelect = onStatusSelect,
-                        isStatusBusy = state.isPaymentActionRunning
-                    )
+                        PriceRow(
+                            price = priceText,
+                            statusLabel = stringResource(id = statusDisplay.labelRes),
+                            statusSymbol = statusDisplay.symbol,
+                            startDateTime = startDateTime,
+                            statusMenuExpanded = statusMenuExpanded,
+                            onPriceClick = onPriceClick,
+                            onStatusClick = onStatusClick,
+                            onStatusDismiss = { statusMenuExpanded = false },
+                            onStatusSelect = onStatusSelect,
+                            isStatusBusy = state.isPaymentActionRunning
+                        )
 
-                    NoteRow(
-                        note = state.note,
-                        onClick = onNoteClick
-                    )
+                        NoteRow(
+                            note = state.note,
+                            onClick = onNoteClick
+                        )
 
-                    if (state.lessonId != null) {
-                        OutlinedButton(
-                            onClick = { showDeleteDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !state.isSaving && !state.isDeleting && !state.isLoading,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                        ) {
-                            if (state.isDeleting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            } else {
-                                Text(text = stringResource(id = R.string.lesson_card_delete))
+                        if (state.lessonId != null) {
+                            OutlinedButton(
+                                onClick = { showDeleteDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !state.isSaving && !state.isDeleting && !state.isLoading,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                            ) {
+                                if (state.isDeleting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                } else {
+                                    Text(text = stringResource(id = R.string.lesson_card_delete))
+                                }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
-            }
 
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp)
-            )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                )
+            }
         }
     }
 

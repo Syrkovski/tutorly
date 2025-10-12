@@ -50,8 +50,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Schedule
 import com.tutorly.R
@@ -69,6 +73,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import java.text.NumberFormat
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -97,29 +102,32 @@ fun LessonCreationSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = null
+        containerColor = Color.Transparent,
+        contentColor = Color.Unspecified,
+        scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = minHeight)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SheetHeader(onDismiss)
-            StudentSection(
-                state = state,
-                onQueryChange = onStudentQueryChange,
-                onStudentSelect = onStudentSelect,
-                onAddStudent = onAddStudent
-            )
-            SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
-            TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
-            DurationPriceSection(state = state, onDurationChange = onDurationChange, onPriceChange = onPriceChange)
-            NoteSection(state = state, onNoteChange = onNoteChange)
-            ActionButtons(state = state, onSubmit = onSubmit)
+        TutorlyBottomSheetContainer(dragHandle = null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = minHeight)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SheetHeader(onDismiss)
+                StudentSection(
+                    state = state,
+                    onQueryChange = onStudentQueryChange,
+                    onStudentSelect = onStudentSelect,
+                    onAddStudent = onAddStudent
+                )
+                SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
+                TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
+                DurationPriceSection(state = state, onDurationChange = onDurationChange, onPriceChange = onPriceChange)
+                NoteSection(state = state, onNoteChange = onNoteChange)
+                ActionButtons(state = state, onSubmit = onSubmit)
+            }
         }
     }
 
@@ -175,6 +183,9 @@ private fun StudentSection(
                     .onGloballyPositioned { textFieldSize = it.size }
                     .onFocusChanged { focusState -> expanded = focusState.isFocused },
                 singleLine = true,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+                },
                 trailingIcon = {
                     IconButton(onClick = { expanded = !expanded }) {
                         Icon(
@@ -384,6 +395,9 @@ private fun DurationPriceSection(
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_duration_custom_label)) },
                 suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Schedule, contentDescription = null)
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 isError = state.errors.containsKey(LessonCreationField.DURATION)
@@ -429,6 +443,9 @@ private fun DurationPriceSection(
                     onPriceChange((digits.toIntOrNull() ?: 0) * 100)
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 isError = state.errors.containsKey(LessonCreationField.PRICE)
@@ -477,7 +494,10 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
         label = { Text(text = stringResource(id = R.string.lesson_create_note_label)) },
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 80.dp)
+            .heightIn(min = 80.dp),
+        leadingIcon = {
+            Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+        }
     )
 }
 

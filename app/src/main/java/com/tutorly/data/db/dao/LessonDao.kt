@@ -69,6 +69,9 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
     fun observeById(id: Long): Flow<LessonWithStudent?>
 
+    @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt")
+    suspend fun listByStudentAscending(studentId: Long): List<Lesson>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
 
