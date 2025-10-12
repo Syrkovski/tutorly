@@ -160,6 +160,8 @@ class CalendarViewModel @Inject constructor(
 
     fun setMode(newMode: CalendarMode) {
         if (mode.value == newMode) return
+        val today = currentDateTime.value.toLocalDate()
+        anchor.value = today
         mode.value = newMode
     }
 }

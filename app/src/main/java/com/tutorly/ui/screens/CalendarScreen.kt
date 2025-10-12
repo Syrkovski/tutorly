@@ -313,7 +313,6 @@ fun CalendarScreen(
                     )
                     CalendarMode.MONTH -> MonthCalendar(
                         anchor = currentDate,
-                        lessonsByDate = uiState.lessonsByDate,
                         currentDateTime = uiState.currentDateTime,
                         onDaySelected = { selected ->
                             direction = when {
@@ -727,7 +726,6 @@ private fun computeTimelineBounds(lessons: List<CalendarLesson>): Pair<Int, Int>
 @Composable
 private fun MonthCalendar(
     anchor: LocalDate,
-    lessonsByDate: Map<LocalDate, List<CalendarLesson>>,
     currentDateTime: ZonedDateTime,
     onDaySelected: (LocalDate) -> Unit
 ) {
@@ -798,12 +796,10 @@ private fun MonthCalendar(
                 userScrollEnabled = false
             ) {
                 items(days) { date ->
-                    val lessons = lessonsByDate[date].orEmpty()
                     MonthDayCell(
                         date = date,
                         inCurrentMonth = date.month == month.month,
                         isToday = date == today,
-                        lessons = lessons,
                         onClick = {
                             if (date.month == month.month) {
                                 onDaySelected(date)
@@ -824,7 +820,6 @@ private fun MonthDayCell(
     date: LocalDate,
     inCurrentMonth: Boolean,
     isToday: Boolean,
-    lessons: List<CalendarLesson>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -832,7 +827,6 @@ private fun MonthDayCell(
     val containerColor = when {
         !enabled -> Color.Transparent
         isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-        lessons.isNotEmpty() -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         else -> Color.Transparent
     }
     val border = if (isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
@@ -845,7 +839,6 @@ private fun MonthDayCell(
         isWeekend(date.dayOfWeek) -> NowRed
         else -> contentColor
     }
-    val sortedLessons = remember(lessons) { lessons.sortedBy { it.start } }
 
     Surface(
         color = containerColor,
@@ -871,21 +864,6 @@ private fun MonthDayCell(
                     color = dayNumberColor,
                     enabled = enabled
                 )
-            }
-            if (sortedLessons.isNotEmpty()) {
-                Spacer(Modifier.height(6.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    sortedLessons.forEach { lesson ->
-                        MonthLessonEntry(
-                            lesson = lesson,
-                            enabled = enabled,
-                            contentColor = contentColor
-                        )
-                    }
-                }
             }
         }
     }
@@ -918,34 +896,6 @@ private fun DayNumberBadge(
             text = day.toString(),
             style = MaterialTheme.typography.bodyMedium,
             color = textColor
-        )
-    }
-}
-
-@Composable
-private fun MonthLessonEntry(
-    lesson: CalendarLesson,
-    enabled: Boolean,
-    contentColor: Color
-) {
-    val background = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.18f) }
-        ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    val textColor = if (enabled) contentColor else contentColor.copy(alpha = 0.4f)
-
-    Surface(
-        color = background,
-        shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Text(
-            text = lesson.compactTitle(),
-            style = MaterialTheme.typography.labelSmall,
-            color = textColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
         )
     }
 }
