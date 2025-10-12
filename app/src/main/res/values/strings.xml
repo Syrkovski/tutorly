@@ -17,7 +17,7 @@
     <string name="student_editor_title">Ученик</string>
     <string name="student_editor_edit_title">Редактировать ученика</string>
     <string name="student_editor_close">Закрыть</string>
-    <string name="student_editor_save">Сохранить ученика</string>
+    <string name="student_editor_save">Сохранить</string>
     <string name="student_editor_name">Имя*</string>
     <string name="student_editor_name_required">Имя обязательно</string>
     <string name="student_editor_phone">Телефон</string>
@@ -54,7 +54,7 @@
     <string name="student_prepayment_amount_label">Сумма</string>
     <string name="student_prepayment_amount_error">Введите сумму больше нуля</string>
     <string name="student_prepayment_note_label">Комментарий (необязательно)</string>
-    <string name="student_prepayment_save">Сохранить предоплату</string>
+    <string name="student_prepayment_save">Сохранить</string>
     <string name="student_prepayment_error">Не удалось сохранить предоплату</string>
     <string name="student_prepayment_success">Предоплата %1$s ₽ сохранена</string>
     <string name="student_details_title_placeholder">Ученик</string>
