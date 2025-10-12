@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -32,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,7 @@ import java.time.ZoneId
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
@@ -341,6 +345,26 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
     )
 }
 
+private fun CalendarLesson.compactTitle(): String {
+    val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
+    val gradeNumber = studentGrade?.let { grade ->
+        Regex("\\d+").find(grade)?.value
+    }
+    val trailing = when {
+        subject != null && gradeNumber != null -> "$subject $gradeNumber"
+        subject != null -> subject
+        gradeNumber != null -> gradeNumber
+        else -> null
+    }
+    return buildString {
+        append(studentName)
+        if (!trailing.isNullOrBlank()) {
+            append('•')
+            append(trailing)
+        }
+    }
+}
+
 
 /* ----------------------------- HEADER ----------------------------------- */
 
@@ -614,24 +638,11 @@ private fun LessonBlock(
     val top = minuteDp * (startMin - baseMin)
     val height = minuteDp * durationMinutes.toInt()
 
-    val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
-    val grade = lesson.studentGrade?.takeIf { it.isNotBlank() }?.trim()
-    val firstLine = remember(lesson.studentName, subject, grade) {
-        val gradeNumber = grade?.let { Regex("\\d+").find(it)?.value }
-        val trailing = when {
-            subject != null && gradeNumber != null -> "$subject $gradeNumber"
-            subject != null -> subject
-            gradeNumber != null -> gradeNumber
-            else -> null
-        }
-        buildString {
-            append(lesson.studentName)
-            if (!trailing.isNullOrBlank()) {
-                append('•')
-                append(trailing)
-            }
-        }
-    }
+    val firstLine = remember(
+        lesson.studentName,
+        lesson.subjectName,
+        lesson.studentGrade
+    ) { lesson.compactTitle() }
     val statusInfo = lesson.statusPresentation(now)
     val containerColor = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.12f) }
         ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -722,41 +733,87 @@ private fun MonthCalendar(
 ) {
     val month = remember(anchor) { YearMonth.from(anchor) }
     val firstDay = remember(month) { month.atDay(1) }
-    val totalCells = remember { 6 * 6 }
-    val days = remember(firstDay, totalCells) {
-        generateSequence(firstDay) { it.plusDays(1) }
+    val firstVisibleDay = remember(firstDay) {
+        firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    }
+    val totalCells = remember { 6 * 7 }
+    val days = remember(firstVisibleDay, totalCells) {
+        generateSequence(firstVisibleDay) { it.plusDays(1) }
             .take(totalCells)
             .toList()
     }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val cellHeight = remember(maxHeight) { maxHeight / 6 }
+        val headerHeight = 36.dp
+        val gridHeight = remember(maxHeight) { (maxHeight - headerHeight).coerceAtLeast(0.dp) }
+        val cellHeight = remember(gridHeight) { if (gridHeight == 0.dp) 0.dp else gridHeight / 6 }
+        val weekdays = remember {
+            listOf(
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY,
+                DayOfWeek.SATURDAY,
+                DayOfWeek.SUNDAY
+            )
+        }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(6),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(0.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
-            userScrollEnabled = false
-        ) {
-            items(days) { date ->
-                val lessons = lessonsByDate[date].orEmpty()
-                MonthDayCell(
-                    date = date,
-                    inCurrentMonth = date.month == month.month,
-                    isToday = date == today,
-                    lessons = lessons,
-                    onClick = {
-                        if (date.month == month.month) {
-                            onDaySelected(date)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(cellHeight)
-                )
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(headerHeight),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                weekdays.forEach { dayOfWeek ->
+                    val label = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
+                        .replaceFirstChar { it.titlecase(Locale("ru")) }
+                    val labelColor = when {
+                        isWeekend(dayOfWeek) -> NowRed
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    }
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center,
+                            color = labelColor
+                        )
+                    }
+                }
+            }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(7),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(gridHeight),
+                contentPadding = PaddingValues(0.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                userScrollEnabled = false
+            ) {
+                items(days) { date ->
+                    val lessons = lessonsByDate[date].orEmpty()
+                    MonthDayCell(
+                        date = date,
+                        inCurrentMonth = date.month == month.month,
+                        isToday = date == today,
+                        lessons = lessons,
+                        onClick = {
+                            if (date.month == month.month) {
+                                onDaySelected(date)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(cellHeight)
+                    )
+                }
             }
         }
     }
@@ -783,8 +840,12 @@ private fun MonthDayCell(
         !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
         else -> MaterialTheme.colorScheme.onSurface
     }
-    val dayOfWeekLabel = date.dayOfWeek.getDisplayName(TextStyle.NARROW_STANDALONE, Locale("ru"))
-        .uppercase(Locale("ru"))
+    val dayNumberColor = when {
+        !enabled -> contentColor.copy(alpha = 0.3f)
+        isWeekend(date.dayOfWeek) -> NowRed
+        else -> contentColor
+    }
+    val sortedLessons = remember(lessons) { lessons.sortedBy { it.start } }
 
     Surface(
         color = containerColor,
@@ -798,46 +859,101 @@ private fun MonthDayCell(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.Top
         ) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopEnd
             ) {
-                Text(
-                    text = dayOfWeekLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = if (enabled) 0.6f else 0.3f)
-                )
-                Text(
-                    text = date.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor
+                DayNumberBadge(
+                    day = date.dayOfMonth,
+                    isToday = isToday,
+                    color = dayNumberColor,
+                    enabled = enabled
                 )
             }
-            if (lessons.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    lessons.take(2).forEach { lesson ->
-                        Text(
-                            text = lesson.studentName,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    val remaining = lessons.size - min(lessons.size, 2)
-                    if (remaining > 0) {
-                        Text(
-                            text = "+$remaining",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor.copy(alpha = 0.8f)
+            if (sortedLessons.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    sortedLessons.forEach { lesson ->
+                        MonthLessonEntry(
+                            lesson = lesson,
+                            enabled = enabled,
+                            contentColor = contentColor
                         )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DayNumberBadge(
+    day: Int,
+    isToday: Boolean,
+    color: Color,
+    enabled: Boolean
+) {
+    val badgeColor = when {
+        !enabled -> Color.Transparent
+        isToday -> MaterialTheme.colorScheme.primary
+        else -> Color.Transparent
+    }
+    val textColor = when {
+        isToday && enabled -> MaterialTheme.colorScheme.onPrimary
+        else -> color
+    }
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(badgeColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = day.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor
+        )
+    }
+}
+
+@Composable
+private fun MonthLessonEntry(
+    lesson: CalendarLesson,
+    enabled: Boolean,
+    contentColor: Color
+) {
+    val background = remember(lesson.subjectColorArgb) {
+        lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.18f) }
+            ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    }
+    val textColor = if (enabled) contentColor else contentColor.copy(alpha = 0.4f)
+
+    Surface(
+        color = background,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
+    ) {
+        Text(
+            text = lesson.compactTitle(),
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+        )
+    }
+}
+
+private fun isWeekend(dayOfWeek: DayOfWeek): Boolean {
+    return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY
 }
 
 /* --------------------------- DAY/WEEK STRIP ------------------------------ */
