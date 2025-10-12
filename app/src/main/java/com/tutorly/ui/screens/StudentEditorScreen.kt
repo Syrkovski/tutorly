@@ -1,48 +1,28 @@
 package com.tutorly.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
@@ -205,152 +185,85 @@ fun StudentEditorDialog(
     vm: StudentEditorVM = hiltViewModel(),
 ) {
     val formState = vm.formState
-    Dialog(
-        onDismissRequest = {
-            if (!formState.isSaving) {
-                onDismiss()
-            }
-        },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false
-        )
-    ) {
-        StudentEditorScreen(
-            onClose = onDismiss,
-            onSaved = onSaved,
-            vm = vm
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun StudentEditorScreen(
-    onClose: () -> Unit,
-    onSaved: (Long) -> Unit,
-    vm: StudentEditorVM = hiltViewModel(),
-) {
-    val snackbarHostState = remember { SnackbarHostState() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val isEditing = vm.formState.studentId != null
 
-    val attemptSave = {
-        if (!vm.formState.isSaving) {
+    fun hideSheetAndThen(action: () -> Unit) {
+        if (sheetState.isVisible) {
+            coroutineScope.launch {
+                sheetState.hide()
+            }.invokeOnCompletion { action() }
+        } else {
+            action()
+        }
+    }
+
+    BackHandler(enabled = !formState.isSaving) {
+        hideSheetAndThen(onDismiss)
+    }
+
+    val attemptSave: () -> Unit = {
+        if (!formState.isSaving) {
             vm.save(
-                onSaved = onSaved,
+                onSaved = { id ->
+                    hideSheetAndThen { onSaved(id) }
+                },
                 onError = { message ->
-                    coroutineScope.launch {
-                        val text = if (message.isNotBlank()) {
-                            message
-                        } else {
-                            context.getString(R.string.student_editor_save_error)
-                        }
-                        snackbarHostState.showSnackbar(text)
+                    val text = if (message.isNotBlank()) {
+                        message
+                    } else {
+                        context.getString(R.string.student_editor_save_error)
                     }
+                    coroutineScope.launch { snackbarHostState.showSnackbar(text) }
                 }
             )
         }
     }
 
-    BackHandler {
-        if (!vm.formState.isSaving) {
-            onClose()
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(fraction = 0.9f)
-                .widthIn(max = 520.dp),
-            shape = MaterialTheme.shapes.extraLarge
-        ) {
-            Scaffold(
-                containerColor = MaterialTheme.colorScheme.surface,
-                snackbarHost = {
-                    SnackbarHost(
-                        hostState = snackbarHostState,
-                        modifier = Modifier
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
-                    )
-                }
-            ) { inner ->
-                val scrollState = rememberScrollState()
-                Column(
-                    modifier = Modifier
-                        .padding(inner)
-                        .padding(horizontal = 24.dp, vertical = 20.dp)
-                        .verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.student_editor_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f, fill = true)
-                        )
-                        IconButton(
-                            onClick = onClose,
-                            enabled = !vm.formState.isSaving
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(id = R.string.student_editor_close)
-                            )
-                        }
-                    }
-
-                    StudentEditorForm(
-                        state = vm.formState,
-                        onNameChange = vm::onNameChange,
-                        onPhoneChange = vm::onPhoneChange,
-                        onMessengerChange = vm::onMessengerChange,
-                        onRateChange = vm::onRateChange,
-                        onSubjectChange = vm::onSubjectChange,
-                        onGradeChange = vm::onGradeChange,
-                        onNoteChange = vm::onNoteChange,
-                        onArchivedChange = vm::onArchivedChange,
-                        onActiveChange = vm::onActiveChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        editTarget = vm.editTarget,
-                        initialFocus = vm.editTarget,
-                        enableScrolling = false,
-                        enabled = !vm.formState.isSaving,
-                        onSubmit = attemptSave
-                    )
-
-                    Button(
-                        onClick = attemptSave,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
-                    ) {
-                        if (vm.formState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(
-                                    id = if (isEditing) R.string.student_editor_save else R.string.add_student
-                                )
-                            )
-                        }
-                    }
-                }
+    ModalBottomSheet(
+        onDismissRequest = {
+            if (!formState.isSaving) {
+                hideSheetAndThen(onDismiss)
             }
+        },
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                )
+            }
+        ) { innerPadding ->
+            StudentEditorSheet(
+                state = formState,
+                onNameChange = vm::onNameChange,
+                onPhoneChange = vm::onPhoneChange,
+                onMessengerChange = vm::onMessengerChange,
+                onRateChange = vm::onRateChange,
+                onSubjectChange = vm::onSubjectChange,
+                onGradeChange = vm::onGradeChange,
+                onNoteChange = vm::onNoteChange,
+                onArchivedChange = vm::onArchivedChange,
+                onActiveChange = vm::onActiveChange,
+                onCancel = {
+                    if (!formState.isSaving) {
+                        hideSheetAndThen(onDismiss)
+                    }
+                },
+                onSave = attemptSave,
+                modifier = Modifier.padding(innerPadding),
+                editTarget = vm.editTarget,
+                initialFocus = vm.editTarget,
+            )
         }
     }
 }

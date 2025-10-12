@@ -231,7 +231,7 @@ fun StudentsScreen(
 }
 
 @Composable
-private fun StudentEditorSheet(
+fun StudentEditorSheet(
     state: StudentEditorFormState,
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
@@ -244,10 +244,13 @@ private fun StudentEditorSheet(
     onActiveChange: (Boolean) -> Unit,
     onCancel: () -> Unit,
     onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+    editTarget: StudentEditTarget? = null,
+    initialFocus: StudentEditTarget? = StudentEditTarget.PROFILE,
 ) {
     val isEditing = state.studentId != null
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .imePadding()
@@ -287,7 +290,8 @@ private fun StudentEditorSheet(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth(),
-            initialFocus = StudentEditTarget.PROFILE,
+            editTarget = editTarget,
+            initialFocus = initialFocus,
             enabled = !state.isSaving,
             onSubmit = onSave
         )
