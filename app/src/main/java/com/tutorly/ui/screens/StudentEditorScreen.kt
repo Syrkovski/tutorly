@@ -2,23 +2,27 @@ package com.tutorly.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,9 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -217,76 +224,100 @@ fun StudentEditorScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = stringResource(id = R.string.student_editor_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onClose, enabled = !vm.formState.isSaving) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(id = R.string.student_editor_close)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = attemptSave,
-                        enabled = !vm.formState.isSaving
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = stringResource(id = R.string.student_editor_save)
-                        )
-                    }
-                }
-            )
+    Dialog(
+        onDismissRequest = {
+            if (!vm.formState.isSaving) {
+                onClose()
+            }
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { inner ->
-        Column(
+        properties = DialogProperties(
+            dismissOnBackPress = !vm.formState.isSaving,
+            dismissOnClickOutside = !vm.formState.isSaving,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .widthIn(max = 520.dp),
+            shape = MaterialTheme.shapes.extraLarge
         ) {
-            StudentEditorForm(
-                state = vm.formState,
-                onNameChange = vm::onNameChange,
-                onPhoneChange = vm::onPhoneChange,
-                onMessengerChange = vm::onMessengerChange,
-                onRateChange = vm::onRateChange,
-                onSubjectChange = vm::onSubjectChange,
-                onGradeChange = vm::onGradeChange,
-                onNoteChange = vm::onNoteChange,
-                onArchivedChange = vm::onArchivedChange,
-                onActiveChange = vm::onActiveChange,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .fillMaxWidth(),
-                editTarget = vm.editTarget,
-                initialFocus = vm.editTarget,
-                enabled = !vm.formState.isSaving,
-                onSubmit = attemptSave
-            )
-
-            Button(
-                onClick = attemptSave,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
-            ) {
-                if (vm.formState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
+            Scaffold(
+                modifier = Modifier.wrapContentHeight(),
+                containerColor = MaterialTheme.colorScheme.surface,
+                snackbarHost = {
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
                     )
-                } else {
-                    Text(
-                        text = stringResource(
-                            id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                }
+            ) { inner ->
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .padding(inner)
+                        .padding(horizontal = 24.dp, vertical = 20.dp)
+                        .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.student_editor_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f, fill = true)
                         )
+                        IconButton(
+                            onClick = onClose,
+                            enabled = !vm.formState.isSaving
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(id = R.string.student_editor_close)
+                            )
+                        }
+                    }
+
+                    StudentEditorForm(
+                        state = vm.formState,
+                        onNameChange = vm::onNameChange,
+                        onPhoneChange = vm::onPhoneChange,
+                        onMessengerChange = vm::onMessengerChange,
+                        onRateChange = vm::onRateChange,
+                        onSubjectChange = vm::onSubjectChange,
+                        onGradeChange = vm::onGradeChange,
+                        onNoteChange = vm::onNoteChange,
+                        onArchivedChange = vm::onArchivedChange,
+                        onActiveChange = vm::onActiveChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        editTarget = vm.editTarget,
+                        initialFocus = vm.editTarget,
+                        enabled = !vm.formState.isSaving,
+                        onSubmit = attemptSave
                     )
+
+                    Button(
+                        onClick = attemptSave,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
+                    ) {
+                        if (vm.formState.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(
+                                    id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }
