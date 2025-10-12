@@ -61,7 +61,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -206,7 +205,6 @@ fun StudentsScreen(
                 }
             },
             sheetState = editorSheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
             containerColor = Color.Transparent,
             contentColor = Color.Unspecified,
             scrimColor = Color.Black.copy(alpha = 0.32f),

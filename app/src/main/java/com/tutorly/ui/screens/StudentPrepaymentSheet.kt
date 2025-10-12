@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -107,7 +106,6 @@ fun StudentPrepaymentSheet(
             }
         },
         sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = Color.Transparent,
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f),
