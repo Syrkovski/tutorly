@@ -24,7 +24,8 @@ data class StudentProfileMetrics(
     val debtLessons: Int,
     val totalPaidCents: Long,
     val averagePriceCents: Int?,
-    val outstandingCents: Long
+    val outstandingCents: Long,
+    val prepaymentCents: Long
 )
 
 data class StudentProfileLesson(

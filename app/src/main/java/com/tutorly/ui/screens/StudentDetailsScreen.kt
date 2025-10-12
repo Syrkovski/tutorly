@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
@@ -524,6 +525,7 @@ private fun StudentProfileMetricsSection(
         numberFormatter.format(cents / 100.0)
     } ?: stringResource(id = R.string.students_rate_placeholder)
     val earnedValue = numberFormatter.format(profile.metrics.totalPaidCents / 100.0)
+    val prepaymentValue = numberFormatter.format(profile.metrics.prepaymentCents / 100.0)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -537,25 +539,37 @@ private fun StudentProfileMetricsSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ProfileMetricTile(
-                icon = Icons.Outlined.CalendarToday,
-                value = lessonsCount,
-                label = stringResource(id = R.string.student_profile_metrics_lessons_label),
-                modifier = Modifier.weight(1f)
-            )
-            ProfileMetricTile(
-                icon = Icons.Outlined.Schedule,
-                value = rateValue,
-                label = stringResource(id = R.string.student_profile_metrics_rate_label),
+            Column(
                 modifier = Modifier.weight(1f),
-                onClick = onRateClick
-            )
-            ProfileMetricTile(
-                icon = Icons.Outlined.CurrencyRuble,
-                value = earnedValue,
-                label = stringResource(id = R.string.student_profile_metrics_earned_label),
-                modifier = Modifier.weight(1f)
-            )
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileMetricTile(
+                    icon = Icons.Outlined.CalendarToday,
+                    value = lessonsCount,
+                    label = stringResource(id = R.string.student_profile_metrics_lessons_label)
+                )
+                ProfileMetricTile(
+                    icon = Icons.Outlined.Schedule,
+                    value = rateValue,
+                    label = stringResource(id = R.string.student_profile_metrics_rate_label),
+                    onClick = onRateClick
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileMetricTile(
+                    icon = Icons.Outlined.CurrencyRuble,
+                    value = earnedValue,
+                    label = stringResource(id = R.string.student_profile_metrics_earned_label)
+                )
+                ProfileMetricTile(
+                    icon = Icons.Outlined.Savings,
+                    value = prepaymentValue,
+                    label = stringResource(id = R.string.student_profile_metrics_prepayment_label)
+                )
+            }
         }
     }
 }

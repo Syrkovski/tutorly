@@ -45,6 +45,18 @@ interface PaymentDao {
         """
         SELECT COALESCE(SUM(amountCents), 0)
         FROM payments
+        WHERE studentId = :studentId AND lessonId IS NULL AND status = :status
+        """
+    )
+    fun observePrepaymentTotal(
+        studentId: Long,
+        status: PaymentStatus
+    ): Flow<Long>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
         WHERE at >= :from AND at < :to AND status = :status
         """
     )
