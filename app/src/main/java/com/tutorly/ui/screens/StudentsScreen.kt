@@ -26,7 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.StickyNote2
@@ -501,7 +501,7 @@ private fun StudentCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.AttachMoney,
+                            imageVector = Icons.Outlined.CurrencyRuble,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
