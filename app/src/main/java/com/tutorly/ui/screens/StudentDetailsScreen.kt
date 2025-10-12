@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -238,8 +237,8 @@ private fun StudentProfileContent(
     LazyColumn(
         state = listState,
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
             StudentProfileHeader(
@@ -249,7 +248,7 @@ private fun StudentProfileContent(
         }
 
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 ProfileInfoCard(
                     icon = Icons.Outlined.Phone,
                     label = stringResource(id = R.string.student_details_phone_label),
@@ -290,40 +289,39 @@ private fun StudentProfileContent(
         }
 
         item {
-            Text(
-                text = stringResource(id = R.string.student_details_history_title),
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-
-        if (groupedLessons.isEmpty()) {
-            item {
-                StudentProfileEmptyHistory(
-                    onAddLesson = { onAddLesson(profile.student.id) }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    text = stringResource(id = R.string.student_details_history_title),
+                    style = MaterialTheme.typography.titleMedium
                 )
-            }
-        } else {
-            groupedLessons.forEach { (month, lessons) ->
-                item(key = month) {
-                    Text(
-                        text = monthFormatter.format(month),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                if (groupedLessons.isEmpty()) {
+                    StudentProfileEmptyHistory(
+                        onAddLesson = { onAddLesson(profile.student.id) }
                     )
-                }
-                items(
-                    items = lessons,
-                    key = { it.id }
-                ) { lesson ->
-                    StudentProfileLessonCard(
-                        lesson = lesson,
-                        fallbackSubject = profile.subject,
-                        currencyFormatter = currencyFormatter,
-                        zoneId = zoneId,
-                        dateFormatter = dateFormatter,
-                        timeFormatter = timeFormatter,
-                        onClick = { onLessonClick(lesson.id) }
-                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        groupedLessons.forEach { (month, lessons) ->
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = monthFormatter.format(month),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                lessons.forEach { lesson ->
+                                    StudentProfileLessonCard(
+                                        lesson = lesson,
+                                        fallbackSubject = profile.subject,
+                                        currencyFormatter = currencyFormatter,
+                                        zoneId = zoneId,
+                                        dateFormatter = dateFormatter,
+                                        timeFormatter = timeFormatter,
+                                        onClick = { onLessonClick(lesson.id) }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -348,7 +346,7 @@ private fun StudentProfileHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -398,7 +396,7 @@ private fun ProfileInfoCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -454,7 +452,7 @@ private fun StudentProfileMetricsSection(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
             text = stringResource(id = R.string.student_profile_metrics_title),
@@ -502,20 +500,28 @@ private fun ProfileMetricTile(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 20.dp),
+                .padding(vertical = 16.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(imageVector = icon, contentDescription = null)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -535,7 +541,7 @@ private fun StudentProfileEmptyHistory(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 28.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -590,7 +596,7 @@ private fun StudentProfileLessonCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(

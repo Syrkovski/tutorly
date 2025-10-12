@@ -265,6 +265,7 @@ fun StudentEditorScreen(
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .fillMaxWidth(),
+                editTarget = vm.editTarget,
                 initialFocus = vm.editTarget,
                 enabled = !vm.formState.isSaving,
                 onSubmit = attemptSave
