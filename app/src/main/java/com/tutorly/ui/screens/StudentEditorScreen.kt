@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -28,6 +27,7 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -232,33 +232,36 @@ fun StudentEditorDialog(
         },
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Transparent,
+        contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            StudentEditorSheet(
-                state = formState,
-                onNameChange = vm::onNameChange,
-                onPhoneChange = vm::onPhoneChange,
-                onMessengerChange = vm::onMessengerChange,
-                onRateChange = vm::onRateChange,
-                onSubjectChange = vm::onSubjectChange,
-                onGradeChange = vm::onGradeChange,
-                onNoteChange = vm::onNoteChange,
-                onArchivedChange = vm::onArchivedChange,
-                onActiveChange = vm::onActiveChange,
-                onSave = attemptSave,
-                modifier = Modifier.fillMaxWidth(),
-                editTarget = vm.editTarget,
-                initialFocus = vm.editTarget,
-            )
+        TutorlyBottomSheetContainer {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                StudentEditorSheet(
+                    state = formState,
+                    onNameChange = vm::onNameChange,
+                    onPhoneChange = vm::onPhoneChange,
+                    onMessengerChange = vm::onMessengerChange,
+                    onRateChange = vm::onRateChange,
+                    onSubjectChange = vm::onSubjectChange,
+                    onGradeChange = vm::onGradeChange,
+                    onNoteChange = vm::onNoteChange,
+                    onArchivedChange = vm::onArchivedChange,
+                    onActiveChange = vm::onActiveChange,
+                    onSave = attemptSave,
+                    modifier = Modifier.fillMaxWidth(),
+                    editTarget = vm.editTarget,
+                    initialFocus = vm.editTarget,
+                )
 
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
-            )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                )
+            }
         }
     }
 }

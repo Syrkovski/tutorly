@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import java.text.NumberFormat
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -97,29 +98,33 @@ fun LessonCreationSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Transparent,
+        contentColor = Color.Unspecified,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
         dragHandle = null
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = minHeight)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SheetHeader(onDismiss)
-            StudentSection(
-                state = state,
-                onQueryChange = onStudentQueryChange,
-                onStudentSelect = onStudentSelect,
-                onAddStudent = onAddStudent
-            )
-            SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
-            TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
-            DurationPriceSection(state = state, onDurationChange = onDurationChange, onPriceChange = onPriceChange)
-            NoteSection(state = state, onNoteChange = onNoteChange)
-            ActionButtons(state = state, onSubmit = onSubmit)
+        TutorlyBottomSheetContainer {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = minHeight)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SheetHeader(onDismiss)
+                StudentSection(
+                    state = state,
+                    onQueryChange = onStudentQueryChange,
+                    onStudentSelect = onStudentSelect,
+                    onAddStudent = onAddStudent
+                )
+                SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
+                TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
+                DurationPriceSection(state = state, onDurationChange = onDurationChange, onPriceChange = onPriceChange)
+                NoteSection(state = state, onNoteChange = onNoteChange)
+                ActionButtons(state = state, onSubmit = onSubmit)
+            }
         }
     }
 

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,18 +108,20 @@ fun StudentPrepaymentSheet(
         },
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Transparent,
+        contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .heightIn(max = 480.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
+        TutorlyBottomSheetContainer {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
             Text(
                 text = stringResource(id = R.string.student_prepayment_title),
                 style = MaterialTheme.typography.titleLarge
@@ -177,6 +180,7 @@ fun StudentPrepaymentSheet(
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
             )
+            }
         }
     }
 }

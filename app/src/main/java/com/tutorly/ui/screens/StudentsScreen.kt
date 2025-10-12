@@ -52,6 +52,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +68,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,21 +206,26 @@ fun StudentsScreen(
                 }
             },
             sheetState = editorSheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+            containerColor = Color.Transparent,
+            contentColor = Color.Unspecified,
+            scrimColor = Color.Black.copy(alpha = 0.32f),
         ) {
-            StudentEditorSheet(
-                state = formState,
-                onNameChange = vm::onEditorNameChange,
-                onPhoneChange = vm::onEditorPhoneChange,
-                onMessengerChange = vm::onEditorMessengerChange,
-                onRateChange = vm::onEditorRateChange,
-                onSubjectChange = vm::onEditorSubjectChange,
-                onGradeChange = vm::onEditorGradeChange,
-                onNoteChange = vm::onEditorNoteChange,
-                onArchivedChange = vm::onEditorArchivedChange,
-                onActiveChange = vm::onEditorActiveChange,
-                onSave = handleSave
-            )
+            TutorlyBottomSheetContainer {
+                StudentEditorSheet(
+                    state = formState,
+                    onNameChange = vm::onEditorNameChange,
+                    onPhoneChange = vm::onEditorPhoneChange,
+                    onMessengerChange = vm::onEditorMessengerChange,
+                    onRateChange = vm::onEditorRateChange,
+                    onSubjectChange = vm::onEditorSubjectChange,
+                    onGradeChange = vm::onEditorGradeChange,
+                    onNoteChange = vm::onEditorNoteChange,
+                    onArchivedChange = vm::onEditorArchivedChange,
+                    onActiveChange = vm::onEditorActiveChange,
+                    onSave = handleSave
+                )
+            }
         }
     }
 }
