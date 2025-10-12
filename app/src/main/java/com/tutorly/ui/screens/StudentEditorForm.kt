@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,10 +80,10 @@ fun StudentEditorForm(
     LaunchedEffect(initialFocus, enabled) {
         if (enabled) {
             when (initialFocus) {
-                StudentEditTarget.PROFILE -> nameFocusRequester.requestFocus()
-                StudentEditTarget.PHONE -> phoneFocusRequester.requestFocus()
-                StudentEditTarget.MESSENGER -> messengerFocusRequester.requestFocus()
-                StudentEditTarget.NOTES -> noteFocusRequester.requestFocus()
+                StudentEditTarget.PROFILE -> nameFocusRequester.safeRequestFocus()
+                StudentEditTarget.PHONE -> phoneFocusRequester.safeRequestFocus()
+                StudentEditTarget.MESSENGER -> messengerFocusRequester.safeRequestFocus()
+                StudentEditTarget.NOTES -> noteFocusRequester.safeRequestFocus()
                 null -> Unit
             }
         }
@@ -450,6 +451,18 @@ private fun NotesSection(
         })
     )
 }
+
+private suspend fun FocusRequester.safeRequestFocus() {
+    if (!tryRequestFocus()) {
+        // When the dialog is first shown the focus target might not yet be attached.
+        // Wait a frame and retry to avoid crashing with "FocusRequester not initialized".
+        delay(16L)
+        tryRequestFocus()
+    }
+}
+
+private fun FocusRequester.tryRequestFocus(): Boolean =
+    runCatching { requestFocus() }.isSuccess
 
 @Composable
 private fun StatusSection(
