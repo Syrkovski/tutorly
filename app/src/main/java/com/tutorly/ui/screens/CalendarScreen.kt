@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,7 +62,6 @@ import java.time.ZoneId
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.time.temporal.TemporalAdjusters
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
@@ -724,52 +722,21 @@ private fun MonthCalendar(
 ) {
     val month = remember(anchor) { YearMonth.from(anchor) }
     val firstDay = remember(month) { month.atDay(1) }
-    val rangeStart = remember(firstDay) { firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
-    val totalCells = remember { 6 * 7 }
-    val days = remember(rangeStart, totalCells) {
-        generateSequence(rangeStart) { it.plusDays(1) }
+    val totalCells = remember { 6 * 6 }
+    val days = remember(firstDay, totalCells) {
+        generateSequence(firstDay) { it.plusDays(1) }
             .take(totalCells)
             .toList()
     }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
-    val weekDays = remember {
-        listOf(
-            DayOfWeek.MONDAY,
-            DayOfWeek.TUESDAY,
-            DayOfWeek.WEDNESDAY,
-            DayOfWeek.THURSDAY,
-            DayOfWeek.FRIDAY,
-            DayOfWeek.SATURDAY,
-            DayOfWeek.SUNDAY
-        )
-    }
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            weekDays.forEach { dayOfWeek ->
-                val label = dayOfWeek.getDisplayName(TextStyle.NARROW_STANDALONE, Locale("ru"))
-                    .uppercase(Locale("ru"))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-
         LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
+            columns = GridCells.Fixed(6),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(days) { date ->
                 val lessons = lessonsByDate[date].orEmpty()
@@ -778,7 +745,11 @@ private fun MonthCalendar(
                     inCurrentMonth = date.month == month.month,
                     isToday = date == today,
                     lessons = lessons,
-                    onClick = { onDaySelected(date) }
+                    onClick = {
+                        if (date.month == month.month) {
+                            onDaySelected(date)
+                        }
+                    }
                 )
             }
         }
@@ -793,17 +764,20 @@ private fun MonthDayCell(
     lessons: List<CalendarLesson>,
     onClick: () -> Unit
 ) {
+    val enabled = inCurrentMonth
     val containerColor = when {
+        !enabled -> Color.Transparent
         isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
         lessons.isNotEmpty() -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         else -> Color.Transparent
     }
     val border = if (isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
-    val contentColor = if (inCurrentMonth) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    val contentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+        else -> MaterialTheme.colorScheme.onSurface
     }
+    val dayOfWeekLabel = date.dayOfWeek.getDisplayName(TextStyle.NARROW_STANDALONE, Locale("ru"))
+        .uppercase(Locale("ru"))
 
     Surface(
         color = containerColor,
@@ -812,7 +786,7 @@ private fun MonthDayCell(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
     ) {
         Column(
             modifier = Modifier
@@ -820,11 +794,21 @@ private fun MonthDayCell(
                 .padding(8.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor
-            )
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = dayOfWeekLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = if (enabled) 0.6f else 0.3f)
+                )
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor
+                )
+            }
             if (lessons.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     lessons.take(2).forEach { lesson ->
