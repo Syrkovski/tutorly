@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -72,6 +73,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.theme.TutorlyCardDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -399,13 +401,12 @@ private fun DateRow(
     dateText: String,
     onClick: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Row(
             modifier = Modifier
@@ -472,11 +473,12 @@ private fun TimeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
+    Card(
+        onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier
@@ -590,13 +592,12 @@ private fun NoteRow(
     note: String?,
     onClick: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier

@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
@@ -321,7 +321,8 @@ private fun TodayStatsCard(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier
@@ -584,8 +585,8 @@ private fun LessonCard(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),

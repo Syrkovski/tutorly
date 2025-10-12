@@ -50,6 +50,7 @@ import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.theme.NowRed
+import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
@@ -660,6 +661,7 @@ private fun LessonBlock(
             colors = CardDefaults.cardColors(
                 containerColor = containerColor
             ),
+            elevation = TutorlyCardDefaults.elevation(),
             modifier = Modifier.fillMaxSize()
         ) {
             Column(

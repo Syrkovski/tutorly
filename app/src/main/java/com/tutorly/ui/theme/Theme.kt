@@ -61,9 +61,9 @@ private val LightColorScheme = lightColorScheme(
     onTertiary = OnTertiaryTeal,
     tertiaryContainer = TertiaryTealContainer,
     onTertiaryContainer = OnTertiaryTealContainer,
-    background = NeutralBackground,
+    background = SurfaceContainer,
     onBackground = NeutralOnBackground,
-    surface = NeutralBackground,
+    surface = SurfaceContainer,
     onSurface = NeutralOnBackground,
     surfaceTint = PrimaryBlue,
     surfaceVariant = NeutralSurfaceVariant,
@@ -111,8 +111,10 @@ fun TutorlyTheme(
 private val LightColors = lightColorScheme(
     primary = RoyalBlue,
     onPrimary = OnRoyal,
-    surface = Color(0xFFF9FAFB),
+    surface = SurfaceContainer,
     onSurface = Color(0xFF111827),
+    background = SurfaceContainer,
+    onBackground = Color(0xFF111827),
     secondary = Color(0xFF5B7CFA)
 )
 
