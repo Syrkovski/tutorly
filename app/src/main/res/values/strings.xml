@@ -39,6 +39,10 @@
     <string name="student_profile_metrics_title">Показатели</string>
     <string name="student_profile_metrics_average">Средняя ставка</string>
     <string name="student_profile_close">Закрыть профиль ученика</string>
+    <string name="student_profile_metrics_lessons_label">занятий</string>
+    <string name="student_profile_metrics_rate_label">₽/час</string>
+    <string name="student_profile_metrics_earned_label">₽ заработано</string>
+    <string name="student_profile_add_prepayment">Добавить предоплату</string>
     <string name="student_details_title_placeholder">Ученик</string>
     <string name="student_details_back">Назад</string>
     <string name="student_details_edit">Редактировать ученика</string>
