@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -60,11 +61,13 @@ fun StudentEditorForm(
     modifier: Modifier = Modifier,
     editTarget: StudentEditTarget? = null,
     initialFocus: StudentEditTarget? = null,
+    enableScrolling: Boolean = true,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
 ) {
     val nameFocusRequester = remember { FocusRequester() }
     val gradeFocusRequester = remember { FocusRequester() }
+    val rateFocusRequester = remember { FocusRequester() }
     val phoneFocusRequester = remember { FocusRequester() }
     val messengerFocusRequester = remember { FocusRequester() }
     val noteFocusRequester = remember { FocusRequester() }
@@ -79,18 +82,25 @@ fun StudentEditorForm(
     LaunchedEffect(initialFocus, enabled) {
         if (enabled) {
             when (initialFocus) {
-                StudentEditTarget.PROFILE -> nameFocusRequester.requestFocus()
-                StudentEditTarget.PHONE -> phoneFocusRequester.requestFocus()
-                StudentEditTarget.MESSENGER -> messengerFocusRequester.requestFocus()
-                StudentEditTarget.NOTES -> noteFocusRequester.requestFocus()
+                StudentEditTarget.PROFILE -> nameFocusRequester.safeRequestFocus()
+                StudentEditTarget.RATE -> rateFocusRequester.safeRequestFocus()
+                StudentEditTarget.PHONE -> phoneFocusRequester.safeRequestFocus()
+                StudentEditTarget.MESSENGER -> messengerFocusRequester.safeRequestFocus()
+                StudentEditTarget.NOTES -> noteFocusRequester.safeRequestFocus()
                 null -> Unit
             }
         }
     }
 
     val showFullForm = editTarget == null
+    val columnModifier = if (enableScrolling) {
+        modifier.verticalScroll(scrollState)
+    } else {
+        modifier
+    }
+
     Column(
-        modifier = modifier.verticalScroll(scrollState),
+        modifier = columnModifier,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (showFullForm || editTarget == StudentEditTarget.PROFILE) {
@@ -111,11 +121,14 @@ fun StudentEditorForm(
             )
         }
 
-        if (showFullForm) {
+        if (showFullForm || editTarget == StudentEditTarget.RATE) {
             RateSection(
                 rate = state.rate,
                 onRateChange = onRateChange,
-                enabled = enabled
+                enabled = enabled,
+                focusRequester = rateFocusRequester,
+                isStandalone = !showFullForm && editTarget == StudentEditTarget.RATE,
+                onSubmit = onSubmit
             )
         }
 
@@ -286,18 +299,28 @@ private fun RateSection(
     rate: String,
     onRateChange: (String) -> Unit,
     enabled: Boolean,
+    focusRequester: FocusRequester,
+    isStandalone: Boolean,
+    onSubmit: (() -> Unit)?,
 ) {
     OutlinedTextField(
         value = rate,
         onValueChange = onRateChange,
         label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
         singleLine = true,
         enabled = enabled,
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = KeyboardType.Decimal,
-            imeAction = ImeAction.Next
-        )
+            imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+        ),
+        keyboardActions = if (isStandalone) {
+            KeyboardActions(onDone = { onSubmit?.invoke() })
+        } else {
+            KeyboardActions.Default
+        }
     )
 }
 
@@ -450,6 +473,21 @@ private fun NotesSection(
         })
     )
 }
+
+private suspend fun FocusRequester.safeRequestFocus() {
+    repeat(5) {
+        if (tryRequestFocus()) {
+            return
+        }
+        // When the dialog is first shown the focus target might not yet be attached.
+        // Wait for the next frame so Compose has a chance to attach the node before retrying.
+        withFrameNanos { }
+    }
+    tryRequestFocus()
+}
+
+private fun FocusRequester.tryRequestFocus(): Boolean =
+    runCatching { requestFocus() }.isSuccess
 
 @Composable
 private fun StatusSection(

@@ -190,19 +190,12 @@ fun AppNavRoot() {
                             launchSingleTop = true
                         }
                     },
-                    onAddLesson = { id ->
-                        creationViewModel.start(
-                            LessonCreationConfig(
-                                studentId = id,
-                                zoneId = ZonedDateTime.now().zone,
-                                origin = LessonCreationOrigin.STUDENT
-                            )
-                        )
-                        nav.navigate(calendarRoute(nav)) {
+                    onAddStudentFromCreation = {
+                        nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
                             launchSingleTop = true
-                            restoreState = true
                         }
-                    }
+                    },
+                    creationViewModel = creationViewModel
                 )
             }
             composable(
