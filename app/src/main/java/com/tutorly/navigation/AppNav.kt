@@ -15,10 +15,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.compose.dialog
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.window.DialogProperties
 import com.tutorly.ui.CalendarMode
 import com.tutorly.ui.CalendarScreen
 import com.tutorly.ui.CalendarViewModel
@@ -207,7 +205,7 @@ fun AppNavRoot() {
                     }
                 )
             }
-            dialog(
+            composable(
                 route = ROUTE_STUDENT_EDIT,
                 arguments = listOf(
                     navArgument("studentId") { type = NavType.LongType },
@@ -215,15 +213,10 @@ fun AppNavRoot() {
                         type = NavType.StringType
                         defaultValue = StudentEditTarget.PROFILE.name
                     }
-                ),
-                dialogProperties = DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    dismissOnBackPress = false,
-                    dismissOnClickOutside = false
                 )
             ) {
-                StudentEditorScreen(
-                    onClose = { nav.popBackStack() },
+                StudentEditorDialog(
+                    onDismiss = { nav.popBackStack() },
                     onSaved = {
                         nav.popBackStack()
                     }

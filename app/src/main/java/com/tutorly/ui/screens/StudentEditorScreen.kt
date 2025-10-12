@@ -40,6 +40,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
@@ -191,6 +193,34 @@ class StudentEditorVM @Inject constructor(
                     onError(throwable.message ?: "")
                 }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StudentEditorDialog(
+    onDismiss: () -> Unit,
+    onSaved: (Long) -> Unit,
+    vm: StudentEditorVM = hiltViewModel(),
+) {
+    val formState = vm.formState
+    Dialog(
+        onDismissRequest = {
+            if (!formState.isSaving) {
+                onDismiss()
+            }
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
+        StudentEditorScreen(
+            onClose = onDismiss,
+            onSaved = onSaved,
+            vm = vm
+        )
     }
 }
 
