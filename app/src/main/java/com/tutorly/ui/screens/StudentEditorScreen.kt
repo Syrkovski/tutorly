@@ -1,30 +1,37 @@
 package com.tutorly.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -33,6 +40,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
@@ -48,6 +57,10 @@ class StudentEditorVM @Inject constructor(
     private val repo: StudentsRepository
 ) : ViewModel() {
     private val id: Long? = savedStateHandle.get<Long>("studentId")
+    private val editTargetName: String? = savedStateHandle.get<String>("editTarget")
+    val editTarget: StudentEditTarget? = editTargetName?.let { target ->
+        runCatching { StudentEditTarget.valueOf(target) }.getOrNull()
+    }
     var formState by mutableStateOf(StudentEditorFormState())
         private set
     private var loadedStudent: Student? = null
@@ -185,6 +198,34 @@ class StudentEditorVM @Inject constructor(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun StudentEditorDialog(
+    onDismiss: () -> Unit,
+    onSaved: (Long) -> Unit,
+    vm: StudentEditorVM = hiltViewModel(),
+) {
+    val formState = vm.formState
+    Dialog(
+        onDismissRequest = {
+            if (!formState.isSaving) {
+                onDismiss()
+            }
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
+        StudentEditorScreen(
+            onClose = onDismiss,
+            onSaved = onSaved,
+            vm = vm
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun StudentEditorScreen(
     onClose: () -> Unit,
     onSaved: (Long) -> Unit,
@@ -213,75 +254,98 @@ fun StudentEditorScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = stringResource(id = R.string.student_editor_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onClose, enabled = !vm.formState.isSaving) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(id = R.string.student_editor_close)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = attemptSave,
-                        enabled = !vm.formState.isSaving
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = stringResource(id = R.string.student_editor_save)
-                        )
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            StudentEditorForm(
-                state = vm.formState,
-                onNameChange = vm::onNameChange,
-                onPhoneChange = vm::onPhoneChange,
-                onMessengerChange = vm::onMessengerChange,
-                onRateChange = vm::onRateChange,
-                onSubjectChange = vm::onSubjectChange,
-                onGradeChange = vm::onGradeChange,
-                onNoteChange = vm::onNoteChange,
-                onArchivedChange = vm::onArchivedChange,
-                onActiveChange = vm::onActiveChange,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .fillMaxWidth(),
-                focusOnStart = false,
-                enabled = !vm.formState.isSaving,
-                onSubmit = attemptSave
-            )
+    BackHandler {
+        if (!vm.formState.isSaving) {
+            onClose()
+        }
+    }
 
-            Button(
-                onClick = attemptSave,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
-            ) {
-                if (vm.formState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 520.dp),
+            shape = MaterialTheme.shapes.extraLarge
+        ) {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.surface,
+                snackbarHost = {
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
                     )
-                } else {
-                    Text(
-                        text = stringResource(
-                            id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                }
+            ) { inner ->
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .padding(inner)
+                        .padding(horizontal = 24.dp, vertical = 20.dp)
+                        .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.student_editor_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f, fill = true)
                         )
+                        IconButton(
+                            onClick = onClose,
+                            enabled = !vm.formState.isSaving
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(id = R.string.student_editor_close)
+                            )
+                        }
+                    }
+
+                    StudentEditorForm(
+                        state = vm.formState,
+                        onNameChange = vm::onNameChange,
+                        onPhoneChange = vm::onPhoneChange,
+                        onMessengerChange = vm::onMessengerChange,
+                        onRateChange = vm::onRateChange,
+                        onSubjectChange = vm::onSubjectChange,
+                        onGradeChange = vm::onGradeChange,
+                        onNoteChange = vm::onNoteChange,
+                        onArchivedChange = vm::onArchivedChange,
+                        onActiveChange = vm::onActiveChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        editTarget = vm.editTarget,
+                        initialFocus = vm.editTarget,
+                        enabled = !vm.formState.isSaving,
+                        onSubmit = attemptSave
                     )
+
+                    Button(
+                        onClick = attemptSave,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !vm.formState.isSaving && vm.formState.name.isNotBlank()
+                    ) {
+                        if (vm.formState.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(
+                                    id = if (isEditing) R.string.student_editor_save else R.string.add_student
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }

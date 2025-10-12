@@ -22,6 +22,13 @@
     <string name="student_editor_name_required">Имя обязательно</string>
     <string name="student_editor_phone">Телефон</string>
     <string name="student_editor_messenger">Мессенджер</string>
+    <string name="student_editor_messenger_type">Мессенджер</string>
+    <string name="student_editor_messenger_id">Идентификатор</string>
+    <string name="student_editor_messenger_type_telegram">Telegram</string>
+    <string name="student_editor_messenger_type_whatsapp">WhatsApp</string>
+    <string name="student_editor_messenger_type_viber">Viber</string>
+    <string name="student_editor_messenger_type_vk">VK</string>
+    <string name="student_editor_messenger_type_other">Другое</string>
     <string name="student_editor_rate">Ставка</string>
     <string name="student_editor_subject">Предмет</string>
     <string name="student_editor_grade">Класс</string>
@@ -39,6 +46,10 @@
     <string name="student_profile_metrics_title">Показатели</string>
     <string name="student_profile_metrics_average">Средняя ставка</string>
     <string name="student_profile_close">Закрыть профиль ученика</string>
+    <string name="student_profile_metrics_lessons_label">занятий</string>
+    <string name="student_profile_metrics_rate_label">₽/час</string>
+    <string name="student_profile_metrics_earned_label">₽ заработано</string>
+    <string name="student_profile_add_prepayment">Добавить предоплату</string>
     <string name="student_details_title_placeholder">Ученик</string>
     <string name="student_details_back">Назад</string>
     <string name="student_details_edit">Редактировать ученика</string>

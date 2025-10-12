@@ -15,6 +15,7 @@ import javax.inject.Inject
 import java.time.Instant
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -23,13 +24,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOf
 
 @HiltViewModel
 class StudentsViewModel @Inject constructor(
@@ -49,7 +46,6 @@ class StudentsViewModel @Inject constructor(
     private val lessonObservers = mutableMapOf<Long, Job>()
     private val _lessonSummaries = MutableStateFlow<Map<Long, LessonSummary>>(emptyMap())
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
-    private val _selectedStudentId = MutableStateFlow<Long?>(null)
     private var editingStudent: Student? = null
 
     private val studentsStream = _query
@@ -78,41 +74,8 @@ class StudentsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val selectedStudentId: StateFlow<Long?> = _selectedStudentId.asStateFlow()
-
-    val profileUiState: StateFlow<StudentProfileUiState> = _selectedStudentId
-        .flatMapLatest { id ->
-            if (id == null) {
-                flowOf(StudentProfileUiState.Hidden)
-            } else {
-                repo.observeStudentProfile(id)
-                    .map { profile ->
-                        if (profile != null) {
-                            StudentProfileUiState.Content(profile)
-                        } else {
-                            StudentProfileUiState.Error
-                        }
-                    }
-                    .onStart { emit(StudentProfileUiState.Loading) }
-                    .catch { emit(StudentProfileUiState.Error) }
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = StudentProfileUiState.Hidden
-        )
-
     fun onQueryChange(value: String) {
         _query.value = value
-    }
-
-    fun openStudentProfile(studentId: Long) {
-        _selectedStudentId.value = studentId
-    }
-
-    fun clearSelectedStudent() {
-        _selectedStudentId.value = null
     }
 
     fun startStudentCreation(
@@ -439,13 +402,6 @@ class StudentsViewModel @Inject constructor(
 
         return StudentCardProfile(subject = subject, grade = grade)
     }
-}
-
-sealed interface StudentProfileUiState {
-    data object Hidden : StudentProfileUiState
-    data object Loading : StudentProfileUiState
-    data object Error : StudentProfileUiState
-    data class Content(val profile: StudentProfile) : StudentProfileUiState
 }
 
 private fun String?.extractGrade(): String? {

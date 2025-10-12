@@ -3,62 +3,39 @@ package com.tutorly.ui.screens
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tutorly.domain.repo.LessonsRepository
-import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.domain.repo.StudentsRepository
-import com.tutorly.models.Lesson
-import com.tutorly.models.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class StudentDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    studentsRepository: StudentsRepository,
-    paymentsRepository: PaymentsRepository,
-    lessonsRepository: LessonsRepository
+    studentsRepository: StudentsRepository
 ) : ViewModel() {
 
     private val studentId: Long = savedStateHandle.get<Long>("studentId")
         ?: error("studentId is required")
 
-    private val studentFlow = studentsRepository.observeStudent(studentId)
-    private val profileFlow = studentsRepository.observeStudentProfile(studentId)
-    private val hasDebtFlow = paymentsRepository.observeHasDebt(studentId)
-    private val totalDebtFlow = paymentsRepository.observeTotalDebt(studentId)
-    private val lessonsFlow = lessonsRepository.observeByStudent(studentId)
-
-    val uiState: StateFlow<UiState> = combine(
-        studentFlow,
-        hasDebtFlow,
-        totalDebtFlow,
-        lessonsFlow,
-        profileFlow
-    ) { student, hasDebt, totalDebt, lessons, profile ->
-        val resolvedStudent = student ?: profile?.student
-        UiState(
-            isLoading = false,
-            student = resolvedStudent,
-            hasDebt = hasDebt,
-            totalDebtCents = totalDebt,
-            lessons = lessons,
-            subject = profile?.subject?.takeIf { it.isNotBlank() }?.trim()
-                ?: resolvedStudent?.subject?.takeIf { it.isNotBlank() }?.trim(),
-            grade = profile?.grade ?: resolvedStudent?.grade
+    val uiState: StateFlow<StudentProfileUiState> = studentsRepository
+        .observeStudentProfile(studentId)
+        .map { profile ->
+            if (profile != null) {
+                StudentProfileUiState.Content(profile)
+            } else {
+                StudentProfileUiState.Error
+            }
+        }
+        .onStart { emit(StudentProfileUiState.Loading) }
+        .catch { emit(StudentProfileUiState.Error) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = StudentProfileUiState.Loading
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
-
-    data class UiState(
-        val isLoading: Boolean = true,
-        val student: Student? = null,
-        val hasDebt: Boolean = false,
-        val totalDebtCents: Long = 0L,
-        val lessons: List<Lesson> = emptyList(),
-        val subject: String? = null,
-        val grade: String? = null
-    )
 }

@@ -25,9 +25,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +58,16 @@ fun StudentEditorForm(
     onArchivedChange: (Boolean) -> Unit,
     onActiveChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    focusOnStart: Boolean = false,
+    editTarget: StudentEditTarget? = null,
+    initialFocus: StudentEditTarget? = null,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
 ) {
-    val focusRequester = remember { FocusRequester() }
+    val nameFocusRequester = remember { FocusRequester() }
     val gradeFocusRequester = remember { FocusRequester() }
+    val phoneFocusRequester = remember { FocusRequester() }
+    val messengerFocusRequester = remember { FocusRequester() }
+    val noteFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
     var isGradeDropdownExpanded by remember { mutableStateOf(false) }
     val gradeOtherOption = stringResource(id = R.string.student_editor_grade_other)
@@ -71,23 +76,121 @@ fun StudentEditorForm(
         stringResource(id = R.string.student_editor_grade_option, number)
     } + gradeOtherOption
 
-    LaunchedEffect(focusOnStart) {
-        if (focusOnStart) {
-            focusRequester.requestFocus()
+    LaunchedEffect(initialFocus, enabled) {
+        if (enabled) {
+            when (initialFocus) {
+                StudentEditTarget.PROFILE -> nameFocusRequester.requestFocus()
+                StudentEditTarget.PHONE -> phoneFocusRequester.requestFocus()
+                StudentEditTarget.MESSENGER -> messengerFocusRequester.requestFocus()
+                StudentEditTarget.NOTES -> noteFocusRequester.requestFocus()
+                null -> Unit
+            }
         }
     }
 
+    val showFullForm = editTarget == null
     Column(
         modifier = modifier.verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (showFullForm || editTarget == StudentEditTarget.PROFILE) {
+            ProfileSection(
+                state = state,
+                onNameChange = onNameChange,
+                onSubjectChange = onSubjectChange,
+                onGradeChange = onGradeChange,
+                enabled = enabled,
+                nameFocusRequester = nameFocusRequester,
+                gradeFocusRequester = gradeFocusRequester,
+                isGradeDropdownExpanded = isGradeDropdownExpanded,
+                onGradeDropdownExpandedChange = { isGradeDropdownExpanded = it },
+                gradeOptions = gradeOptions,
+                gradeOtherOption = gradeOtherOption,
+                isStandalone = !showFullForm && editTarget == StudentEditTarget.PROFILE,
+                onSubmit = onSubmit
+            )
+        }
+
+        if (showFullForm) {
+            RateSection(
+                rate = state.rate,
+                onRateChange = onRateChange,
+                enabled = enabled
+            )
+        }
+
+        if (showFullForm || editTarget == StudentEditTarget.PHONE) {
+            PhoneSection(
+                phone = state.phone,
+                onPhoneChange = onPhoneChange,
+                enabled = enabled,
+                focusRequester = phoneFocusRequester,
+                isStandalone = !showFullForm && editTarget == StudentEditTarget.PHONE,
+                onSubmit = onSubmit
+            )
+        }
+
+        if (showFullForm || editTarget == StudentEditTarget.MESSENGER) {
+            MessengerSection(
+                messenger = state.messenger,
+                onMessengerChange = onMessengerChange,
+                enabled = enabled,
+                focusRequester = messengerFocusRequester,
+                isStandalone = !showFullForm && editTarget == StudentEditTarget.MESSENGER,
+                onSubmit = onSubmit
+            )
+        }
+
+        if (showFullForm || editTarget == StudentEditTarget.NOTES) {
+            NotesSection(
+                note = state.note,
+                onNoteChange = onNoteChange,
+                enabled = enabled,
+                focusRequester = noteFocusRequester,
+                onSubmit = onSubmit
+            )
+        }
+
+        if (showFullForm) {
+            StatusSection(
+                isArchived = state.isArchived,
+                onArchivedChange = onArchivedChange,
+                isActive = state.isActive,
+                onActiveChange = onActiveChange,
+                enabled = enabled
+            )
+        }
+
+        if (showFullForm) {
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun ProfileSection(
+    state: StudentEditorFormState,
+    onNameChange: (String) -> Unit,
+    onSubjectChange: (String) -> Unit,
+    onGradeChange: (String) -> Unit,
+    enabled: Boolean,
+    nameFocusRequester: FocusRequester,
+    gradeFocusRequester: FocusRequester,
+    isGradeDropdownExpanded: Boolean,
+    onGradeDropdownExpandedChange: (Boolean) -> Unit,
+    gradeOptions: List<String>,
+    gradeOtherOption: String,
+    isStandalone: Boolean,
+    onSubmit: (() -> Unit)?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
             value = state.name,
             onValueChange = onNameChange,
             label = { Text(text = stringResource(id = R.string.student_editor_name)) },
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
+                .focusRequester(nameFocusRequester),
             singleLine = true,
             enabled = enabled,
             isError = state.nameError,
@@ -117,9 +220,7 @@ fun StudentEditorForm(
         Box {
             OutlinedTextField(
                 value = state.grade,
-                onValueChange = {
-                    onGradeChange(it)
-                },
+                onValueChange = onGradeChange,
                 label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -127,16 +228,16 @@ fun StudentEditorForm(
                     .focusRequester(gradeFocusRequester)
                     .onFocusChanged { focusState ->
                         if (!focusState.isFocused) {
-                            isGradeDropdownExpanded = false
+                            onGradeDropdownExpandedChange(false)
                         } else if (enabled) {
-                            isGradeDropdownExpanded = true
+                            onGradeDropdownExpandedChange(true)
                         }
                     },
                 singleLine = true,
                 enabled = enabled,
                 trailingIcon = {
                     IconButton(
-                        onClick = { isGradeDropdownExpanded = !isGradeDropdownExpanded },
+                        onClick = { onGradeDropdownExpandedChange(!isGradeDropdownExpanded) },
                         enabled = enabled
                     ) {
                         Icon(
@@ -145,19 +246,26 @@ fun StudentEditorForm(
                         )
                     }
                 },
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+                ),
+                keyboardActions = if (isStandalone) {
+                    KeyboardActions(onDone = { onSubmit?.invoke() })
+                } else {
+                    KeyboardActions.Default
+                }
             )
 
             DropdownMenu(
                 expanded = isGradeDropdownExpanded,
-                onDismissRequest = { isGradeDropdownExpanded = false },
+                onDismissRequest = { onGradeDropdownExpandedChange(false) },
                 modifier = gradeDropdownModifier
             ) {
                 gradeOptions.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(text = option) },
                         onClick = {
-                            isGradeDropdownExpanded = false
+                            onGradeDropdownExpandedChange(false)
                             if (option == gradeOtherOption) {
                                 onGradeChange("")
                                 gradeFocusRequester.requestFocus()
@@ -170,72 +278,203 @@ fun StudentEditorForm(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RateSection(
+    rate: String,
+    onRateChange: (String) -> Unit,
+    enabled: Boolean,
+) {
+    OutlinedTextField(
+        value = rate,
+        onValueChange = onRateChange,
+        label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        enabled = enabled,
+        keyboardOptions = KeyboardOptions.Default.copy(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = ImeAction.Next
+        )
+    )
+}
+
+@Composable
+private fun PhoneSection(
+    phone: String,
+    onPhoneChange: (String) -> Unit,
+    enabled: Boolean,
+    focusRequester: FocusRequester,
+    isStandalone: Boolean,
+    onSubmit: (() -> Unit)?,
+) {
+    OutlinedTextField(
+        value = phone,
+        onValueChange = onPhoneChange,
+        label = { Text(text = stringResource(id = R.string.student_editor_phone)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        singleLine = true,
+        enabled = enabled,
+        keyboardOptions = KeyboardOptions.Default.copy(
+            imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+        ),
+        keyboardActions = if (isStandalone) {
+            KeyboardActions(onDone = { onSubmit?.invoke() })
+        } else {
+            KeyboardActions.Default
+        }
+    )
+}
+
+@Composable
+private fun MessengerSection(
+    messenger: String,
+    onMessengerChange: (String) -> Unit,
+    enabled: Boolean,
+    focusRequester: FocusRequester,
+    isStandalone: Boolean,
+    onSubmit: (() -> Unit)?,
+) {
+    val messengerOptions = remember { StudentMessengerType.values().toList() }
+    var selectedType by remember { mutableStateOf(StudentMessengerType.TELEGRAM) }
+    var customLabel by remember { mutableStateOf("") }
+    var identifier by remember { mutableStateOf("") }
+
+    LaunchedEffect(messenger) {
+        val parsed = messenger.parseMessengerValue()
+        selectedType = parsed.type
+        customLabel = parsed.customLabel
+        identifier = parsed.identifier
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        var isDropdownExpanded by remember { mutableStateOf(false) }
+        Box {
+            OutlinedTextField(
+                value = if (selectedType == StudentMessengerType.OTHER) customLabel else stringResource(id = selectedType.labelRes),
+                onValueChange = {
+                    if (selectedType == StudentMessengerType.OTHER) {
+                        customLabel = it
+                        onMessengerChange(buildMessengerValue(selectedType, customLabel, identifier))
+                    }
+                },
+                label = { Text(text = stringResource(id = R.string.student_editor_messenger_type)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (enabled && focusState.isFocused) {
+                            isDropdownExpanded = true
+                        }
+                    },
+                enabled = enabled,
+                readOnly = selectedType != StudentMessengerType.OTHER,
+                trailingIcon = {
+                    IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }, enabled = enabled) {
+                        Icon(
+                            imageVector = if (isDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
+                }
+            )
+
+            DropdownMenu(
+                expanded = isDropdownExpanded,
+                onDismissRequest = { isDropdownExpanded = false }
+            ) {
+                messengerOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(text = stringResource(id = option.labelRes)) },
+                        onClick = {
+                            isDropdownExpanded = false
+                            selectedType = option
+                            if (option != StudentMessengerType.OTHER) {
+                                customLabel = ""
+                            }
+                            onMessengerChange(buildMessengerValue(selectedType, customLabel, identifier))
+                        },
+                        enabled = enabled
+                    )
+                }
+            }
+        }
 
         OutlinedTextField(
-            value = state.rate,
-            onValueChange = onRateChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
-            modifier = Modifier.fillMaxWidth(),
+            value = identifier,
+            onValueChange = {
+                identifier = it
+                onMessengerChange(buildMessengerValue(selectedType, customLabel, identifier))
+            },
+            label = { Text(text = stringResource(id = R.string.student_editor_messenger_id)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
             singleLine = true,
             enabled = enabled,
             keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Next
-            )
+                imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+            ),
+            keyboardActions = if (isStandalone) {
+                KeyboardActions(onDone = { onSubmit?.invoke() })
+            } else {
+                KeyboardActions.Default
+            }
         )
+    }
+}
 
-        OutlinedTextField(
-            value = state.phone,
-            onValueChange = onPhoneChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_phone)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+@Composable
+private fun NotesSection(
+    note: String,
+    onNoteChange: (String) -> Unit,
+    enabled: Boolean,
+    focusRequester: FocusRequester,
+    onSubmit: (() -> Unit)?
+) {
+    OutlinedTextField(
+        value = note,
+        onValueChange = onNoteChange,
+        label = { Text(text = stringResource(id = R.string.student_editor_notes)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        minLines = 3,
+        enabled = enabled,
+        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = {
+            onSubmit?.invoke()
+        })
+    )
+}
+
+@Composable
+private fun StatusSection(
+    isArchived: Boolean,
+    onArchivedChange: (Boolean) -> Unit,
+    isActive: Boolean,
+    onActiveChange: (Boolean) -> Unit,
+    enabled: Boolean,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        RowSwitch(
+            label = stringResource(id = R.string.student_editor_is_archived),
+            checked = isArchived,
             enabled = enabled,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+            onCheckedChange = onArchivedChange
         )
-
-        OutlinedTextField(
-            value = state.messenger,
-            onValueChange = onMessengerChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_messenger)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+        RowSwitch(
+            label = stringResource(id = R.string.student_editor_active),
+            checked = isActive,
             enabled = enabled,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+            onCheckedChange = onActiveChange
         )
-
-        OutlinedTextField(
-            value = state.note,
-            onValueChange = onNoteChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_notes)) },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = {
-                onSubmit?.invoke()
-            })
-        )
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            RowSwitch(
-                label = stringResource(id = R.string.student_editor_is_archived),
-                checked = state.isArchived,
-                enabled = enabled,
-                onCheckedChange = onArchivedChange
-            )
-            RowSwitch(
-                label = stringResource(id = R.string.student_editor_active),
-                checked = state.isActive,
-                enabled = enabled,
-                onCheckedChange = onActiveChange
-            )
-        }
-
-        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -257,5 +496,74 @@ private fun RowSwitch(
             onCheckedChange = onCheckedChange,
             enabled = enabled
         )
+    }
+}
+
+private data class MessengerValue(
+    val type: StudentMessengerType,
+    val customLabel: String,
+    val identifier: String
+)
+
+private fun String.parseMessengerValue(): MessengerValue {
+    val raw = trim()
+    if (raw.isEmpty()) {
+        return MessengerValue(StudentMessengerType.TELEGRAM, "", "")
+    }
+
+    val delimiterIndex = raw.indexOf(':')
+    if (delimiterIndex == -1) {
+        return MessengerValue(StudentMessengerType.OTHER, "", raw)
+    }
+
+    val label = raw.substring(0, delimiterIndex).trim()
+    val value = raw.substring(delimiterIndex + 1).trim()
+    val type = StudentMessengerType.fromLabel(label)
+    return if (type == StudentMessengerType.OTHER) {
+        MessengerValue(type, label, value)
+    } else {
+        MessengerValue(type, "", value)
+    }
+}
+
+private fun buildMessengerValue(
+    type: StudentMessengerType,
+    customLabel: String,
+    identifier: String
+): String {
+    val trimmedIdentifier = identifier.trim()
+    if (trimmedIdentifier.isEmpty()) {
+        return ""
+    }
+
+    val label = when (type) {
+        StudentMessengerType.OTHER -> customLabel.trim()
+        else -> type.label
+    }
+
+    return if (label.isNotEmpty()) {
+        "$label: $trimmedIdentifier"
+    } else {
+        trimmedIdentifier
+    }
+}
+
+private enum class StudentMessengerType(
+    val label: String,
+    val labelRes: Int,
+) {
+    TELEGRAM(label = "Telegram", labelRes = R.string.student_editor_messenger_type_telegram),
+    WHATSAPP(label = "WhatsApp", labelRes = R.string.student_editor_messenger_type_whatsapp),
+    VIBER(label = "Viber", labelRes = R.string.student_editor_messenger_type_viber),
+    VK(label = "VK", labelRes = R.string.student_editor_messenger_type_vk),
+    OTHER(label = "", labelRes = R.string.student_editor_messenger_type_other);
+
+    companion object {
+        fun fromLabel(label: String): StudentMessengerType {
+            val normalized = label.lowercase(Locale.getDefault())
+            return values().firstOrNull { option ->
+                option.label.lowercase(Locale.getDefault()) == normalized && option != OTHER
+            } ?: OTHER
+        }
     }
 }

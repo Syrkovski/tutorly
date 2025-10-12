@@ -3,7 +3,6 @@ package com.tutorly.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,11 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Email
@@ -34,7 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -52,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -73,25 +68,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.tutorly.R
-import com.tutorly.domain.model.StudentProfile
-import com.tutorly.domain.model.StudentProfileLesson
-import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.lessoncard.LessonCardSheet
-import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.components.PaymentBadge
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
-import java.time.ZoneId
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.Currency
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentsScreen(
     onStudentEdit: (Long) -> Unit,
     onAddLesson: (Long) -> Unit,
+    onStudentOpen: (Long) -> Unit,
     onStudentCreatedFromLesson: (Long) -> Unit = {},
     initialEditorOrigin: StudentEditorOrigin = StudentEditorOrigin.NONE,
     modifier: Modifier = Modifier,
@@ -100,35 +85,15 @@ fun StudentsScreen(
     val query by vm.query.collectAsState()
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
-    val profileUiState by vm.profileUiState.collectAsState()
-    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
-    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
-    LessonCardSheet(
-        state = lessonCardState,
-        onDismissRequest = lessonCardViewModel::dismiss,
-        onStudentSelect = lessonCardViewModel::onStudentSelected,
-        onDateSelect = lessonCardViewModel::onDateSelected,
-        onTimeSelect = lessonCardViewModel::onTimeSelected,
-        onDurationSelect = lessonCardViewModel::onDurationSelected,
-        onPriceChange = lessonCardViewModel::onPriceChanged,
-        onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
-        onNoteChange = lessonCardViewModel::onNoteChanged,
-        onDeleteLesson = lessonCardViewModel::deleteLesson,
-        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
-    )
-
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editorOrigin by rememberSaveable { mutableStateOf(StudentEditorOrigin.NONE) }
-    var pendingProfileId by remember { mutableStateOf<Long?>(null) }
 
     val openCreationEditor: (StudentEditorOrigin) -> Unit = { origin ->
         editorOrigin = origin
-        pendingProfileId = null
         vm.startStudentCreation()
         showEditor = true
     }
@@ -136,7 +101,6 @@ fun StudentsScreen(
     LaunchedEffect(initialEditorOrigin) {
         if (initialEditorOrigin != StudentEditorOrigin.NONE) {
             editorOrigin = initialEditorOrigin
-            pendingProfileId = null
             vm.startStudentCreation()
             showEditor = true
         }
@@ -163,10 +127,7 @@ fun StudentsScreen(
                         if (editorOrigin == StudentEditorOrigin.LESSON_CREATION) {
                             onStudentCreatedFromLesson(id)
                         }
-                    } else {
-                        pendingProfileId?.let { vm.openStudentProfile(it) }
                     }
-                    pendingProfileId = null
                 },
                 onError = { error ->
                     val message = if (error.isNotBlank()) {
@@ -229,7 +190,7 @@ fun StudentsScreen(
                     ) { item ->
                         StudentCard(
                             item = item,
-                            onClick = { vm.openStudentProfile(item.student.id) }
+                            onClick = { onStudentOpen(item.student.id) }
                         )
                     }
                 }
@@ -241,7 +202,6 @@ fun StudentsScreen(
         ModalBottomSheet(
             onDismissRequest = {
                 if (!formState.isSaving) {
-                    pendingProfileId = null
                     closeEditor()
                 }
             },
@@ -261,45 +221,10 @@ fun StudentsScreen(
                 onActiveChange = vm::onEditorActiveChange,
                 onCancel = {
                     if (!formState.isSaving) {
-                        pendingProfileId = null
                         closeEditor()
                     }
                 },
                 onSave = handleSave
-            )
-        }
-    }
-
-    if (profileUiState !is StudentProfileUiState.Hidden) {
-        ModalBottomSheet(
-            onDismissRequest = vm::clearSelectedStudent,
-            sheetState = profileSheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            StudentProfileSheet(
-                state = profileUiState,
-                onClose = vm::clearSelectedStudent,
-                onEdit = { studentId ->
-                    val profileStudent = (profileUiState as? StudentProfileUiState.Content)?.profile?.student
-                    if (profileStudent != null && profileStudent.id == studentId) {
-                        vm.clearSelectedStudent()
-                        editorOrigin = StudentEditorOrigin.STUDENTS
-                        pendingProfileId = studentId
-                        vm.startStudentEdit(profileStudent)
-                        showEditor = true
-                    } else {
-                        vm.clearSelectedStudent()
-                        onStudentEdit(studentId)
-                    }
-                },
-                onAddLesson = { studentId ->
-                    vm.clearSelectedStudent()
-                    onAddLesson(studentId)
-                },
-                onLessonClick = { lessonId ->
-                    vm.clearSelectedStudent()
-                    lessonCardViewModel.open(lessonId)
-                }
             )
         }
     }
@@ -362,7 +287,7 @@ private fun StudentEditorSheet(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth(),
-            focusOnStart = true,
+            initialFocus = StudentEditTarget.PROFILE,
             enabled = !state.isSaving,
             onSubmit = onSave
         )
@@ -559,519 +484,6 @@ private fun StudentCard(
     }
 }
 
-
-@Composable
-fun StudentProfileSheet(
-    state: StudentProfileUiState,
-    onClose: () -> Unit,
-    onEdit: (Long) -> Unit,
-    onAddLesson: (Long) -> Unit,
-    onLessonClick: (Long) -> Unit,
-    onCall: ((String) -> Unit)? = null,
-    onMessage: ((String) -> Unit)? = null,
-    modifier: Modifier = Modifier
-) {
-    when (state) {
-        StudentProfileUiState.Hidden -> Unit
-        StudentProfileUiState.Loading -> {
-            Box(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 48.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-
-        StudentProfileUiState.Error -> {
-            Column(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(id = R.string.student_profile_error),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Button(onClick = onClose) {
-                    Text(text = stringResource(id = R.string.student_editor_close))
-                }
-            }
-        }
-
-        is StudentProfileUiState.Content -> {
-            StudentProfileContent(
-                profile = state.profile,
-                onEdit = onEdit,
-                onAddLesson = onAddLesson,
-                onLessonClick = onLessonClick,
-                onCall = onCall,
-                onMessage = onMessage,
-                modifier = modifier
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun StudentProfileContent(
-    profile: StudentProfile,
-    onEdit: (Long) -> Unit,
-    onAddLesson: (Long) -> Unit,
-    onLessonClick: (Long) -> Unit,
-    onCall: ((String) -> Unit)?,
-    onMessage: ((String) -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    val listState = rememberLazyListState()
-    val locale = remember { Locale("ru", "RU") }
-    val currencyFormatter = remember(locale) {
-        NumberFormat.getCurrencyInstance(locale).apply {
-            currency = Currency.getInstance("RUB")
-        }
-    }
-    val zoneId = remember { ZoneId.systemDefault() }
-    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
-    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
-    val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
-
-    val groupedLessons = remember(profile.recentLessons, zoneId) {
-        val sorted = profile.recentLessons.sortedByDescending { it.startAt }
-        val groups = linkedMapOf<YearMonth, MutableList<StudentProfileLesson>>()
-        sorted.forEach { lesson ->
-            val key = YearMonth.from(lesson.startAt.atZone(zoneId))
-            groups.getOrPut(key) { mutableListOf() }.add(lesson)
-        }
-        groups.map { it.key to it.value.toList() }
-    }
-
-    Box(modifier = modifier.fillMaxWidth()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 140.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            item {
-                StudentProfileHeader(
-                    profile = profile,
-                    onEdit = onEdit
-                )
-            }
-            item {
-                StudentProfileContacts(
-                    profile = profile,
-                    onCall = onCall,
-                    onMessage = onMessage
-                )
-            }
-            item {
-                StudentProfileMetricsSection(
-                    profile = profile,
-                    currencyFormatter = currencyFormatter
-                )
-            }
-            item {
-                Text(
-                    text = stringResource(id = R.string.student_details_history_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            if (profile.recentLessons.isEmpty()) {
-                item {
-                    StudentProfileEmptyHistory(
-                        onAddLesson = { onAddLesson(profile.student.id) }
-                    )
-                }
-            } else {
-                groupedLessons.forEach { (month, lessons) ->
-                    item(key = "month-$month") {
-                        val monthTitle = remember(month) {
-                            month.format(monthFormatter).replaceFirstChar { char ->
-                                if (char.isLowerCase()) char.titlecase(locale) else char.toString()
-                            }
-                        }
-                        Text(
-                            text = monthTitle,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
-                        )
-                    }
-                    items(lessons, key = { it.id }) { lesson ->
-                        StudentProfileLessonCard(
-                            lesson = lesson,
-                            fallbackSubject = profile.subject,
-                            currencyFormatter = currencyFormatter,
-                            zoneId = zoneId,
-                            dateFormatter = dateFormatter,
-                            timeFormatter = timeFormatter,
-                            onClick = { onLessonClick(lesson.id) }
-                        )
-                    }
-                }
-            }
-        }
-
-        ExtendedFloatingActionButton(
-            onClick = { onAddLesson(profile.student.id) },
-            icon = { Icon(imageVector = Icons.Filled.Add, contentDescription = null) },
-            text = { Text(text = stringResource(id = R.string.student_details_create_lesson)) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .navigationBarsPadding()
-        )
-    }
-}
-
-
-
-@Composable
-private fun StudentProfileHeader(
-    profile: StudentProfile,
-    onEdit: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        StudentAvatar(name = profile.student.name, size = 64.dp)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = profile.student.name,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
-            val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
-            val details = listOfNotNull(subject, grade).joinToString(separator = " ")
-            if (details.isNotEmpty()) {
-                Text(
-                    text = details,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        IconButton(onClick = { onEdit(profile.student.id) }) {
-            Icon(
-                imageVector = Icons.Filled.Edit,
-                contentDescription = stringResource(id = R.string.student_details_edit)
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun StudentProfileContacts(
-    profile: StudentProfile,
-    onCall: ((String) -> Unit)?,
-    onMessage: ((String) -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = stringResource(id = R.string.student_details_contact_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-        ProfileContactRow(
-            icon = Icons.Outlined.Phone,
-            label = stringResource(id = R.string.student_profile_contact_call),
-            value = profile.student.phone,
-            onClick = onCall
-        )
-        ProfileContactRow(
-            icon = Icons.Outlined.Email,
-            label = stringResource(id = R.string.student_profile_contact_message),
-            value = profile.student.messenger,
-            onClick = onMessage
-        )
-    }
-}
-
-@Composable
-private fun ProfileContactRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String?,
-    onClick: ((String) -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    val hasValue = !value.isNullOrBlank()
-    val displayValue = value?.takeIf { it.isNotBlank() }
-        ?: stringResource(id = R.string.student_profile_contact_placeholder)
-    val background = if (hasValue) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
-    }
-    val contentColor = if (hasValue) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(background)
-            .clickable(enabled = hasValue && onClick != null) {
-                value?.let { onClick?.invoke(it) }
-            }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (hasValue) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = displayValue,
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun StudentProfileMetricsSection(
-    profile: StudentProfile,
-    currencyFormatter: NumberFormat,
-    modifier: Modifier = Modifier
-) {
-    val scrollState = rememberScrollState()
-    val metrics = profile.metrics
-    val totalLessons = metrics.totalLessons.toString()
-    val totalPaid = formatCurrency(metrics.totalPaidCents, currencyFormatter)
-    val paidLessons = metrics.paidLessons.toString()
-    val debtText = if (metrics.outstandingCents > 0) {
-        formatCurrency(metrics.outstandingCents, currencyFormatter)
-    } else {
-        stringResource(id = R.string.student_details_no_debt)
-    }
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = stringResource(id = R.string.student_profile_metrics_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollState),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ProfileMetricCard(
-                label = stringResource(id = R.string.student_details_stats_lessons),
-                value = totalLessons
-            )
-            ProfileMetricCard(
-                label = stringResource(id = R.string.student_details_stats_paid),
-                value = totalPaid
-            )
-            ProfileMetricCard(
-                label = stringResource(id = R.string.student_details_stats_paid_lessons),
-                value = paidLessons
-            )
-            ProfileMetricCard(
-                label = stringResource(id = R.string.student_details_stats_debt),
-                value = debtText,
-                badge = if (profile.hasDebt) {
-                    {
-                        PaymentBadge(paid = false)
-                    }
-                } else {
-                    null
-                }
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun ProfileMetricCard(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    badge: (@Composable () -> Unit)? = null
-) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (badge != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    badge()
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            } else {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StudentProfileEmptyHistory(
-    onAddLesson: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = stringResource(id = R.string.student_details_history_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Button(onClick = onAddLesson) {
-                Text(text = stringResource(id = R.string.student_details_create_lesson))
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun StudentProfileLessonCard(
-    lesson: StudentProfileLesson,
-    fallbackSubject: String?,
-    currencyFormatter: NumberFormat,
-    zoneId: ZoneId,
-    dateFormatter: DateTimeFormatter,
-    timeFormatter: DateTimeFormatter,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val start = remember(lesson.startAt, zoneId) { lesson.startAt.atZone(zoneId) }
-    val end = remember(lesson.endAt, zoneId) { lesson.endAt.atZone(zoneId) }
-    val dateText = remember(start) { dateFormatter.format(start) }
-    val timeText = stringResource(
-        id = R.string.student_details_history_time_range,
-        timeFormatter.format(start),
-        timeFormatter.format(end),
-        lesson.durationMinutes
-    )
-    val fallbackSubjectText = fallbackSubject?.takeIf { it.isNotBlank() }?.trim()
-    val title = lesson.title?.takeIf { it.isNotBlank() }?.trim()
-        ?: lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
-        ?: fallbackSubjectText
-        ?: stringResource(id = R.string.lesson_card_subject_placeholder)
-    val amount = formatCurrency(lesson.priceCents.toLong(), currencyFormatter)
-    val isPaid = lesson.paymentStatus == PaymentStatus.PAID
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = dateText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = amount,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                PaymentBadge(paid = isPaid)
-            }
-        }
-    }
-}
-
-
-private fun formatCurrency(amountCents: Long, formatter: NumberFormat): String {
-    return formatter.format(amountCents / 100.0)
-}
 
 @Composable
 private fun StudentAvatar(
