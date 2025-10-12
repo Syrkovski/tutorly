@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -43,7 +44,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import java.util.Locale
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -453,12 +453,15 @@ private fun NotesSection(
 }
 
 private suspend fun FocusRequester.safeRequestFocus() {
-    if (!tryRequestFocus()) {
+    repeat(5) {
+        if (tryRequestFocus()) {
+            return
+        }
         // When the dialog is first shown the focus target might not yet be attached.
-        // Wait a frame and retry to avoid crashing with "FocusRequester not initialized".
-        delay(16L)
-        tryRequestFocus()
+        // Wait for the next frame so Compose has a chance to attach the node before retrying.
+        withFrameNanos { }
     }
+    tryRequestFocus()
 }
 
 private fun FocusRequester.tryRequestFocus(): Boolean =
