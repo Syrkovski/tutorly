@@ -6,12 +6,13 @@ import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
+import com.tutorly.models.LessonStatus
+import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.time.Instant
-import java.time.Duration
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,7 +47,7 @@ class StudentsViewModel @Inject constructor(
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
     private val lessonObservers = mutableMapOf<Long, Job>()
-    private val _latestLessons = MutableStateFlow<Map<Long, LessonSnapshot?>>(emptyMap())
+    private val _lessonSummaries = MutableStateFlow<Map<Long, LessonSummary>>(emptyMap())
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
     private val _selectedStudentId = MutableStateFlow<Long?>(null)
     private var editingStudent: Student? = null
@@ -63,15 +64,16 @@ class StudentsViewModel @Inject constructor(
     val students: StateFlow<List<StudentListItem>> = combine(
         studentsStream,
         _debts,
-        _latestLessons,
+        _lessonSummaries,
         _subjects
-    ) { students, debts, lessons, subjects ->
+    ) { students, debts, summaries, subjects ->
         students.map { student ->
-            val snapshot = lessons[student.id]
+            val summary = summaries[student.id]
             StudentListItem(
                 student = student,
                 hasDebt = debts[student.id] == true,
-                profile = buildProfile(student, snapshot, subjects)
+                profile = buildProfile(student, summary?.snapshot, subjects),
+                progress = summary?.progress ?: LessonProgress(paidLessons = 0, completedLessons = 0)
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -329,7 +331,7 @@ class StudentsViewModel @Inject constructor(
             toRemove.forEach { id ->
                 lessonObservers.remove(id)?.cancel()
             }
-            _latestLessons.update { lessons -> lessons - toRemove }
+            _lessonSummaries.update { summaries -> summaries - toRemove }
         }
 
         val toAdd = ids - existing
@@ -338,18 +340,14 @@ class StudentsViewModel @Inject constructor(
                 lessonsRepository.observeByStudent(id).collect { lessons ->
                     val latest = lessons.maxByOrNull { it.startAt }
                     val snapshot = latest?.let {
-                        val durationMinutes = Duration.between(it.startAt, it.endAt)
-                            .toMinutes()
-                            .toInt()
-                            .coerceAtLeast(0)
                         LessonSnapshot(
-                            lessonId = it.id,
-                            subjectId = it.subjectId,
-                            durationMinutes = durationMinutes,
-                            priceCents = it.priceCents
+                            subjectId = it.subjectId
                         )
                     }
-                    _latestLessons.update { existingMap -> existingMap + (id to snapshot) }
+                    val progress = buildProgress(lessons)
+                    _lessonSummaries.update { existingMap ->
+                        existingMap + (id to LessonSummary(snapshot = snapshot, progress = progress))
+                    }
 
                     val subjectId = latest?.subjectId
                     if (subjectId != null && _subjects.value[subjectId] == null) {
@@ -374,26 +372,49 @@ class StudentsViewModel @Inject constructor(
     data class StudentListItem(
         val student: Student,
         val hasDebt: Boolean,
-        val profile: StudentCardProfile
+        val profile: StudentCardProfile,
+        val progress: LessonProgress
     )
 
     data class StudentCardProfile(
         val subject: String?,
-        val grade: String?,
-        val rate: LessonRate?
+        val grade: String?
     )
 
-    data class LessonRate(
-        val durationMinutes: Int,
-        val priceCents: Int
+    data class LessonProgress(
+        val paidLessons: Int,
+        val completedLessons: Int
+    )
+
+    private data class LessonSummary(
+        val snapshot: LessonSnapshot?,
+        val progress: LessonProgress
     )
 
     private data class LessonSnapshot(
-        val lessonId: Long,
-        val subjectId: Long?,
-        val durationMinutes: Int,
-        val priceCents: Int
+        val subjectId: Long?
     )
+
+    private fun buildProgress(
+        lessons: List<com.tutorly.models.Lesson>
+    ): LessonProgress {
+        if (lessons.isEmpty()) {
+            return LessonProgress(paidLessons = 0, completedLessons = 0)
+        }
+
+        val now = Instant.now()
+        val completedLessons = lessons.filter { lesson ->
+            lesson.startAt <= now &&
+                lesson.status != LessonStatus.CANCELED &&
+                lesson.paymentStatus != PaymentStatus.CANCELLED
+        }
+        val paidLessons = completedLessons.count { it.paymentStatus == PaymentStatus.PAID }
+
+        return LessonProgress(
+            paidLessons = paidLessons,
+            completedLessons = completedLessons.size
+        )
+    }
 
     private fun buildProfile(
         student: Student,
@@ -415,13 +436,8 @@ class StudentsViewModel @Inject constructor(
             ?.takeIf { it.isNotBlank() }
             ?.trim()
             ?: student.note.extractGrade()
-        val rate = snapshot?.takeIf { it.priceCents > 0 && it.durationMinutes > 0 }?.let {
-            LessonRate(durationMinutes = it.durationMinutes, priceCents = it.priceCents)
-        } ?: student.rateCents?.takeIf { it > 0 }?.let {
-            LessonRate(durationMinutes = 0, priceCents = it)
-        }
 
-        return StudentCardProfile(subject = subject, grade = grade, rate = rate)
+        return StudentCardProfile(subject = subject, grade = grade)
     }
 }
 
