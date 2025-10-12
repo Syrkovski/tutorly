@@ -21,7 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.CurrencyRuble
+import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Savings
@@ -416,7 +416,7 @@ private fun StudentProfileHeader(
                 )
                 val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
                 val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
-                val details = listOfNotNull(subject, grade).joinToString(separator = " • ")
+                val details = listOfNotNull(grade, subject).joinToString(separator = " • ")
                 if (details.isNotEmpty()) {
                     Text(
                         text = details,
@@ -509,10 +509,6 @@ private fun StudentProfileMetricsSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = stringResource(id = R.string.student_profile_metrics_title),
-            style = MaterialTheme.typography.titleMedium
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -538,7 +534,7 @@ private fun StudentProfileMetricsSection(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ProfileMetricTile(
-                    icon = Icons.Outlined.CurrencyRuble,
+                    icon = Icons.Outlined.CreditCard,
                     value = earnedValue,
                     label = stringResource(id = R.string.student_profile_metrics_earned_label)
                 )
@@ -821,7 +817,7 @@ private fun StudentAvatar(
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

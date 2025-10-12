@@ -13,4 +13,6 @@ interface PaymentsRepository {
     suspend fun insert(payment: Payment): Long
     suspend fun update(payment: Payment)
     suspend fun delete(payment: Payment)
+
+    suspend fun applyPrepayment(studentId: Long)
 }

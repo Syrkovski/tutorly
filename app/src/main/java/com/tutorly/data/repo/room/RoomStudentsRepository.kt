@@ -48,7 +48,10 @@ class RoomStudentsRepository @Inject constructor(
         val hasDebtFlow = paymentDao.observeHasDebt(studentId, PaymentStatus.outstandingStatuses)
         val lessonsFlow = lessonDao.observeByStudent(studentId)
         val recentLessonsFlow = lessonDao.observeRecentWithSubject(studentId, recentLessonsLimit)
-        val prepaymentFlow = paymentDao.observePrepaymentTotal(studentId, PaymentStatus.PAID)
+        val prepaymentFlow = combine(
+            paymentDao.observePrepaymentDeposits(studentId, PaymentStatus.PAID),
+            paymentDao.observePrepaymentAllocations(studentId, PaymentStatus.PAID, PREPAYMENT_METHOD)
+        ) { deposits, allocations -> deposits - allocations }
 
         return combine(
             studentFlow,

@@ -48,10 +48,38 @@ interface PaymentDao {
         WHERE studentId = :studentId AND lessonId IS NULL AND status = :status
         """
     )
-    fun observePrepaymentTotal(
+    suspend fun totalPrepayment(
+        studentId: Long,
+        status: PaymentStatus
+    ): Long
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
+        WHERE studentId = :studentId AND lessonId IS NULL AND status = :status
+        """
+    )
+    fun observePrepaymentDeposits(
         studentId: Long,
         status: PaymentStatus
     ): Flow<Long>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
+        WHERE studentId = :studentId AND lessonId IS NOT NULL AND status = :status AND method = :method
+        """
+    )
+    fun observePrepaymentAllocations(
+        studentId: Long,
+        status: PaymentStatus,
+        method: String
+    ): Flow<Long>
+
+    @Query("SELECT * FROM payments WHERE studentId = :studentId")
+    suspend fun getByStudent(studentId: Long): List<Payment>
 
     @Query(
         """

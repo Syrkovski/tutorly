@@ -51,7 +51,7 @@ class StudentPrepaymentViewModel @Inject constructor(
         if (formState.isSaving) return
 
         val parsedAmount = parseMoneyInput(formState.amount)
-        if (parsedAmount == null || parsedAmount <= 0) {
+        if (parsedAmount == null || parsedAmount == 0) {
             formState = formState.copy(amountError = true)
             return
         }
@@ -74,7 +74,10 @@ class StudentPrepaymentViewModel @Inject constructor(
                 status = PaymentStatus.PAID,
             )
 
-            runCatching { paymentsRepository.insert(payment) }
+            runCatching {
+                paymentsRepository.insert(payment)
+                paymentsRepository.applyPrepayment(studentId)
+            }
                 .onSuccess {
                     formState = StudentPrepaymentFormState()
                     onSuccess(parsedAmount)

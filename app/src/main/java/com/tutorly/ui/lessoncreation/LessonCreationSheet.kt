@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
@@ -444,7 +444,7 @@ private fun DurationPriceSection(
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
                 leadingIcon = {
-                    Icon(imageVector = Icons.Filled.AttachMoney, contentDescription = null)
+                    Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),

@@ -15,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Message
@@ -330,7 +330,7 @@ private fun RateSection(
         singleLine = true,
         enabled = enabled,
         leadingIcon = {
-            Icon(imageVector = Icons.Filled.AttachMoney, contentDescription = null)
+            Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
         },
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = KeyboardType.Decimal,

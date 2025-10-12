@@ -21,7 +21,8 @@ import java.time.Instant
 
 class RoomLessonsRepository(
     private val lessonDao: LessonDao,
-    private val paymentDao: PaymentDao
+    private val paymentDao: PaymentDao,
+    private val prepaymentAllocator: StudentPrepaymentAllocator
 ) : LessonsRepository {
     override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         lessonDao.observeInRange(from, to).map { lessons -> lessons.map { it.toLessonDetails() } }
@@ -63,7 +64,11 @@ class RoomLessonsRepository(
 
     override suspend fun getById(id: Long): Lesson? = lessonDao.findById(id)
 
-    override suspend fun upsert(lesson: Lesson): Long = lessonDao.upsert(lesson)
+    override suspend fun upsert(lesson: Lesson): Long {
+        val id = lessonDao.upsert(lesson)
+        prepaymentAllocator.sync(lesson.studentId)
+        return id
+    }
 
     override suspend fun create(request: LessonCreateRequest): Long {
         val now = Instant.now()
@@ -82,7 +87,9 @@ class RoomLessonsRepository(
             createdAt = now,
             updatedAt = now
         )
-        return lessonDao.upsert(lesson)
+        val id = lessonDao.upsert(lesson)
+        prepaymentAllocator.sync(lesson.studentId)
+        return id
     }
 
     override suspend fun findConflicts(start: Instant, end: Instant): List<LessonDetails> {
@@ -94,7 +101,11 @@ class RoomLessonsRepository(
     }
 
     override suspend fun delete(id: Long) {
+        val lesson = lessonDao.findById(id)
         lessonDao.deleteById(id)
+        if (lesson != null) {
+            prepaymentAllocator.sync(lesson.studentId)
+        }
     }
 
     override suspend fun markPaid(id: Long) {

@@ -11,6 +11,7 @@ import com.tutorly.data.repo.room.RoomLessonsRepository
 import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
 import com.tutorly.data.repo.room.RoomSubjectPresetsRepository
+import com.tutorly.data.repo.room.StudentPrepaymentAllocator
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.domain.repo.StudentsRepository
@@ -47,9 +48,16 @@ object DatabaseModule {
     ): StudentsRepository = RoomStudentsRepository(studentDao, paymentDao, lessonDao)
 
     @Provides @Singleton
-    fun providePaymentsRepo(
+    fun providePrepaymentAllocator(
+        lessonDao: LessonDao,
         paymentDao: PaymentDao
-    ): PaymentsRepository = RoomPaymentsRepository(paymentDao)
+    ): StudentPrepaymentAllocator = StudentPrepaymentAllocator(lessonDao, paymentDao)
+
+    @Provides @Singleton
+    fun providePaymentsRepo(
+        paymentDao: PaymentDao,
+        prepaymentAllocator: StudentPrepaymentAllocator
+    ): PaymentsRepository = RoomPaymentsRepository(paymentDao, prepaymentAllocator)
 
     @Provides @Singleton
     fun provideSubjectsRepo(dao: SubjectPresetDao): SubjectPresetsRepository = RoomSubjectPresetsRepository(dao)
@@ -57,8 +65,9 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideLessonsRepo(
         lessonDao: LessonDao,
-        paymentDao: PaymentDao
-    ): LessonsRepository = RoomLessonsRepository(lessonDao, paymentDao)
+        paymentDao: PaymentDao,
+        prepaymentAllocator: StudentPrepaymentAllocator
+    ): LessonsRepository = RoomLessonsRepository(lessonDao, paymentDao, prepaymentAllocator)
 
     @Provides @Singleton
     fun provideUserSettingsRepo(): UserSettingsRepository = StaticUserSettingsRepository()
