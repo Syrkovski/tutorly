@@ -928,10 +928,8 @@ private fun MonthLessonEntry(
     enabled: Boolean,
     contentColor: Color
 ) {
-    val background = remember(lesson.subjectColorArgb) {
-        lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.18f) }
-            ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    }
+    val background = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.18f) }
+        ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     val textColor = if (enabled) contentColor else contentColor.copy(alpha = 0.4f)
 
     Surface(
