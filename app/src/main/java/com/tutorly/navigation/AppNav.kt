@@ -9,10 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
@@ -198,7 +200,7 @@ fun AppNavRoot() {
                     creationViewModel = creationViewModel
                 )
             }
-            composable(
+            dialog(
                 route = ROUTE_STUDENT_EDIT,
                 arguments = listOf(
                     navArgument("studentId") { type = NavType.LongType },
@@ -206,7 +208,8 @@ fun AppNavRoot() {
                         type = NavType.StringType
                         defaultValue = StudentEditTarget.PROFILE.name
                     }
-                )
+                ),
+                dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
             ) {
                 StudentEditorDialog(
                     onDismiss = { nav.popBackStack() },
