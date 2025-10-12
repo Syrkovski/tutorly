@@ -124,7 +124,7 @@ fun StudentDetailsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
-        when (state) {
+        when (val currentState = state) {
             StudentProfileUiState.Hidden, StudentProfileUiState.Loading -> {
                 Box(
                     modifier = modifier
@@ -153,7 +153,7 @@ fun StudentDetailsScreen(
 
             is StudentProfileUiState.Content -> {
                 StudentProfileContent(
-                    profile = state.profile,
+                    profile = currentState.profile,
                     onEdit = onEdit,
                     onAddLesson = onAddLesson,
                     onAddPrepayment = onAddPrepayment,
