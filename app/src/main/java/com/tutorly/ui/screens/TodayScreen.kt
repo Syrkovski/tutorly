@@ -119,7 +119,8 @@ fun TodayScreen(
     Scaffold(
         modifier = modifier,
         topBar = { TodayTopBar(state = uiState) },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
     ) { innerPadding ->
         Box(
             modifier = Modifier

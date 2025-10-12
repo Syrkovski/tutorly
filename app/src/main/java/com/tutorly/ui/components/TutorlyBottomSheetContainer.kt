@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,7 +22,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TutorlyBottomSheetContainer(
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.surface,
+    color: Color = Color.White,
     tonalElevation: Dp = 0.dp,
     shape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },

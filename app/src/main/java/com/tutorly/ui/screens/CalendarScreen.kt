@@ -215,7 +215,8 @@ fun CalendarScreen(
             }) {
                 Icon(Icons.Filled.Add, contentDescription = null)
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
     ) { padding ->
         Column(
             Modifier
