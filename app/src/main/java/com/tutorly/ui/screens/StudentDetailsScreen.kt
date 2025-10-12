@@ -319,6 +319,24 @@ private fun StudentProfileContent(
         }
 
         item {
+            StudentProfileMetricsSection(
+                profile = profile,
+                numberFormatter = numberFormatter,
+                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) }
+            )
+        }
+
+        item {
+            Button(
+                onClick = { onAddPrepayment(profile.student.id) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(text = stringResource(id = R.string.student_profile_add_prepayment))
+            }
+        }
+
+        item {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 ProfileInfoCard(
                     icon = Icons.Outlined.Phone,
@@ -339,24 +357,6 @@ private fun StudentProfileContent(
                     onClick = { onEdit(profile.student.id, StudentEditTarget.NOTES) },
                     valueMaxLines = 4
                 )
-            }
-        }
-
-        item {
-            StudentProfileMetricsSection(
-                profile = profile,
-                numberFormatter = numberFormatter,
-                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) }
-            )
-        }
-
-        item {
-            Button(
-                onClick = { onAddPrepayment(profile.student.id) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(text = stringResource(id = R.string.student_profile_add_prepayment))
             }
         }
 
