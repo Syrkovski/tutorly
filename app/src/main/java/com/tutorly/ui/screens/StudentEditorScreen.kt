@@ -1,27 +1,14 @@
 package com.tutorly.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,10 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -207,19 +192,14 @@ fun StudentEditorDialog(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    val currentEditTarget by androidx.compose.runtime.rememberUpdatedState(editTarget)
     val currentOnDismiss by androidx.compose.runtime.rememberUpdatedState(onDismiss)
     val currentOnSaved by androidx.compose.runtime.rememberUpdatedState(onSaved)
 
     fun closeEditor(action: () -> Unit) {
-        if (currentEditTarget == null) {
-            if (sheetState.isVisible) {
-                coroutineScope.launch {
-                    sheetState.hide()
-                }.invokeOnCompletion { action() }
-            } else {
-                action()
-            }
+        if (sheetState.isVisible) {
+            coroutineScope.launch {
+                sheetState.hide()
+            }.invokeOnCompletion { action() }
         } else {
             action()
         }
@@ -249,131 +229,42 @@ fun StudentEditorDialog(
         }
     }
 
-    if (editTarget == null) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                if (!formState.isSaving) {
-                    closeEditor(currentOnDismiss)
-                }
-            },
-            sheetState = sheetState,
-            containerColor = Color.Transparent,
-            contentColor = Color.Unspecified,
-            scrimColor = Color.Black.copy(alpha = 0.32f),
-        ) {
-            TutorlyBottomSheetContainer {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    StudentEditorSheet(
-                        state = formState,
-                        onNameChange = vm::onNameChange,
-                        onPhoneChange = vm::onPhoneChange,
-                        onMessengerChange = vm::onMessengerChange,
-                        onRateChange = vm::onRateChange,
-                        onSubjectChange = vm::onSubjectChange,
-                        onGradeChange = vm::onGradeChange,
-                        onNoteChange = vm::onNoteChange,
-                        onArchivedChange = vm::onArchivedChange,
-                        onActiveChange = vm::onActiveChange,
-                        onSave = attemptSave,
-                        modifier = Modifier.fillMaxWidth(),
-                        editTarget = editTarget,
-                        initialFocus = editTarget,
-                    )
+    ModalBottomSheet(
+        onDismissRequest = {
+            if (!formState.isSaving) {
+                closeEditor(currentOnDismiss)
+            }
+        },
+        sheetState = sheetState,
+        containerColor = Color.Transparent,
+        contentColor = Color.Unspecified,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
+    ) {
+        TutorlyBottomSheetContainer {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                StudentEditorSheet(
+                    state = formState,
+                    onNameChange = vm::onNameChange,
+                    onPhoneChange = vm::onPhoneChange,
+                    onMessengerChange = vm::onMessengerChange,
+                    onRateChange = vm::onRateChange,
+                    onSubjectChange = vm::onSubjectChange,
+                    onGradeChange = vm::onGradeChange,
+                    onNoteChange = vm::onNoteChange,
+                    onArchivedChange = vm::onArchivedChange,
+                    onActiveChange = vm::onActiveChange,
+                    onSave = attemptSave,
+                    modifier = Modifier.fillMaxWidth(),
+                    editTarget = editTarget,
+                    initialFocus = editTarget,
+                )
 
-                    SnackbarHost(
-                        hostState = snackbarHostState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
-                    )
-                }
-            }
-        }
-    } else {
-        BasicAlertDialog(
-            onDismissRequest = {
-                if (!formState.isSaving) {
-                    closeEditor(currentOnDismiss)
-                }
-            }
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 6.dp
-            ) {
-                Column(
+                SnackbarHost(
+                    hostState = snackbarHostState,
                     modifier = Modifier
-                        .widthIn(max = 360.dp)
-                        .padding(horizontal = 24.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = when (editTarget) {
-                            StudentEditTarget.PROFILE -> stringResource(id = R.string.student_editor_profile_title)
-                            StudentEditTarget.RATE -> stringResource(id = R.string.student_editor_rate_title)
-                            StudentEditTarget.PHONE -> stringResource(id = R.string.student_editor_phone_title)
-                            StudentEditTarget.MESSENGER -> stringResource(id = R.string.student_editor_messenger_title)
-                            StudentEditTarget.NOTES -> stringResource(id = R.string.student_editor_notes_title)
-                        },
-                        style = MaterialTheme.typography.titleLarge
-                    )
-
-                    StudentEditorForm(
-                        state = formState,
-                        onNameChange = vm::onNameChange,
-                        onPhoneChange = vm::onPhoneChange,
-                        onMessengerChange = vm::onMessengerChange,
-                        onRateChange = vm::onRateChange,
-                        onSubjectChange = vm::onSubjectChange,
-                        onGradeChange = vm::onGradeChange,
-                        onNoteChange = vm::onNoteChange,
-                        onArchivedChange = vm::onArchivedChange,
-                        onActiveChange = vm::onActiveChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        editTarget = editTarget,
-                        initialFocus = editTarget,
-                        enableScrolling = false,
-                        enabled = !formState.isSaving,
-                        onSubmit = attemptSave
-                    )
-
-                    if (snackbarHostState.currentSnackbarData != null) {
-                        SnackbarHost(
-                            hostState = snackbarHostState,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(
-                            onClick = { closeEditor(currentOnDismiss) },
-                            enabled = !formState.isSaving
-                        ) {
-                            Text(text = stringResource(id = R.string.student_editor_cancel))
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Button(
-                            onClick = attemptSave,
-                            enabled = !formState.isSaving && formState.name.isNotBlank()
-                        ) {
-                            if (formState.isSaving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(text = stringResource(id = R.string.student_editor_save))
-                            }
-                        }
-                    }
-                }
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                )
             }
         }
     }

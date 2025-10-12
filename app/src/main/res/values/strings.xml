@@ -18,11 +18,6 @@
     <string name="student_editor_edit_title">Редактировать ученика</string>
     <string name="student_editor_close">Закрыть</string>
     <string name="student_editor_save">Сохранить</string>
-    <string name="student_editor_profile_title">Профиль ученика</string>
-    <string name="student_editor_rate_title">Ставка</string>
-    <string name="student_editor_phone_title">Телефон</string>
-    <string name="student_editor_messenger_title">Мессенджер</string>
-    <string name="student_editor_notes_title">Заметки</string>
     <string name="student_editor_name">Имя*</string>
     <string name="student_editor_name_required">Имя обязательно</string>
     <string name="student_editor_phone">Телефон</string>
