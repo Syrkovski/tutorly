@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -62,9 +63,12 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -198,8 +202,12 @@ private fun StudentSection(
                         text = {
                             Text(
                                 text = option.name,
-                                style = LocalTextStyle.current
+                                style = LocalTextStyle.current,
+                                maxLines = 1
                             )
+                        },
+                        leadingIcon = {
+                            StudentAvatar(name = option.name, size = 32.dp)
                         },
                         trailingIcon = {
                             if (state.selectedStudent?.id == option.id) {
@@ -218,6 +226,35 @@ private fun StudentSection(
         state.errors[LessonCreationField.STUDENT]?.let { message ->
             ErrorText(message)
         }
+    }
+}
+
+@Composable
+private fun StudentAvatar(
+    name: String,
+    size: Dp = 32.dp,
+) {
+    val initials = remember(name) {
+        name
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(2)
+            .joinToString(separator = "") { it.first().uppercaseChar().toString() }
+            .ifEmpty { "?" }
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initials,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -284,9 +321,13 @@ private fun TimeSection(
             },
             modifier = Modifier.weight(1f)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
-                Text(text = state.date.format(dateFormatter))
+                Text(text = state.date.format(dateFormatter), textAlign = TextAlign.Center)
             }
         }
         OutlinedButton(
@@ -301,9 +342,13 @@ private fun TimeSection(
             },
             modifier = Modifier.weight(1f)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Icon(imageVector = Icons.Outlined.Schedule, contentDescription = null)
-                Text(text = state.time.format(timeFormatter))
+                Text(text = state.time.format(timeFormatter), textAlign = TextAlign.Center)
             }
         }
     }
@@ -318,32 +363,18 @@ private fun DurationPriceSection(
 ) {
     val presets = listOf(45, 60, 90, 120)
     var customDurationInput by remember(state.durationMinutes) {
-        val value = state.durationMinutes.takeIf { it > 0 && it !in presets }?.toString().orEmpty()
-        mutableStateOf(value)
+        mutableStateOf(state.durationMinutes.takeIf { it > 0 }?.toString().orEmpty())
     }
     var priceInput by remember(state.priceCents) {
         mutableStateOf(state.priceCents.takeIf { it >= 0 }?.let { (it / 100).toString() } ?: "")
+    }
+    val priceFormatter = remember(state.locale) {
+        NumberFormat.getIntegerInstance(state.locale).apply { maximumFractionDigits = 0 }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = stringResource(id = R.string.lesson_create_duration_label), fontWeight = FontWeight.Medium)
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                presets.forEach { minutes ->
-                    val selected = state.durationMinutes == minutes
-                    FilterChip(
-                        selected = selected,
-                        onClick = {
-                            customDurationInput = ""
-                            onDurationChange(minutes)
-                        },
-                        label = { Text(text = stringResource(id = R.string.lesson_create_duration_chip, minutes)) }
-                    )
-                }
-            }
             OutlinedTextField(
                 value = customDurationInput,
                 onValueChange = { value ->
@@ -357,21 +388,83 @@ private fun DurationPriceSection(
                 modifier = Modifier.fillMaxWidth(),
                 isError = state.errors.containsKey(LessonCreationField.DURATION)
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presets.forEach { minutes ->
+                    val selected = state.durationMinutes == minutes
+                    Box(modifier = Modifier.weight(1f)) {
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                customDurationInput = minutes.toString()
+                                onDurationChange(minutes)
+                            },
+                            label = {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.lesson_create_duration_chip, minutes),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
             state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
         }
 
-        OutlinedTextField(
-            value = priceInput,
-            onValueChange = { value ->
-                val digits = value.filter { it.isDigit() }
-                priceInput = digits
-                onPriceChange((digits.toIntOrNull() ?: 0) * 100)
-            },
-            label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            isError = state.errors.containsKey(LessonCreationField.PRICE)
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = priceInput,
+                onValueChange = { value ->
+                    val digits = value.filter { it.isDigit() }
+                    priceInput = digits
+                    onPriceChange((digits.toIntOrNull() ?: 0) * 100)
+                },
+                label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                isError = state.errors.containsKey(LessonCreationField.PRICE)
+            )
+            if (state.pricePresets.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    state.pricePresets.take(4).forEach { preset ->
+                        val formatted = priceFormatter.format(preset / 100)
+                        Box(modifier = Modifier.weight(1f)) {
+                            FilterChip(
+                                selected = state.priceCents == preset,
+                                onClick = {
+                                    priceInput = (preset / 100).toString()
+                                    onPriceChange(preset)
+                                },
+                                label = {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "$formatted ${state.currencySymbol}",
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+        }
         state.errors[LessonCreationField.PRICE]?.let { ErrorText(it) }
     }
 }

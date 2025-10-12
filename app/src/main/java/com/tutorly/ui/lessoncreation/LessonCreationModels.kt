@@ -19,6 +19,7 @@ data class LessonCreationUiState(
     val time: LocalTime = LocalTime.now(),
     val durationMinutes: Int = 60,
     val priceCents: Int = 0,
+    val pricePresets: List<Int> = emptyList(),
     val note: String = "",
     val currencySymbol: String = "₽",
     val slotStepMinutes: Int = 30,

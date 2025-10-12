@@ -11,7 +11,10 @@ import com.tutorly.domain.repo.UserSettingsRepository
 import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -49,6 +53,10 @@ class LessonCreationViewModel @Inject constructor(
     private var currentZone: ZoneId = ZoneId.systemDefault()
     private var conflictRequest: LessonCreateRequest? = null
     private var pendingStudentConfig: LessonCreationConfig? = null
+    private val rateHistoryCache: MutableMap<Long, List<RateUsage>> = mutableMapOf()
+    private var currentRateHistory: List<RateUsage> = emptyList()
+    private var currentStudentBaseRateCents: Int? = null
+    private var currentStudentBaseRateDuration: Int? = null
 
     init {
         viewModelScope.launch {
@@ -87,6 +95,9 @@ class LessonCreationViewModel @Inject constructor(
 
             durationEdited = config.duration != null
             priceEdited = false
+            currentRateHistory = emptyList()
+            currentStudentBaseRateCents = null
+            currentStudentBaseRateDuration = null
 
             val students = loadStudents("")
             val subjectOptions = cachedSubjects.map { it.toOption() }
@@ -185,6 +196,11 @@ class LessonCreationViewModel @Inject constructor(
             else -> state.priceCents
         }
 
+        currentRateHistory = loadRateHistory(studentId)
+        currentStudentBaseRateCents = studentRate
+        currentStudentBaseRateDuration = studentRate?.let { duration.takeIf { it > 0 } }
+        val pricePresets = computePricePresets(duration)
+
         _uiState.update {
             it.copy(
                 selectedStudent = selected,
@@ -192,7 +208,8 @@ class LessonCreationViewModel @Inject constructor(
                 studentQuery = selected.name,
                 selectedSubjectId = subjectId,
                 durationMinutes = duration,
-                priceCents = price
+                priceCents = price,
+                pricePresets = pricePresets
             )
         }
 
@@ -208,11 +225,14 @@ class LessonCreationViewModel @Inject constructor(
             _uiState.update { it.copy(selectedSubjectId = null) }
             return
         }
+        val newDuration = if (durationEdited) state.durationMinutes else subject.durationMinutes
+        val newPrice = if (priceEdited) state.priceCents else subject.defaultPriceCents
         _uiState.update {
             it.copy(
                 selectedSubjectId = subjectId,
-                durationMinutes = if (durationEdited) it.durationMinutes else subject.durationMinutes,
-                priceCents = if (priceEdited) it.priceCents else subject.defaultPriceCents
+                durationMinutes = newDuration,
+                priceCents = newPrice,
+                pricePresets = computePricePresets(newDuration)
             )
         }
     }
@@ -228,7 +248,13 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onDurationChanged(value: Int) {
         durationEdited = true
-        _uiState.update { it.copy(durationMinutes = value.coerceAtLeast(0)) }
+        val sanitized = value.coerceAtLeast(0)
+        _uiState.update {
+            it.copy(
+                durationMinutes = sanitized,
+                pricePresets = computePricePresets(sanitized)
+            )
+        }
     }
 
     fun onPriceChanged(value: Int) {
@@ -322,6 +348,19 @@ class LessonCreationViewModel @Inject constructor(
         }.onSuccess {
             val start = ZonedDateTime.ofInstant(request.startAt, currentZone)
             val end = ZonedDateTime.ofInstant(request.endAt, currentZone)
+            val durationMinutes = Duration.between(request.startAt, request.endAt).toMinutes().toInt()
+            if (durationMinutes > 0) {
+                val usage = RateUsage(
+                    priceCents = request.priceCents,
+                    durationMinutes = durationMinutes,
+                    timestamp = request.startAt
+                )
+                rateHistoryCache[request.studentId] =
+                    (rateHistoryCache[request.studentId] ?: emptyList()) + usage
+                if (_uiState.value.selectedStudent?.id == request.studentId) {
+                    currentRateHistory = currentRateHistory + usage
+                }
+            }
             val formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm", _uiState.value.locale)
             val message = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
             _uiState.update {
@@ -331,9 +370,13 @@ class LessonCreationViewModel @Inject constructor(
                     snackbarMessage = message,
                     showConflictDialog = null,
                     selectedStudent = null,
-                    studentQuery = ""
+                    studentQuery = "",
+                    pricePresets = emptyList()
                 )
             }
+            currentRateHistory = emptyList()
+            currentStudentBaseRateCents = null
+            currentStudentBaseRateDuration = null
             conflictRequest = null
             _events.tryEmit(
                 LessonCreationEvent.Created(
@@ -362,7 +405,82 @@ class LessonCreationViewModel @Inject constructor(
         }.getOrDefault(emptyList())
         return list.sortedBy { it.name.lowercase(Locale.getDefault()) }.map { it.toOption() }
     }
+
+    private suspend fun loadRateHistory(studentId: Long): List<RateUsage> {
+        rateHistoryCache[studentId]?.let { return it }
+        val lessons = runCatching { lessonsRepository.observeByStudent(studentId).first() }
+            .getOrDefault(emptyList())
+        val history = lessons.mapNotNull { lesson ->
+            val durationMinutes = Duration.between(lesson.startAt, lesson.endAt).toMinutes().toInt()
+            if (durationMinutes <= 0) {
+                null
+            } else {
+                RateUsage(
+                    priceCents = lesson.priceCents,
+                    durationMinutes = durationMinutes,
+                    timestamp = lesson.startAt
+                )
+            }
+        }
+        rateHistoryCache[studentId] = history
+        return history
+    }
+
+    private fun computePricePresets(durationMinutes: Int): List<Int> {
+        if (durationMinutes <= 0) return emptyList()
+        val aggregates = mutableMapOf<Int, RateAggregate>()
+        currentRateHistory.forEach { usage ->
+            val scaled = scalePrice(usage.priceCents, usage.durationMinutes, durationMinutes) ?: return@forEach
+            if (scaled <= 0) return@forEach
+            val aggregate = aggregates.getOrPut(scaled) { RateAggregate() }
+            aggregate.count += 1
+            if (usage.timestamp > aggregate.lastUsed) {
+                aggregate.lastUsed = usage.timestamp
+            }
+        }
+        val baseRate = currentStudentBaseRateCents
+        val baseDuration = currentStudentBaseRateDuration
+        if (baseRate != null && baseDuration != null && baseDuration > 0) {
+            val scaled = scalePrice(baseRate, baseDuration, durationMinutes)
+            if (scaled != null && scaled > 0) {
+                val aggregate = aggregates.getOrPut(scaled) { RateAggregate() }
+                aggregate.count += 1
+                if (aggregate.lastUsed < Instant.MAX) {
+                    aggregate.lastUsed = Instant.MAX
+                }
+            }
+        }
+        if (aggregates.isEmpty()) return emptyList()
+        return aggregates.entries
+            .sortedWith(
+                compareByDescending<Map.Entry<Int, RateAggregate>> { it.value.count }
+                    .thenByDescending { it.value.lastUsed }
+                    .thenBy { it.key }
+            )
+            .map { it.key }
+            .take(4)
+    }
+
+    private fun scalePrice(priceCents: Int, fromMinutes: Int, toMinutes: Int): Int? {
+        if (priceCents <= 0 || fromMinutes <= 0 || toMinutes <= 0) return null
+        val scaledRub = BigDecimal(priceCents)
+            .divide(BigDecimal(100))
+            .multiply(BigDecimal(toMinutes))
+            .divide(BigDecimal(fromMinutes), 0, RoundingMode.HALF_UP)
+        return runCatching { scaledRub.multiply(BigDecimal(100)).intValueExact() }.getOrNull()
+    }
 }
+
+private data class RateUsage(
+    val priceCents: Int,
+    val durationMinutes: Int,
+    val timestamp: Instant
+)
+
+private data class RateAggregate(
+    var count: Int = 0,
+    var lastUsed: Instant = Instant.MIN
+)
 
 private fun LessonDetails.toConflictLesson(zoneId: ZoneId): ConflictLesson {
     val start = ZonedDateTime.ofInstant(startAt, zoneId)
