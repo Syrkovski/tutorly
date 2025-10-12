@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,15 +25,12 @@ import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -41,10 +38,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -52,10 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -69,6 +61,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.lessoncard.LessonCardSheet
+import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -85,10 +79,21 @@ fun TodayScreen(
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
+    val lessonCardState by lessonCardViewModel.uiState.collectAsState()
 
-    var noteLesson by remember { mutableStateOf<LessonForToday?>(null) }
-    var noteDraft by rememberSaveable(noteLesson?.id) { mutableStateOf("") }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    LessonCardSheet(
+        state = lessonCardState,
+        onDismissRequest = lessonCardViewModel::dismiss,
+        onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onDateSelect = lessonCardViewModel::onDateSelected,
+        onTimeSelect = lessonCardViewModel::onTimeSelected,
+        onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onPriceChange = lessonCardViewModel::onPriceChanged,
+        onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
+        onNoteChange = lessonCardViewModel::onNoteChanged,
+        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
+    )
 
     LaunchedEffect(snackbarMessage) {
         val message = snackbarMessage ?: return@LaunchedEffect
@@ -127,30 +132,9 @@ fun TodayScreen(
                     state = state,
                     onSwipeRight = viewModel::onSwipeRight,
                     onSwipeLeft = viewModel::onSwipeLeft,
-                    onLessonClick = { lesson ->
-                        noteLesson = lesson
-                        noteDraft = lesson.note.orEmpty()
-                    }
+                    onLessonClick = lessonCardViewModel::open
                 )
             }
-        }
-    }
-
-    noteLesson?.let { lesson ->
-        ModalBottomSheet(
-            onDismissRequest = { noteLesson = null },
-            sheetState = sheetState
-        ) {
-            LessonNoteSheet(
-                lesson = lesson,
-                text = noteDraft,
-                onTextChange = { noteDraft = it },
-                onCancel = { noteLesson = null },
-                onSave = { value ->
-                    viewModel.onNoteSave(lesson.id, value.ifBlank { null })
-                    noteLesson = null
-                }
-            )
         }
     }
 }
@@ -197,26 +181,87 @@ private fun TodayContent(
     state: TodayUiState.Content,
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
-    onLessonClick: (LessonForToday) -> Unit
+    onLessonClick: (Long) -> Unit
 ) {
     val listState = rememberLazyListState()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        itemsIndexed(state.lessons, key = { _, item -> item.id }) { index, lesson ->
-            if (state.remainingCount > 0 && index == state.remainingCount) {
-                MarkedSectionHeader()
+        state.sections.forEachIndexed { index, section ->
+            item(key = "header_${section.date}") {
+                DaySectionHeader(section = section, addTopSpacing = index > 0)
             }
-            TodayLessonRow(
-                lesson = lesson,
-                onSwipeRight = onSwipeRight,
-                onSwipeLeft = onSwipeLeft,
-                onClick = { onLessonClick(lesson) }
-            )
+            items(section.pending, key = { it.id }) { lesson ->
+                TodayLessonRow(
+                    lesson = lesson,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onClick = { onLessonClick(lesson.id) }
+                )
+            }
+            if (section.marked.isNotEmpty()) {
+                item(key = "marked_header_${section.date}") {
+                    MarkedSectionHeader()
+                }
+                items(section.marked, key = { it.id }) { lesson ->
+                    TodayLessonRow(
+                        lesson = lesson,
+                        onSwipeRight = onSwipeRight,
+                        onSwipeLeft = onSwipeLeft,
+                        onClick = { onLessonClick(lesson.id) }
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun DaySectionHeader(section: TodayLessonSection, addTopSpacing: Boolean) {
+    val locale = remember { Locale.getDefault() }
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM, EEEE", locale) }
+    val formatted = remember(section.date, locale) {
+        dateFormatter.format(section.date).replaceFirstChar { char ->
+            if (char.isLowerCase()) char.titlecase(locale) else char.toString()
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = if (addTopSpacing) 12.dp else 0.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = formatted,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (section.isToday) {
+            TodayBadge()
+        }
+    }
+}
+
+@Composable
+private fun TodayBadge() {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.today_title),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
 
@@ -225,7 +270,7 @@ private fun MarkedSectionHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp, bottom = 4.dp),
+            .padding(top = 12.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Spacer(
@@ -436,61 +481,6 @@ private fun PaymentStatusChip(status: PaymentStatus) {
     }
 }
 
-@Composable
-private fun LessonNoteSheet(
-    lesson: LessonForToday,
-    text: String,
-    onTextChange: (String) -> Unit,
-    onCancel: () -> Unit,
-    onSave: (String) -> Unit
-) {
-    val zoneId = remember { ZoneId.systemDefault() }
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    val start = remember(lesson.startAt) { lesson.startAt.atZone(zoneId).toLocalTime() }
-    val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
-    val subtitleParts = buildList {
-        add(stringResource(R.string.today_note_time, timeFormatter.format(start)))
-        add(stringResource(R.string.today_duration_format, durationMinutes))
-        lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()?.let { add(it) }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.today_note_title, lesson.studentName),
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = subtitleParts.joinToString(separator = " • "),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp),
-            placeholder = { Text(stringResource(R.string.today_note_placeholder)) }
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            TextButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.today_note_cancel))
-            }
-            Button(onClick = { onSave(text) }, modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.today_note_save))
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayTopBar(state: TodayUiState) {
@@ -519,7 +509,7 @@ private fun TodayTopBar(state: TodayUiState) {
                     AssistChip(
                         onClick = {},
                         label = {
-                            Text(text = stringResource(R.string.today_remaining_count, state.remainingCount))
+                            Text(text = stringResource(R.string.today_remaining_count, state.pendingCount))
                         },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,

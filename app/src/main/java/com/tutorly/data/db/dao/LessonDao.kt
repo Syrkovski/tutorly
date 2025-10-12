@@ -13,6 +13,16 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE startAt >= :from AND startAt < :to ORDER BY startAt")
     fun observeInRange(from: Instant, to: Instant): Flow<List<LessonWithStudent>>
 
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM lessons
+        WHERE startAt < :before AND paymentStatus IN (:statuses)
+        ORDER BY startAt
+        """
+    )
+    fun observeOutstanding(before: Instant, statuses: List<PaymentStatus>): Flow<List<LessonWithStudent>>
+
     @Query(
         """
         SELECT
