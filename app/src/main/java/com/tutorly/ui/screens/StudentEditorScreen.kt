@@ -254,11 +254,6 @@ fun StudentEditorDialog(
                 onNoteChange = vm::onNoteChange,
                 onArchivedChange = vm::onArchivedChange,
                 onActiveChange = vm::onActiveChange,
-                onCancel = {
-                    if (!formState.isSaving) {
-                        hideSheetAndThen(onDismiss)
-                    }
-                },
                 onSave = attemptSave,
                 modifier = Modifier.padding(innerPadding),
                 editTarget = vm.editTarget,

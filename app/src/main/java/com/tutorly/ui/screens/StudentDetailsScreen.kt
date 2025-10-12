@@ -274,7 +274,8 @@ private fun StudentProfileContent(
         item {
             StudentProfileMetricsSection(
                 profile = profile,
-                numberFormatter = numberFormatter
+                numberFormatter = numberFormatter,
+                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) }
             )
         }
 
@@ -435,6 +436,7 @@ private fun ProfileInfoCard(
 private fun StudentProfileMetricsSection(
     profile: StudentProfile,
     numberFormatter: NumberFormat,
+    onRateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val lessonsCount = profile.metrics.totalLessons.toString()
@@ -472,7 +474,8 @@ private fun StudentProfileMetricsSection(
                 icon = Icons.Outlined.Schedule,
                 value = rateValue,
                 label = stringResource(id = R.string.student_profile_metrics_rate_label),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = onRateClick
             )
             ProfileMetricTile(
                 icon = Icons.Outlined.CurrencyRuble,
@@ -489,10 +492,20 @@ private fun ProfileMetricTile(
     icon: ImageVector,
     value: String,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
+    val tileModifier = if (onClick != null) {
+        modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .clickable(onClick = onClick)
+    } else {
+        modifier.fillMaxWidth()
+    }
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = tileModifier,
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 1.dp
