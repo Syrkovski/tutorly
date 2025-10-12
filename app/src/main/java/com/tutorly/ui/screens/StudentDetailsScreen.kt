@@ -75,7 +75,7 @@ import kotlin.math.roundToInt
 @Composable
 fun StudentDetailsScreen(
     onBack: () -> Unit,
-    onEdit: (Long) -> Unit,
+    onEdit: (Long, StudentEditTarget) -> Unit,
     onAddLesson: (Long) -> Unit,
     onAddPrepayment: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -200,7 +200,7 @@ private fun StudentProfileTopBar(
 @Composable
 private fun StudentProfileContent(
     profile: StudentProfile,
-    onEdit: (Long) -> Unit,
+    onEdit: (Long, StudentEditTarget) -> Unit,
     onAddLesson: (Long) -> Unit,
     onAddPrepayment: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
@@ -244,7 +244,7 @@ private fun StudentProfileContent(
         item {
             StudentProfileHeader(
                 profile = profile,
-                onEdit = onEdit
+                onEdit = { target -> onEdit(profile.student.id, target) }
             )
         }
 
@@ -254,22 +254,21 @@ private fun StudentProfileContent(
                     icon = Icons.Outlined.Phone,
                     label = stringResource(id = R.string.student_details_phone_label),
                     value = profile.student.phone,
-                    onClick = { onEdit(profile.student.id) }
+                    onClick = { onEdit(profile.student.id, StudentEditTarget.PHONE) }
                 )
                 ProfileInfoCard(
                     icon = Icons.Outlined.Email,
                     label = stringResource(id = R.string.student_details_messenger_label),
                     value = profile.student.messenger,
-                    onClick = { onEdit(profile.student.id) }
+                    onClick = { onEdit(profile.student.id, StudentEditTarget.MESSENGER) }
                 )
-                if (!profile.student.note.isNullOrBlank()) {
-                    ProfileInfoCard(
-                        icon = Icons.Outlined.StickyNote2,
-                        label = stringResource(id = R.string.student_details_notes_title),
-                        value = profile.student.note,
-                        onClick = { onEdit(profile.student.id) }
-                    )
-                }
+                ProfileInfoCard(
+                    icon = Icons.Outlined.StickyNote2,
+                    label = stringResource(id = R.string.student_details_notes_title),
+                    value = profile.student.note,
+                    onClick = { onEdit(profile.student.id, StudentEditTarget.NOTES) },
+                    valueMaxLines = 4
+                )
             }
         }
 
@@ -335,13 +334,13 @@ private fun StudentProfileContent(
 @Composable
 private fun StudentProfileHeader(
     profile: StudentProfile,
-    onEdit: (Long) -> Unit,
+    onEdit: (StudentEditTarget) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onEdit(profile.student.id) },
+            .clickable { onEdit(StudentEditTarget.PROFILE) },
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -381,7 +380,8 @@ private fun ProfileInfoCard(
     label: String,
     value: String?,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    valueMaxLines: Int = 2,
 ) {
     val hasValue = !value.isNullOrBlank()
     val displayValue = value?.takeIf { it.isNotBlank() }
@@ -425,7 +425,7 @@ private fun ProfileInfoCard(
                     text = displayValue,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (hasValue) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = valueMaxLines,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -460,21 +460,27 @@ private fun StudentProfileMetricsSection(
             text = stringResource(id = R.string.student_profile_metrics_title),
             style = MaterialTheme.typography.titleMedium
         )
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             ProfileMetricTile(
                 icon = Icons.Outlined.CalendarToday,
                 value = lessonsCount,
-                label = stringResource(id = R.string.student_profile_metrics_lessons_label)
+                label = stringResource(id = R.string.student_profile_metrics_lessons_label),
+                modifier = Modifier.weight(1f)
             )
             ProfileMetricTile(
                 icon = Icons.Outlined.Schedule,
                 value = rateValue,
-                label = stringResource(id = R.string.student_profile_metrics_rate_label)
+                label = stringResource(id = R.string.student_profile_metrics_rate_label),
+                modifier = Modifier.weight(1f)
             )
             ProfileMetricTile(
                 icon = Icons.Outlined.CurrencyRuble,
                 value = earnedValue,
-                label = stringResource(id = R.string.student_profile_metrics_earned_label)
+                label = stringResource(id = R.string.student_profile_metrics_earned_label),
+                modifier = Modifier.weight(1f)
             )
         }
     }

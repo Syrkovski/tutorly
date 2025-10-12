@@ -48,6 +48,10 @@ class StudentEditorVM @Inject constructor(
     private val repo: StudentsRepository
 ) : ViewModel() {
     private val id: Long? = savedStateHandle.get<Long>("studentId")
+    private val editTargetName: String? = savedStateHandle.get<String>("editTarget")
+    val editTarget: StudentEditTarget? = editTargetName?.let { target ->
+        runCatching { StudentEditTarget.valueOf(target) }.getOrNull()
+    }
     var formState by mutableStateOf(StudentEditorFormState())
         private set
     private var loadedStudent: Student? = null
@@ -261,7 +265,7 @@ fun StudentEditorScreen(
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .fillMaxWidth(),
-                focusOnStart = false,
+                initialFocus = vm.editTarget,
                 enabled = !vm.formState.isSaving,
                 onSubmit = attemptSave
             )

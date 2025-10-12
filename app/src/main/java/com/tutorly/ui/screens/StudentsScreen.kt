@@ -287,7 +287,7 @@ private fun StudentEditorSheet(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth(),
-            focusOnStart = true,
+            initialFocus = StudentEditTarget.PROFILE,
             enabled = !state.isSaving,
             onSubmit = onSave
         )

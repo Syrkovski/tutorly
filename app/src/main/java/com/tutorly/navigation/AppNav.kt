@@ -37,9 +37,18 @@ private const val ARG_STUDENT_EDITOR_ORIGIN = "studentEditorOrigin"
 private const val ROUTE_STUDENTS_PATTERN = "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN={$ARG_STUDENT_EDITOR_ORIGIN}"
 const val ROUTE_FINANCE = "finance"
 const val ROUTE_STUDENT_DETAILS = "student/{studentId}"
-const val ROUTE_STUDENT_EDIT = "student/{studentId}/edit"
+private const val ROUTE_STUDENT_EDIT_BASE = "student/{studentId}/edit"
+private const val ARG_STUDENT_EDIT_TARGET = "editTarget"
+const val ROUTE_STUDENT_EDIT = "$ROUTE_STUDENT_EDIT_BASE?$ARG_STUDENT_EDIT_TARGET={$ARG_STUDENT_EDIT_TARGET}"
 private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
-private fun studentEditRoute(studentId: Long) = ROUTE_STUDENT_EDIT.replace("{studentId}", studentId.toString())
+private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null): String {
+    val base = ROUTE_STUDENT_EDIT_BASE.replace("{studentId}", studentId.toString())
+    return if (target != null) {
+        "$base?$ARG_STUDENT_EDIT_TARGET=${target.name}"
+    } else {
+        base
+    }
+}
 
 @Composable
 fun AppNavRoot() {
@@ -176,8 +185,8 @@ fun AppNavRoot() {
                 val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
                 StudentDetailsScreen(
                     onBack = { nav.popBackStack() },
-                    onEdit = {
-                        nav.navigate(studentEditRoute(studentId)) {
+                    onEdit = { id, target ->
+                        nav.navigate(studentEditRoute(id, target)) {
                             launchSingleTop = true
                         }
                     },
@@ -198,7 +207,13 @@ fun AppNavRoot() {
             }
             composable(
                 route = ROUTE_STUDENT_EDIT,
-                arguments = listOf(navArgument("studentId") { type = NavType.LongType })
+                arguments = listOf(
+                    navArgument("studentId") { type = NavType.LongType },
+                    navArgument(ARG_STUDENT_EDIT_TARGET) {
+                        type = NavType.StringType
+                        defaultValue = StudentEditTarget.PROFILE.name
+                    }
+                )
             ) {
                 StudentEditorScreen(
                     onClose = { nav.popBackStack() },

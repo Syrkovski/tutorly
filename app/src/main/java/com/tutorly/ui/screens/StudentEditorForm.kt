@@ -57,12 +57,15 @@ fun StudentEditorForm(
     onArchivedChange: (Boolean) -> Unit,
     onActiveChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    focusOnStart: Boolean = false,
+    initialFocus: StudentEditTarget? = null,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
 ) {
-    val focusRequester = remember { FocusRequester() }
+    val nameFocusRequester = remember { FocusRequester() }
     val gradeFocusRequester = remember { FocusRequester() }
+    val phoneFocusRequester = remember { FocusRequester() }
+    val messengerFocusRequester = remember { FocusRequester() }
+    val noteFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
     var isGradeDropdownExpanded by remember { mutableStateOf(false) }
     val gradeOtherOption = stringResource(id = R.string.student_editor_grade_other)
@@ -71,9 +74,15 @@ fun StudentEditorForm(
         stringResource(id = R.string.student_editor_grade_option, number)
     } + gradeOtherOption
 
-    LaunchedEffect(focusOnStart) {
-        if (focusOnStart) {
-            focusRequester.requestFocus()
+    LaunchedEffect(initialFocus, enabled) {
+        if (enabled) {
+            when (initialFocus) {
+                StudentEditTarget.PROFILE -> nameFocusRequester.requestFocus()
+                StudentEditTarget.PHONE -> phoneFocusRequester.requestFocus()
+                StudentEditTarget.MESSENGER -> messengerFocusRequester.requestFocus()
+                StudentEditTarget.NOTES -> noteFocusRequester.requestFocus()
+                null -> Unit
+            }
         }
     }
 
@@ -87,7 +96,7 @@ fun StudentEditorForm(
             label = { Text(text = stringResource(id = R.string.student_editor_name)) },
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
+                .focusRequester(nameFocusRequester),
             singleLine = true,
             enabled = enabled,
             isError = state.nameError,
@@ -188,7 +197,9 @@ fun StudentEditorForm(
             value = state.phone,
             onValueChange = onPhoneChange,
             label = { Text(text = stringResource(id = R.string.student_editor_phone)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(phoneFocusRequester),
             singleLine = true,
             enabled = enabled,
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
@@ -198,7 +209,9 @@ fun StudentEditorForm(
             value = state.messenger,
             onValueChange = onMessengerChange,
             label = { Text(text = stringResource(id = R.string.student_editor_messenger)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(messengerFocusRequester),
             singleLine = true,
             enabled = enabled,
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
@@ -208,7 +221,9 @@ fun StudentEditorForm(
             value = state.note,
             onValueChange = onNoteChange,
             label = { Text(text = stringResource(id = R.string.student_editor_notes)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(noteFocusRequester),
             minLines = 3,
             enabled = enabled,
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
