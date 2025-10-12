@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -40,7 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -74,6 +72,7 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
+import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -261,7 +260,7 @@ private fun StudentProfileTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
@@ -397,8 +396,8 @@ private fun StudentProfileHeader(
             .fillMaxWidth()
             .clickable { onEdit(StudentEditTarget.PROFILE) },
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Row(
             modifier = Modifier
@@ -442,14 +441,12 @@ private fun ProfileInfoCard(
     val displayValue = value?.takeIf { it.isNotBlank() }
         ?: stringResource(id = R.string.student_profile_contact_placeholder)
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .clickable { onClick() },
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Row(
             modifier = Modifier
@@ -557,22 +554,8 @@ private fun ProfileMetricTile(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
-    val tileModifier = if (onClick != null) {
-        modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick)
-    } else {
-        modifier.fillMaxWidth()
-    }
-
-    Surface(
-        modifier = tileModifier,
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp
-    ) {
+    val cardModifier = modifier.fillMaxWidth()
+    val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -601,6 +584,22 @@ private fun ProfileMetricTile(
             )
         }
     }
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = cardModifier,
+            shape = MaterialTheme.shapes.large,
+            colors = TutorlyCardDefaults.colors(),
+            elevation = TutorlyCardDefaults.elevation()
+        ) { content() }
+    } else {
+        Card(
+            modifier = cardModifier,
+            shape = MaterialTheme.shapes.large,
+            colors = TutorlyCardDefaults.colors(),
+            elevation = TutorlyCardDefaults.elevation()
+        ) { content() }
+    }
 }
 
 @Composable
@@ -611,13 +610,12 @@ private fun ProfileContactsCard(
     onMessengerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp
+            .fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -695,12 +693,11 @@ private fun StudentProfileEmptyHistory(
     onAddLesson: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surface
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier
@@ -750,14 +747,12 @@ private fun StudentProfileLessonCard(
     val amount = currencyFormatter.format(lesson.priceCents / 100.0)
     val isPaid = lesson.paymentStatus == PaymentStatus.PAID
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surface
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),

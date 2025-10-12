@@ -95,7 +95,7 @@ fun AppNavRoot() {
                 }
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         // чтобы контент корректно учитывал статус/навигационные панели
         contentWindowInsets = WindowInsets.systemBars
     ) { innerPadding ->

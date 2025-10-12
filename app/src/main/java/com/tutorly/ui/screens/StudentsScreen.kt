@@ -1,6 +1,5 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +29,8 @@ import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -68,6 +67,7 @@ import androidx.compose.runtime.setValue
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -143,7 +143,7 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
@@ -244,59 +244,78 @@ fun StudentEditorSheet(
     modifier: Modifier = Modifier,
     editTarget: StudentEditTarget? = null,
     initialFocus: StudentEditTarget? = StudentEditTarget.PROFILE,
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     val isEditing = state.studentId != null
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-            .heightIn(max = 600.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .heightIn(max = 600.dp)
     ) {
-        Text(
-            text = stringResource(
-                id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
-            ),
-            style = MaterialTheme.typography.titleLarge
-        )
-
-        StudentEditorForm(
-            state = state,
-            onNameChange = onNameChange,
-            onPhoneChange = onPhoneChange,
-            onMessengerChange = onMessengerChange,
-            onRateChange = onRateChange,
-            onSubjectChange = onSubjectChange,
-            onGradeChange = onGradeChange,
-            onNoteChange = onNoteChange,
-            onArchivedChange = onArchivedChange,
-            onActiveChange = onActiveChange,
-            modifier = Modifier
-                .fillMaxWidth(),
-            editTarget = editTarget,
-            initialFocus = initialFocus,
-            enableScrolling = editTarget == null,
-            enabled = !state.isSaving,
-            onSubmit = onSave
-        )
-
-        Button(
-            onClick = onSave,
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isSaving && state.name.isNotBlank()
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             if (state.isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    text = stringResource(id = R.string.student_editor_save)
-                )
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
+
+            Text(
+                text = stringResource(
+                    id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
+                ),
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            StudentEditorForm(
+                state = state,
+                onNameChange = onNameChange,
+                onPhoneChange = onPhoneChange,
+                onMessengerChange = onMessengerChange,
+                onRateChange = onRateChange,
+                onSubjectChange = onSubjectChange,
+                onGradeChange = onGradeChange,
+                onNoteChange = onNoteChange,
+                onArchivedChange = onArchivedChange,
+                onActiveChange = onActiveChange,
+                modifier = Modifier.fillMaxWidth(),
+                editTarget = editTarget,
+                initialFocus = initialFocus,
+                enableScrolling = editTarget == null,
+                enabled = !state.isSaving,
+                onSubmit = onSave
+            )
+
+            Button(
+                onClick = onSave,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isSaving && state.name.isNotBlank()
+            ) {
+                if (state.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.student_editor_save)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (snackbarHostState != null) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp)
+            )
         }
     }
 }
@@ -332,9 +351,8 @@ private fun StudentCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation()
     ) {
         Row(
             modifier = Modifier

@@ -12,6 +12,7 @@ data class LessonForToday(
     val id: Long,
     val studentId: Long,
     val studentName: String,
+    val studentGrade: String?,
     val subjectName: String?,
     val lessonTitle: String?,
     val startAt: Instant,

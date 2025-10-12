@@ -1,12 +1,9 @@
 package com.tutorly.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -186,12 +183,16 @@ fun StudentEditorDialog(
     vm: StudentEditorVM = hiltViewModel(),
 ) {
     val formState = vm.formState
+    val editTarget = vm.editTarget
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    fun hideSheetAndThen(action: () -> Unit) {
+    val currentOnDismiss by androidx.compose.runtime.rememberUpdatedState(onDismiss)
+    val currentOnSaved by androidx.compose.runtime.rememberUpdatedState(onSaved)
+
+    fun closeEditor(action: () -> Unit) {
         if (sheetState.isVisible) {
             coroutineScope.launch {
                 sheetState.hide()
@@ -202,14 +203,16 @@ fun StudentEditorDialog(
     }
 
     BackHandler(enabled = !formState.isSaving) {
-        hideSheetAndThen(onDismiss)
+        if (!formState.isSaving) {
+            closeEditor(currentOnDismiss)
+        }
     }
 
     val attemptSave: () -> Unit = {
         if (!formState.isSaving) {
             vm.save(
                 onSaved = { id ->
-                    hideSheetAndThen { onSaved(id) }
+                    closeEditor { currentOnSaved(id) }
                 },
                 onError = { message ->
                     val text = if (message.isNotBlank()) {
@@ -226,7 +229,7 @@ fun StudentEditorDialog(
     ModalBottomSheet(
         onDismissRequest = {
             if (!formState.isSaving) {
-                hideSheetAndThen(onDismiss)
+                closeEditor(currentOnDismiss)
             }
         },
         sheetState = sheetState,
@@ -235,31 +238,23 @@ fun StudentEditorDialog(
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
         TutorlyBottomSheetContainer {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                StudentEditorSheet(
-                    state = formState,
-                    onNameChange = vm::onNameChange,
-                    onPhoneChange = vm::onPhoneChange,
-                    onMessengerChange = vm::onMessengerChange,
-                    onRateChange = vm::onRateChange,
-                    onSubjectChange = vm::onSubjectChange,
-                    onGradeChange = vm::onGradeChange,
-                    onNoteChange = vm::onNoteChange,
-                    onArchivedChange = vm::onArchivedChange,
-                    onActiveChange = vm::onActiveChange,
-                    onSave = attemptSave,
-                    modifier = Modifier.fillMaxWidth(),
-                    editTarget = vm.editTarget,
-                    initialFocus = vm.editTarget,
-                )
-
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                )
-            }
+            StudentEditorSheet(
+                state = formState,
+                onNameChange = vm::onNameChange,
+                onPhoneChange = vm::onPhoneChange,
+                onMessengerChange = vm::onMessengerChange,
+                onRateChange = vm::onRateChange,
+                onSubjectChange = vm::onSubjectChange,
+                onGradeChange = vm::onGradeChange,
+                onNoteChange = vm::onNoteChange,
+                onArchivedChange = vm::onArchivedChange,
+                onActiveChange = vm::onActiveChange,
+                onSave = attemptSave,
+                modifier = Modifier.fillMaxWidth(),
+                editTarget = editTarget,
+                initialFocus = editTarget,
+                snackbarHostState = snackbarHostState
+            )
         }
     }
 }
