@@ -730,13 +730,16 @@ private fun MonthCalendar(
     }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
-    Column(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val cellHeight = remember(maxHeight) { maxHeight / 6 }
+
         LazyVerticalGrid(
             columns = GridCells.Fixed(6),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(0.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
+            userScrollEnabled = false
         ) {
             items(days) { date ->
                 val lessons = lessonsByDate[date].orEmpty()
@@ -749,7 +752,10 @@ private fun MonthCalendar(
                         if (date.month == month.month) {
                             onDaySelected(date)
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(cellHeight)
                 )
             }
         }
@@ -762,7 +768,8 @@ private fun MonthDayCell(
     inCurrentMonth: Boolean,
     isToday: Boolean,
     lessons: List<CalendarLesson>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val enabled = inCurrentMonth
     val containerColor = when {
@@ -783,8 +790,7 @@ private fun MonthDayCell(
         color = containerColor,
         shape = MaterialTheme.shapes.medium,
         border = border,
-        modifier = Modifier
-            .aspectRatio(1f)
+        modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .clickable(enabled = enabled, onClick = onClick)
     ) {
