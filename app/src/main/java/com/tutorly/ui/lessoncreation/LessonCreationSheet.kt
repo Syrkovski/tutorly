@@ -50,8 +50,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Schedule
 import com.tutorly.R
@@ -179,6 +183,9 @@ private fun StudentSection(
                     .onGloballyPositioned { textFieldSize = it.size }
                     .onFocusChanged { focusState -> expanded = focusState.isFocused },
                 singleLine = true,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+                },
                 trailingIcon = {
                     IconButton(onClick = { expanded = !expanded }) {
                         Icon(
@@ -388,6 +395,9 @@ private fun DurationPriceSection(
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_duration_custom_label)) },
                 suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Schedule, contentDescription = null)
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 isError = state.errors.containsKey(LessonCreationField.DURATION)
@@ -433,6 +443,9 @@ private fun DurationPriceSection(
                     onPriceChange((digits.toIntOrNull() ?: 0) * 100)
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.AttachMoney, contentDescription = null)
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 isError = state.errors.containsKey(LessonCreationField.PRICE)
@@ -481,7 +494,10 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
         label = { Text(text = stringResource(id = R.string.lesson_create_note_label)) },
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 80.dp)
+            .heightIn(min = 80.dp),
+        leadingIcon = {
+            Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+        }
     )
 }
 

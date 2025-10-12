@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
@@ -132,6 +136,9 @@ fun StudentPrepaymentSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(amountFocusRequester),
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.AttachMoney, contentDescription = null)
+                },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Next
@@ -151,6 +158,9 @@ fun StudentPrepaymentSheet(
                 onValueChange = vm::onNoteChange,
                 label = { Text(text = stringResource(id = R.string.student_prepayment_note_label)) },
                 modifier = Modifier.fillMaxWidth(),
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+                },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { attemptSave() }),
                 enabled = !state.isSaving,
