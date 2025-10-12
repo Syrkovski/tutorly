@@ -190,6 +190,9 @@ private fun TodayContent(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item(key = "stats") {
+            TodayStatsRow(stats = state.stats)
+        }
         if (state.isAllMarked) {
             item(key = "all_done") {
                 AllMarkedMessage()
@@ -268,6 +271,87 @@ private fun DaySectionHeader(section: TodayLessonSection, addTopSpacing: Boolean
         if (section.isToday) {
             TodayBadge()
         }
+    }
+}
+
+@Composable
+private fun TodayStatsRow(stats: TodayStats) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    val totalAmount = remember(stats.totalAmountCents, currencyFormatter) {
+        formatCurrency(stats.totalAmountCents, currencyFormatter)
+    }
+    val paidAmount = remember(stats.paidAmountCents, currencyFormatter) {
+        formatCurrency(stats.paidAmountCents, currencyFormatter)
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TodayStatsCard(
+            title = stringResource(R.string.today_stats_total_amount_label),
+            titleValue = totalAmount,
+            subtitle = stringResource(R.string.today_stats_total_lessons_label),
+            subtitleValue = stats.totalLessons.toString(),
+            modifier = Modifier.weight(1f)
+        )
+        TodayStatsCard(
+            title = stringResource(R.string.today_stats_paid_amount_label),
+            titleValue = paidAmount,
+            subtitle = stringResource(R.string.today_stats_paid_lessons_label),
+            subtitleValue = stats.paidLessons.toString(),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun TodayStatsCard(
+    title: String,
+    titleValue: String,
+    subtitle: String,
+    subtitleValue: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TodayStatsRowContent(label = title, value = titleValue)
+            TodayStatsRowContent(label = subtitle, value = subtitleValue)
+        }
+    }
+}
+
+@Composable
+private fun TodayStatsRowContent(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(start = 12.dp)
+        )
     }
 }
 

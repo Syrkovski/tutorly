@@ -154,13 +154,27 @@ class TodayViewModel @Inject constructor(
         }
 
         val outstandingUnpaidCount = outstandingLessons.count { it.paymentStatus == PaymentStatus.UNPAID }
-        val todayUnpaidCount = todayPending.count { it.paymentStatus == PaymentStatus.UNPAID && it.endAt <= now }
+        val todayUnpaidCount = todayLessons.count { it.paymentStatus == PaymentStatus.UNPAID }
         val pendingCount = outstandingUnpaidCount + todayUnpaidCount
+
+        val todayStats = TodayStats(
+            totalAmountCents = todayLessons.sumOf { it.priceCents.toLong() },
+            totalLessons = todayLessons.size,
+            paidAmountCents = todayLessons
+                .filter { it.paymentStatus == PaymentStatus.PAID }
+                .sumOf { it.priceCents.toLong() },
+            paidLessons = todayLessons.count { it.paymentStatus == PaymentStatus.PAID }
+        )
+
+        val isAllMarked = todayLessons.isNotEmpty() && todayLessons.all {
+            it.paymentStatus == PaymentStatus.PAID || it.paymentStatus == PaymentStatus.DUE
+        }
 
         return TodayUiState.Content(
             sections = sections,
             pendingCount = pendingCount,
-            isAllMarked = pendingCount == 0
+            isAllMarked = isAllMarked,
+            stats = todayStats
         )
     }
 
@@ -172,7 +186,8 @@ sealed interface TodayUiState {
     data class Content(
         val sections: List<TodayLessonSection>,
         val pendingCount: Int,
-        val isAllMarked: Boolean
+        val isAllMarked: Boolean,
+        val stats: TodayStats
     ) : TodayUiState
 }
 
@@ -187,4 +202,11 @@ data class TodayLessonSection(
     val pending: List<LessonForToday>,
     val upcoming: List<LessonForToday>,
     val marked: List<LessonForToday>
+)
+
+data class TodayStats(
+    val totalAmountCents: Long,
+    val totalLessons: Int,
+    val paidAmountCents: Long,
+    val paidLessons: Int
 )
