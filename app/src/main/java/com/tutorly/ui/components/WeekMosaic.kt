@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,12 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.tutorly.models.PaymentStatus
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.format.TextStyle
+import java.time.ZoneId
 import java.util.Locale
 
 /* =====================  WEEK MOSAIC (compact, 2×4)  ===================== */
@@ -45,7 +44,7 @@ fun WeekMosaic(
     val monday = anchor.with(DayOfWeek.MONDAY)
     val days = remember(monday) { (0..6).map { monday.plusDays(it.toLong()) } }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
-    val now = remember(currentDateTime) { currentDateTime.toLocalDateTime() }
+    val now = remember(currentDateTime) { currentDateTime }
 
     val dayCards = remember(days, dayDataProvider) {
         days.map { d ->
@@ -92,7 +91,7 @@ private fun DayTile(
     height: Dp,
     onClick: () -> Unit,
     today: LocalDate,
-    now: LocalDateTime,
+    now: ZonedDateTime,
     onLessonClick: (LessonBrief) -> Unit
 ) {
     val isToday = model.date == today
@@ -115,7 +114,6 @@ private fun DayTile(
         shape = dayShape,
         modifier = Modifier
             .height(height)
-            .clip(dayShape)
             .clickable(onClick = onClick)
     ) {
         Column(
@@ -149,6 +147,7 @@ private fun DayTile(
                     LessonRowCompact(
                         lesson = it,
                         tone = LessonTone.Ongoing,
+                        currentDateTime = now,
                         onClick = { onLessonClick(it) }
                     )
                 }
@@ -160,6 +159,7 @@ private fun DayTile(
                 LessonRowCompact(
                     lesson = it,
                     tone = LessonTone.Default,
+                    currentDateTime = now,
                     onClick = { onLessonClick(it) }
                 )
             }
@@ -180,7 +180,12 @@ private fun DayTile(
 private enum class LessonTone { Default, Ongoing }
 
 @Composable
-private fun LessonRowCompact(lesson: LessonBrief, tone: LessonTone, onClick: () -> Unit) {
+private fun LessonRowCompact(
+    lesson: LessonBrief,
+    tone: LessonTone,
+    currentDateTime: ZonedDateTime,
+    onClick: () -> Unit
+) {
     val (bg, fg) = when (tone) {
         LessonTone.Default -> MaterialTheme.colorScheme.surface.copy(alpha = 0.6f) to
                 MaterialTheme.colorScheme.onSurface
@@ -196,49 +201,31 @@ private fun LessonRowCompact(lesson: LessonBrief, tone: LessonTone, onClick: () 
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 40.dp)
-            .clip(shape)
             .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SubjectAvatar(name = lesson.subjectName, colorArgb = lesson.subjectColorArgb)
             Text(
-                text = buildLessonTitle(lesson),
+                text = lesson.student,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            StatusChip(
+                data = statusChipData(
+                    paymentStatus = lesson.paymentStatus,
+                    start = lesson.start,
+                    end = lesson.end,
+                    now = currentDateTime
+                ),
+                modifier = Modifier.size(24.dp)
             )
         }
     }
-}
-
-@Composable
-private fun SubjectAvatar(name: String?, colorArgb: Int?): Unit {
-    val label = name?.firstOrNull()?.uppercaseChar()?.toString() ?: "•"
-    val background = colorArgb?.let { Color(it) } ?: MaterialTheme.colorScheme.secondaryContainer
-    val content = if (colorArgb != null) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
-
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(background),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = content
-        )
-    }
-}
-
-private fun buildLessonTitle(lesson: LessonBrief): String {
-    val extras = lesson.grade?.takeIf { it.isNotBlank() }
-    return listOfNotNull(lesson.student, extras).joinToString(" • ")
 }
 
 @Composable
@@ -258,12 +245,13 @@ private fun MiniBadge(text: String) {
 
 data class LessonBrief(
     val id: Long,
-    val start: LocalTime,
-    val end: LocalTime?,
+    val start: ZonedDateTime,
+    val end: ZonedDateTime,
     val student: String,
     val grade: String?,
     val subjectName: String?,
-    val subjectColorArgb: Int?
+    val subjectColorArgb: Int?,
+    val paymentStatus: PaymentStatus
 )
 
 private data class DayCardModel(
@@ -280,24 +268,62 @@ private fun dayTitle(d: LocalDate): String {
     return "$dow ${d.dayOfMonth}"
 }
 
-private fun LessonBrief.isOngoingOn(day: LocalDate, now: LocalDateTime): Boolean {
-    if (now.toLocalDate() != day) return false
-    val endTime = end ?: return false
-    val nowTime = now.toLocalTime()
-    return nowTime >= start && nowTime < endTime
+private fun LessonBrief.isOngoingOn(day: LocalDate, now: ZonedDateTime): Boolean {
+    val current = now.withZoneSameInstant(start.zone)
+    if (current.toLocalDate() != day) return false
+    return !current.isBefore(start) && current.isBefore(end)
 }
 
 /* ----------------------------- Demo data -------------------------------- */
 
 private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
+    val zone = ZoneId.systemDefault()
     val seed = (date.dayOfMonth + date.monthValue) % 3
     return when (seed) {
         0 -> listOf(
-            LessonBrief(1L, LocalTime.of(9, 30), LocalTime.of(10, 30), "Анна", null, "Математика", null),
-            LessonBrief(2L, LocalTime.of(13, 0), LocalTime.of(14, 30), "Иван", "7 класс", "Физика", null),
-            LessonBrief(3L, LocalTime.of(18, 0), LocalTime.of(19, 0), "Олег", null, "Русский", null)
+            LessonBrief(
+                id = 1L,
+                start = date.atTime(9, 30).atZone(zone),
+                end = date.atTime(10, 30).atZone(zone),
+                student = "Анна",
+                grade = null,
+                subjectName = "Математика",
+                subjectColorArgb = null,
+                paymentStatus = PaymentStatus.PAID
+            ),
+            LessonBrief(
+                id = 2L,
+                start = date.atTime(13, 0).atZone(zone),
+                end = date.atTime(14, 30).atZone(zone),
+                student = "Иван",
+                grade = "7 класс",
+                subjectName = "Физика",
+                subjectColorArgb = null,
+                paymentStatus = PaymentStatus.UNPAID
+            ),
+            LessonBrief(
+                id = 3L,
+                start = date.atTime(18, 0).atZone(zone),
+                end = date.atTime(19, 0).atZone(zone),
+                student = "Олег",
+                grade = null,
+                subjectName = "Русский",
+                subjectColorArgb = null,
+                paymentStatus = PaymentStatus.DUE
+            )
         )
-        1 -> listOf(LessonBrief(4L, LocalTime.of(16, 0), LocalTime.of(17, 30), "Мария", "10 класс", "Химия", null))
+        1 -> listOf(
+            LessonBrief(
+                id = 4L,
+                start = date.atTime(16, 0).atZone(zone),
+                end = date.atTime(17, 30).atZone(zone),
+                student = "Мария",
+                grade = "10 класс",
+                subjectName = "Химия",
+                subjectColorArgb = null,
+                paymentStatus = PaymentStatus.PAID
+            )
+        )
         else -> emptyList()
     }
 }
