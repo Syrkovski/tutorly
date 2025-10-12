@@ -283,16 +283,9 @@ private fun TodayStatsRow(stats: TodayStats) {
     val paidAmount = remember(stats.paidAmountCents, currencyFormatter) {
         formatCurrency(stats.paidAmountCents, currencyFormatter)
     }
-    val incomeValue = stringResource(
-        R.string.today_stats_income_value,
-        paidAmount,
-        totalAmount
-    )
-    val lessonsValue = stringResource(
-        R.string.today_stats_lessons_value,
-        stats.paidLessons,
-        stats.totalLessons
-    )
+    val paidLessons = remember(stats.paidLessons) { stats.paidLessons.toString() }
+    val totalLessons = remember(stats.totalLessons) { stats.totalLessons.toString() }
+    val fromLabel = stringResource(R.string.today_stats_from)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -301,12 +294,16 @@ private fun TodayStatsRow(stats: TodayStats) {
     ) {
         TodayStatsCard(
             label = stringResource(R.string.today_stats_income_label),
-            value = incomeValue,
+            primaryValue = paidAmount,
+            secondaryValue = totalAmount,
+            fromLabel = fromLabel,
             modifier = Modifier.weight(1f)
         )
         TodayStatsCard(
             label = stringResource(R.string.today_stats_lessons_label),
-            value = lessonsValue,
+            primaryValue = paidLessons,
+            secondaryValue = totalLessons,
+            fromLabel = fromLabel,
             modifier = Modifier.weight(1f)
         )
     }
@@ -315,7 +312,9 @@ private fun TodayStatsRow(stats: TodayStats) {
 @Composable
 private fun TodayStatsCard(
     label: String,
-    value: String,
+    primaryValue: String,
+    secondaryValue: String,
+    fromLabel: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -334,12 +333,25 @@ private fun TodayStatsCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = primaryValue,
+                    style = MaterialTheme.typography.headlineMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = fromLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = secondaryValue,
+                    style = MaterialTheme.typography.headlineMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
