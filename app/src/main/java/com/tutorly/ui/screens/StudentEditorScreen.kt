@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -269,6 +270,7 @@ fun StudentEditorScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(fraction = 0.9f)
                 .widthIn(max = 520.dp),
             shape = MaterialTheme.shapes.extraLarge
         ) {
@@ -324,6 +326,7 @@ fun StudentEditorScreen(
                         modifier = Modifier.fillMaxWidth(),
                         editTarget = vm.editTarget,
                         initialFocus = vm.editTarget,
+                        enableScrolling = false,
                         enabled = !vm.formState.isSaving,
                         onSubmit = attemptSave
                     )

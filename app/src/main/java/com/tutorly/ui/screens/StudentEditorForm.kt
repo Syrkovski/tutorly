@@ -61,6 +61,7 @@ fun StudentEditorForm(
     modifier: Modifier = Modifier,
     editTarget: StudentEditTarget? = null,
     initialFocus: StudentEditTarget? = null,
+    enableScrolling: Boolean = true,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
 ) {
@@ -90,8 +91,14 @@ fun StudentEditorForm(
     }
 
     val showFullForm = editTarget == null
+    val columnModifier = if (enableScrolling) {
+        modifier.verticalScroll(scrollState)
+    } else {
+        modifier
+    }
+
     Column(
-        modifier = modifier.verticalScroll(scrollState),
+        modifier = columnModifier,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (showFullForm || editTarget == StudentEditTarget.PROFILE) {
