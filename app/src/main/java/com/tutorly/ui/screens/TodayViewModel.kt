@@ -112,13 +112,12 @@ class TodayViewModel @Inject constructor(
             return TodayUiState.Empty
         }
 
-        val todaySorted = todayLessons.sortedWith(
-            compareBy<LessonForToday> {
-                if (it.endAt <= now && it.paymentStatus != PaymentStatus.UNPAID) 1 else 0
-            }.thenBy { it.startAt }
-        )
-        val todayPending = todaySorted.filterNot { it.endAt <= now && it.paymentStatus != PaymentStatus.UNPAID }
+        val todaySorted = todayLessons.sortedBy { it.startAt }
         val todayMarked = todaySorted.filter { it.endAt <= now && it.paymentStatus != PaymentStatus.UNPAID }
+        val todayUpcoming = todaySorted.filter { it.startAt > now }
+        val todayPending = todaySorted.filter { lesson ->
+            lesson !in todayMarked && lesson !in todayUpcoming
+        }
 
         val sections = buildList {
             if (outstandingLessons.isNotEmpty()) {
@@ -131,6 +130,7 @@ class TodayViewModel @Inject constructor(
                             date = date,
                             isToday = false,
                             pending = lessons.sortedBy { it.startAt },
+                            upcoming = emptyList(),
                             marked = emptyList()
                         )
                     )
@@ -142,6 +142,7 @@ class TodayViewModel @Inject constructor(
                         date = dayStart.atZone(zoneId).toLocalDate(),
                         isToday = true,
                         pending = todayPending,
+                        upcoming = todayUpcoming,
                         marked = todayMarked
                     )
                 )
@@ -184,5 +185,6 @@ data class TodayLessonSection(
     val date: LocalDate,
     val isToday: Boolean,
     val pending: List<LessonForToday>,
+    val upcoming: List<LessonForToday>,
     val marked: List<LessonForToday>
 )

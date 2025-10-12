@@ -19,8 +19,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
@@ -190,9 +190,17 @@ private fun TodayContent(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (state.isAllMarked) {
+            item(key = "all_done") {
+                AllMarkedMessage()
+            }
+        }
         state.sections.forEachIndexed { index, section ->
             item(key = "header_${section.date}") {
-                DaySectionHeader(section = section, addTopSpacing = index > 0)
+                DaySectionHeader(
+                    section = section,
+                    addTopSpacing = index > 0 || state.isAllMarked
+                )
             }
             items(section.pending, key = { it.id }) { lesson ->
                 TodayLessonRow(
@@ -201,6 +209,19 @@ private fun TodayContent(
                     onSwipeLeft = onSwipeLeft,
                     onClick = { onLessonClick(lesson.id) }
                 )
+            }
+            if (section.upcoming.isNotEmpty()) {
+                item(key = "upcoming_header_${section.date}") {
+                    UpcomingSectionHeader()
+                }
+                items(section.upcoming, key = { it.id }) { lesson ->
+                    TodayLessonRow(
+                        lesson = lesson,
+                        onSwipeRight = onSwipeRight,
+                        onSwipeLeft = onSwipeLeft,
+                        onClick = { onLessonClick(lesson.id) }
+                    )
+                }
             }
             if (section.marked.isNotEmpty()) {
                 item(key = "marked_header_${section.date}") {
@@ -291,6 +312,85 @@ private fun MarkedSectionHeader() {
                 .height(1.dp)
                 .background(MaterialTheme.colorScheme.outlineVariant)
         )
+    }
+}
+
+@Composable
+private fun UpcomingSectionHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
+        Text(
+            text = stringResource(R.string.today_section_upcoming),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
+    }
+}
+
+@Composable
+private fun AllMarkedMessage() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = RoundedCornerShape(32.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.today_all_marked_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = stringResource(R.string.today_all_marked_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
     }
 }
 
@@ -487,36 +587,17 @@ private fun TodayTopBar(state: TodayUiState) {
     TopAppBar(
         title = { Text(text = stringResource(R.string.today_title)) },
         actions = {
-            if (state is TodayUiState.Content) {
-                if (state.isAllMarked) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.DoneAll,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = stringResource(R.string.today_all_marked),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                } else {
-                    AssistChip(
-                        onClick = {},
-                        label = {
-                            Text(text = stringResource(R.string.today_remaining_count, state.pendingCount))
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            if (state is TodayUiState.Content && !state.isAllMarked) {
+                AssistChip(
+                    onClick = {},
+                    label = {
+                        Text(text = stringResource(R.string.today_remaining_count, state.pendingCount))
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
+                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
