@@ -1,12 +1,9 @@
 package com.tutorly.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -241,31 +238,23 @@ fun StudentEditorDialog(
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
         TutorlyBottomSheetContainer {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                StudentEditorSheet(
-                    state = formState,
-                    onNameChange = vm::onNameChange,
-                    onPhoneChange = vm::onPhoneChange,
-                    onMessengerChange = vm::onMessengerChange,
-                    onRateChange = vm::onRateChange,
-                    onSubjectChange = vm::onSubjectChange,
-                    onGradeChange = vm::onGradeChange,
-                    onNoteChange = vm::onNoteChange,
-                    onArchivedChange = vm::onArchivedChange,
-                    onActiveChange = vm::onActiveChange,
-                    onSave = attemptSave,
-                    modifier = Modifier.fillMaxWidth(),
-                    editTarget = editTarget,
-                    initialFocus = editTarget,
-                )
-
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                )
-            }
+            StudentEditorSheet(
+                state = formState,
+                onNameChange = vm::onNameChange,
+                onPhoneChange = vm::onPhoneChange,
+                onMessengerChange = vm::onMessengerChange,
+                onRateChange = vm::onRateChange,
+                onSubjectChange = vm::onSubjectChange,
+                onGradeChange = vm::onGradeChange,
+                onNoteChange = vm::onNoteChange,
+                onArchivedChange = vm::onArchivedChange,
+                onActiveChange = vm::onActiveChange,
+                onSave = attemptSave,
+                modifier = Modifier.fillMaxWidth(),
+                editTarget = editTarget,
+                initialFocus = editTarget,
+                snackbarHostState = snackbarHostState
+            )
         }
     }
 }
