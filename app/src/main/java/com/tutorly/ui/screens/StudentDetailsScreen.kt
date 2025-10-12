@@ -38,18 +38,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,27 +70,38 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
+import com.tutorly.ui.lessoncreation.LessonCreationConfig
+import com.tutorly.ui.lessoncreation.LessonCreationOrigin
+import com.tutorly.ui.lessoncreation.LessonCreationSheet
+import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import java.text.NumberFormat
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentDetailsScreen(
     onBack: () -> Unit,
     onEdit: (Long, StudentEditTarget) -> Unit,
-    onAddLesson: (Long) -> Unit,
-    onAddPrepayment: (Long) -> Unit = {},
+    onAddStudentFromCreation: () -> Unit = {},
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
+    creationViewModel: LessonCreationViewModel,
 ) {
     val state by vm.uiState.collectAsState()
     val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
     val lessonCardState by lessonCardViewModel.uiState.collectAsState()
+    val creationState by creationViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var showPrepaymentSheet by rememberSaveable { mutableStateOf(false) }
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
@@ -97,9 +116,60 @@ fun StudentDetailsScreen(
         onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
     )
 
+    LessonCreationSheet(
+        state = creationState,
+        onDismiss = { creationViewModel.dismiss() },
+        onStudentQueryChange = creationViewModel::onStudentQueryChange,
+        onStudentSelect = creationViewModel::onStudentSelected,
+        onAddStudent = {
+            creationViewModel.prepareForStudentCreation()
+            creationViewModel.dismiss()
+            onAddStudentFromCreation()
+        },
+        onSubjectSelect = creationViewModel::onSubjectSelected,
+        onDateSelect = creationViewModel::onDateSelected,
+        onTimeSelect = creationViewModel::onTimeSelected,
+        onDurationChange = creationViewModel::onDurationChanged,
+        onPriceChange = creationViewModel::onPriceChanged,
+        onNoteChange = creationViewModel::onNoteChanged,
+        onSubmit = creationViewModel::submit,
+        onConfirmConflict = creationViewModel::confirmConflict,
+        onDismissConflict = creationViewModel::dismissConflict
+    )
+
+    LaunchedEffect(creationState.snackbarMessage) {
+        val message = creationState.snackbarMessage
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            creationViewModel.consumeSnackbar()
+        }
+    }
+
+    if (showPrepaymentSheet) {
+        StudentPrepaymentSheet(
+            onDismiss = { showPrepaymentSheet = false },
+            onSaved = { amount ->
+                showPrepaymentSheet = false
+                val amountText = formatMoneyInput(amount)
+                val successMessage = context.getString(R.string.student_prepayment_success, amountText)
+                coroutineScope.launch { snackbarHostState.showSnackbar(successMessage) }
+            }
+        )
+    }
+
     val title = when (state) {
         is StudentProfileUiState.Content -> (state as StudentProfileUiState.Content).profile.student.name
         else -> stringResource(id = R.string.student_details_title_placeholder)
+    }
+
+    val openLessonCreation: (Long) -> Unit = { id ->
+        creationViewModel.start(
+            LessonCreationConfig(
+                studentId = id,
+                zoneId = ZonedDateTime.now().zone,
+                origin = LessonCreationOrigin.STUDENT
+            )
+        )
     }
 
     Scaffold(
@@ -109,11 +179,12 @@ fun StudentDetailsScreen(
                 onBack = onBack
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             if (state is StudentProfileUiState.Content) {
                 val profile = (state as StudentProfileUiState.Content).profile
                 FloatingActionButton(
-                    onClick = { onAddLesson(profile.student.id) },
+                    onClick = { openLessonCreation(profile.student.id) },
                     modifier = Modifier.navigationBarsPadding(),
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -155,8 +226,8 @@ fun StudentDetailsScreen(
                 StudentProfileContent(
                     profile = currentState.profile,
                     onEdit = onEdit,
-                    onAddLesson = onAddLesson,
-                    onAddPrepayment = onAddPrepayment,
+                    onAddLesson = openLessonCreation,
+                    onAddPrepayment = { showPrepaymentSheet = true },
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
@@ -440,14 +511,16 @@ private fun StudentProfileMetricsSection(
     modifier: Modifier = Modifier
 ) {
     val lessonsCount = profile.metrics.totalLessons.toString()
-    val hourlyRateCents = profile.rate?.let { rate ->
+    val baseRateCents = profile.student.rateCents?.takeIf { it > 0 }
+    val recentRateCents = profile.rate?.let { rate ->
         if (rate.durationMinutes > 0) {
             ((rate.priceCents.toDouble() * 60) / rate.durationMinutes).roundToInt()
         } else {
             null
         }
     }
-    val rateValue = hourlyRateCents?.let { cents ->
+    val rateCents = baseRateCents ?: recentRateCents
+    val rateValue = rateCents?.let { cents ->
         numberFormatter.format(cents / 100.0)
     } ?: stringResource(id = R.string.students_rate_placeholder)
     val earnedValue = numberFormatter.format(profile.metrics.totalPaidCents / 100.0)

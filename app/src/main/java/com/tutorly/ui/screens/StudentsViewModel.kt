@@ -111,7 +111,7 @@ class StudentsViewModel @Inject constructor(
             name = student.name,
             phone = student.phone.orEmpty(),
             messenger = student.messenger.orEmpty(),
-            rate = formatRateInput(student.rateCents),
+            rate = formatMoneyInput(student.rateCents),
             subject = student.subject.orEmpty(),
             grade = student.grade.orEmpty(),
             note = student.note.orEmpty(),
@@ -178,9 +178,9 @@ class StudentsViewModel @Inject constructor(
         val trimmedGrade = state.grade.trim().ifBlank { null }
         val trimmedNote = state.note.trim().ifBlank { null }
         val rateInput = state.rate.trim()
-        val parsedRate = parseRateInput(rateInput)
+        val parsedRate = parseMoneyInput(rateInput)
         val normalizedRate = if (rateInput.isNotEmpty() && parsedRate != null) {
-            formatRateInput(parsedRate)
+            formatMoneyInput(parsedRate)
         } else {
             rateInput
         }

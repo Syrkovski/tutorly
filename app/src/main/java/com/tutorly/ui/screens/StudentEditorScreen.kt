@@ -1,13 +1,13 @@
 package com.tutorly.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -57,7 +58,7 @@ class StudentEditorVM @Inject constructor(
                             name = s.name,
                             phone = s.phone.orEmpty(),
                             messenger = s.messenger.orEmpty(),
-                            rate = formatRateInput(s.rateCents),
+                            rate = formatMoneyInput(s.rateCents),
                             subject = s.subject.orEmpty(),
                             grade = s.grade.orEmpty(),
                             note = s.note.orEmpty(),
@@ -119,9 +120,9 @@ class StudentEditorVM @Inject constructor(
         val trimmedPhone = formState.phone.trim().ifBlank { null }
         val trimmedMessenger = formState.messenger.trim().ifBlank { null }
         val rateInput = formState.rate.trim()
-        val parsedRate = parseRateInput(rateInput)
+        val parsedRate = parseMoneyInput(rateInput)
         val normalizedRate = if (rateInput.isNotEmpty() && parsedRate != null) {
-            formatRateInput(parsedRate)
+            formatMoneyInput(parsedRate)
         } else {
             rateInput
         }
@@ -232,17 +233,7 @@ fun StudentEditorDialog(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.surface,
-            snackbarHost = {
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                )
-            }
-        ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxWidth()) {
             StudentEditorSheet(
                 state = formState,
                 onNameChange = vm::onNameChange,
@@ -255,9 +246,16 @@ fun StudentEditorDialog(
                 onArchivedChange = vm::onArchivedChange,
                 onActiveChange = vm::onActiveChange,
                 onSave = attemptSave,
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.fillMaxWidth(),
                 editTarget = vm.editTarget,
                 initialFocus = vm.editTarget,
+            )
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             )
         }
     }

@@ -50,6 +50,13 @@
     <string name="student_profile_metrics_rate_label">₽/час</string>
     <string name="student_profile_metrics_earned_label">₽ дохода</string>
     <string name="student_profile_add_prepayment">Добавить предоплату</string>
+    <string name="student_prepayment_title">Добавить предоплату</string>
+    <string name="student_prepayment_amount_label">Сумма</string>
+    <string name="student_prepayment_amount_error">Введите сумму больше нуля</string>
+    <string name="student_prepayment_note_label">Комментарий (необязательно)</string>
+    <string name="student_prepayment_save">Сохранить предоплату</string>
+    <string name="student_prepayment_error">Не удалось сохранить предоплату</string>
+    <string name="student_prepayment_success">Предоплата %1$s ₽ сохранена</string>
     <string name="student_details_title_placeholder">Ученик</string>
     <string name="student_details_back">Назад</string>
     <string name="student_details_edit">Редактировать ученика</string>
