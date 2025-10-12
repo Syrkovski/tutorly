@@ -1,0 +1,108 @@
+package com.tutorly.ui.components
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.tutorly.R
+import com.tutorly.models.PaymentStatus
+import java.time.ZonedDateTime
+
+/** Visual parameters for the payment status indicator. */
+data class StatusChipData(
+    val label: String,
+    val description: String,
+    val color: Color
+)
+
+@Composable
+fun StatusChip(data: StatusChipData, modifier: Modifier = Modifier) {
+    val contentColor = if (data.color.luminance() < 0.5f) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        color = data.color,
+        contentColor = contentColor,
+        shape = CircleShape,
+        modifier = modifier
+            .defaultMinSize(minWidth = 24.dp, minHeight = 24.dp)
+            .semantics { contentDescription = data.description }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = data.label,
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun statusChipData(
+    paymentStatus: PaymentStatus,
+    start: ZonedDateTime,
+    end: ZonedDateTime,
+    now: ZonedDateTime
+): StatusChipData {
+    val colorScheme = MaterialTheme.colorScheme
+    val todayColor = colorScheme.primary
+    val paidColor = colorScheme.tertiary
+    val dueColor = colorScheme.error
+    val cancelledColor = colorScheme.outline
+
+    val description: String
+    val color: Color
+    val label: String
+
+    if (paymentStatus == PaymentStatus.CANCELLED) {
+        description = stringResource(R.string.lesson_status_cancelled)
+        color = cancelledColor
+        label = "×"
+    } else if (now.isBefore(start)) {
+        if (paymentStatus == PaymentStatus.PAID) {
+            description = stringResource(R.string.calendar_status_prepaid)
+            color = paidColor
+            label = "₽"
+        } else {
+            description = stringResource(R.string.calendar_status_planned)
+            color = todayColor
+            label = "⏳"
+        }
+    } else if (now.isAfter(end)) {
+        if (paymentStatus == PaymentStatus.PAID) {
+            description = stringResource(R.string.lesson_status_paid)
+            color = paidColor
+            label = "₽"
+        } else {
+            description = stringResource(R.string.lesson_status_due)
+            color = dueColor
+            label = "!"
+        }
+    } else {
+        description = stringResource(R.string.calendar_status_in_progress)
+        color = todayColor
+        label = "▶"
+    }
+
+    return StatusChipData(
+        label = label,
+        description = description,
+        color = color
+    )
+}

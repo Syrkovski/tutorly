@@ -43,7 +43,10 @@ import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.components.LessonBrief
+import com.tutorly.ui.components.StatusChip
+import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
+import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.theme.NowRed
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
@@ -184,10 +187,15 @@ fun CalendarScreen(
         )
     }
 
+    val calendarTitle = remember(anchor) {
+        anchor.format(DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru")))
+            .replaceFirstChar { it.titlecase(Locale("ru")) }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
-            AppTopBar(title = stringResource(id = R.string.calendar_title))
+            AppTopBar(title = calendarTitle)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
@@ -325,12 +333,13 @@ fun CalendarScreen(
 private fun CalendarLesson.toLessonBrief(): LessonBrief {
     return LessonBrief(
         id = id,
-        start = start.toLocalTime(),
-        end = end.toLocalTime(),
+        start = start,
+        end = end,
         student = studentName,
         grade = studentGrade,
         subjectName = subjectName,
-        subjectColorArgb = subjectColorArgb
+        subjectColorArgb = subjectColorArgb,
+        paymentStatus = paymentStatus
     )
 }
 
@@ -383,11 +392,6 @@ fun PlanScreenHeader(
                 )
             }
     ) {
-        Text(
-            text = anchor.format(DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru")))
-                .replaceFirstChar { it.titlecase(Locale("ru")) },
-            style = MaterialTheme.typography.titleLarge
-        )
         TabRow(
             selectedTabIndex = mode.ordinal,
             containerColor = Color.Transparent,
@@ -615,12 +619,18 @@ private fun LessonBlock(
     val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
     val grade = lesson.studentGrade?.takeIf { it.isNotBlank() }?.trim()
     val firstLine = remember(lesson.studentName, subject, grade) {
+        val gradeNumber = grade?.let { Regex("\\d+").find(it)?.value }
+        val trailing = when {
+            subject != null && gradeNumber != null -> "$subject $gradeNumber"
+            subject != null -> subject
+            gradeNumber != null -> gradeNumber
+            else -> null
+        }
         buildString {
             append(lesson.studentName)
-            val extras = listOfNotNull(subject, grade)
-            if (extras.isNotEmpty()) {
-                append(" • ")
-                append(extras.joinToString(" • "))
+            if (!trailing.isNullOrBlank()) {
+                append('•')
+                append(trailing)
             }
         }
     }
@@ -646,64 +656,34 @@ private fun LessonBlock(
             Column(
                 Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = firstLine,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = statusInfo.text,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = statusInfo.color
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = firstLine,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatusChip(
+                        data = statusInfo,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }
 }
 
-private data class LessonStatusPresentation(val text: String, val color: Color)
-
 @Composable
-private fun CalendarLesson.statusPresentation(now: ZonedDateTime): LessonStatusPresentation {
-    val todayColor = MaterialTheme.colorScheme.primary
-    val paidColor = MaterialTheme.colorScheme.tertiary
-    val dueColor = MaterialTheme.colorScheme.error
-    val cancelledColor = MaterialTheme.colorScheme.outline
-
-    val status = paymentStatus
-    val text: String
-    val color: Color
-
-    if (status == PaymentStatus.CANCELLED) {
-        text = stringResource(R.string.lesson_status_cancelled)
-        color = cancelledColor
-    } else if (now.isBefore(start)) {
-        if (status == PaymentStatus.PAID) {
-            text = stringResource(R.string.calendar_status_prepaid)
-            color = paidColor
-        } else {
-            text = stringResource(R.string.calendar_status_planned)
-            color = todayColor
-        }
-    } else if (now.isAfter(end)) {
-        if (status == PaymentStatus.PAID) {
-            text = stringResource(R.string.lesson_status_paid)
-            color = paidColor
-        } else {
-            text = stringResource(R.string.lesson_status_due)
-            color = dueColor
-        }
-    } else {
-        text = stringResource(R.string.calendar_status_in_progress)
-        color = todayColor
-    }
-
-    return LessonStatusPresentation(text = text, color = color)
-}
+private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
+    statusChipData(paymentStatus, start, end, now)
 
 @Composable
 private fun NowBadge(modifier: Modifier = Modifier) {
@@ -744,12 +724,11 @@ private fun MonthCalendar(
 ) {
     val month = remember(anchor) { YearMonth.from(anchor) }
     val firstDay = remember(month) { month.atDay(1) }
-    val lastDay = remember(month) { month.atEndOfMonth() }
     val rangeStart = remember(firstDay) { firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
-    val rangeEnd = remember(lastDay) { lastDay.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)) }
-    val days = remember(rangeStart, rangeEnd) {
+    val totalCells = remember { 6 * 7 }
+    val days = remember(rangeStart, totalCells) {
         generateSequence(rangeStart) { it.plusDays(1) }
-            .takeWhile { !it.isAfter(rangeEnd) }
+            .take(totalCells)
             .toList()
     }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
@@ -769,8 +748,8 @@ private fun MonthCalendar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             weekDays.forEach { dayOfWeek ->
                 val label = dayOfWeek.getDisplayName(TextStyle.NARROW_STANDALONE, Locale("ru"))
@@ -788,9 +767,9 @@ private fun MonthCalendar(
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(days) { date ->
                 val lessons = lessonsByDate[date].orEmpty()
