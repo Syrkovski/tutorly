@@ -412,20 +412,15 @@ private fun StudentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val currencyFormatter = remember {
-        NumberFormat.getCurrencyInstance(Locale("ru", "RU")).apply {
-            currency = Currency.getInstance("RUB")
-        }
-    }
     val subject = item.profile.subject?.takeIf { it.isNotBlank() }?.trim()
     val grade = item.profile.grade?.takeIf { it.isNotBlank() }?.trim()
-    val rate = item.profile.rate?.let { formatCurrency(it.priceCents.toLong(), currencyFormatter) }
-    val subtitle = listOfNotNull(subject, grade, rate)
+    val subtitle = listOfNotNull(subject, grade)
         .joinToString(separator = " • ")
         .takeIf { it.isNotBlank() }
 
     val phone = item.student.phone?.takeIf { it.isNotBlank() }?.trim()
     val email = item.student.messenger?.takeIf { it.isNotBlank() }?.trim()
+    val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
     val showTrailingRow = phone != null || email != null || item.hasDebt
 
     Card(
@@ -464,6 +459,24 @@ private fun StudentCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                note?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = stringResource(
+                        id = R.string.student_card_progress,
+                        item.progress.paidLessons,
+                        item.progress.completedLessons
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 if (showTrailingRow) {
                     Row(
                         modifier = Modifier
@@ -606,8 +619,7 @@ private fun StudentProfileContent(
             item {
                 StudentProfileHeader(
                     profile = profile,
-                    onEdit = onEdit,
-                    currencyFormatter = currencyFormatter
+                    onEdit = onEdit
                 )
             }
             item {
@@ -683,7 +695,6 @@ private fun StudentProfileContent(
 private fun StudentProfileHeader(
     profile: StudentProfile,
     onEdit: (Long) -> Unit,
-    currencyFormatter: NumberFormat,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -712,23 +723,6 @@ private fun StudentProfileHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
-                )
-            }
-            val rateText = profile.rate?.let { rate ->
-                val price = formatCurrency(rate.priceCents.toLong(), currencyFormatter)
-                if (rate.durationMinutes > 0) {
-                    "$price • ${rate.durationMinutes} мин"
-                } else {
-                    price
-                }
-            } ?: profile.student.rateCents?.takeIf { it > 0 }?.let { cents ->
-                formatCurrency(cents.toLong(), currencyFormatter)
-            }
-            if (!rateText.isNullOrBlank()) {
-                Text(
-                    text = rateText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

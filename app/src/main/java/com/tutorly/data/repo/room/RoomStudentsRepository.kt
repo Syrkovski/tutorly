@@ -78,8 +78,14 @@ class RoomStudentsRepository @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    override suspend fun upsert(student: Student): Long =
-        studentDao.upsert(student)
+    override suspend fun upsert(student: Student): Long {
+        return if (student.id == 0L) {
+            studentDao.insert(student)
+        } else {
+            studentDao.update(student)
+            student.id
+        }
+    }
 
     override suspend fun delete(student: Student) =
         studentDao.delete(student)
