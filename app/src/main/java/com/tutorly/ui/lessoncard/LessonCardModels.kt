@@ -29,6 +29,7 @@ data class LessonCardUiState(
     val locale: Locale = Locale.getDefault(),
     val zoneId: ZoneId = ZoneId.systemDefault(),
     val isPaymentActionRunning: Boolean = false,
+    val isDeleting: Boolean = false,
 )
 
 data class LessonStudentOption(

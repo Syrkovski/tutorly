@@ -112,6 +112,12 @@ class InMemoryLessonsRepository : LessonsRepository {
             .maxByOrNull { it.startAt }
     }
 
+    override suspend fun delete(id: Long) {
+        store.remove(id)
+        payments.remove(id)
+        emit()
+    }
+
     override suspend fun markPaid(id: Long) {
         store[id]?.let { lesson ->
             val now = Instant.now()

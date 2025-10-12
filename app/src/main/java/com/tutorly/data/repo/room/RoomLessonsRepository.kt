@@ -92,6 +92,11 @@ class RoomLessonsRepository(
     override suspend fun latestLessonForStudent(studentId: Long): Lesson? {
         return lessonDao.findLatestForStudent(studentId)?.lesson
     }
+
+    override suspend fun delete(id: Long) {
+        lessonDao.deleteById(id)
+    }
+
     override suspend fun markPaid(id: Long) {
         val lesson = lessonDao.findById(id) ?: return
         val now = Instant.now()

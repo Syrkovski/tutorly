@@ -81,6 +81,7 @@ fun StudentDetailsScreen(
         onPriceChange = lessonCardViewModel::onPriceChanged,
         onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
         onNoteChange = lessonCardViewModel::onNoteChanged,
+        onDeleteLesson = lessonCardViewModel::deleteLesson,
         onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
     )
 

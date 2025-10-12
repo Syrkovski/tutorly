@@ -65,6 +65,7 @@ class LessonCardViewModel @Inject constructor(
                 isVisible = true,
                 isLoading = true,
                 isSaving = false,
+                isDeleting = false,
                 lessonId = lessonId,
                 snackbarMessage = null,
             )
@@ -113,7 +114,27 @@ class LessonCardViewModel @Inject constructor(
                 isSaving = false,
                 isLoading = false,
                 isPaymentActionRunning = false,
+                isDeleting = false,
             )
+        }
+    }
+
+    fun deleteLesson() {
+        val lessonId = _uiState.value.lessonId ?: return
+        if (_uiState.value.isDeleting) return
+        _uiState.update { it.copy(isDeleting = true, snackbarMessage = null) }
+        viewModelScope.launch {
+            val result = runCatching { lessonsRepository.delete(lessonId) }
+            result.onSuccess {
+                dismiss()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        snackbarMessage = LessonCardMessage.Error(error.message)
+                    )
+                }
+            }
         }
     }
 
