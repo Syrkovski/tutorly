@@ -29,6 +29,10 @@ class RoomLessonsRepository(
     override fun observeTodayLessons(dayStart: Instant, dayEnd: Instant): Flow<List<LessonForToday>> =
         lessonDao.observeInRange(dayStart, dayEnd).map { lessons -> lessons.map { it.toLessonForToday() } }
 
+    override fun observeOutstandingLessons(before: Instant): Flow<List<LessonForToday>> =
+        lessonDao.observeOutstanding(before, PaymentStatus.outstandingStatuses)
+            .map { lessons -> lessons.map { it.toLessonForToday() } }
+
     override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
         combine(
             lessonDao.observeLessonCounts(

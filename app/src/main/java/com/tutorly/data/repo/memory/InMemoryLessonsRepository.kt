@@ -38,6 +38,13 @@ class InMemoryLessonsRepository : LessonsRepository {
                 .map { it.toTodayStub() }
         }
 
+    override fun observeOutstandingLessons(before: Instant): Flow<List<LessonForToday>> =
+        lessonsFlow.map { lessons ->
+            lessons.filter { it.startAt < before && it.paymentStatus in PaymentStatus.outstandingStatuses }
+                .sortedBy { it.startAt }
+                .map { it.toTodayStub() }
+        }
+
     override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
         lessonsFlow.map { lessons ->
             val relevant = lessons.filter { it.startAt >= from && it.startAt < to }
