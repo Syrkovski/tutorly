@@ -403,9 +403,7 @@ class StudentsViewModel @Inject constructor(
         }
 
         val completed = lessons.count { it.status == LessonStatus.DONE }
-        val paid = lessons.count {
-            it.status == LessonStatus.DONE && it.paymentStatus == PaymentStatus.PAID
-        }
+        val paid = lessons.count { it.paymentStatus == PaymentStatus.PAID }
 
         return LessonProgress(paidLessons = paid, completedLessons = completed)
     }
