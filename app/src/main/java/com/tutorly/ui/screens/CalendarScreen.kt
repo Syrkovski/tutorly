@@ -8,45 +8,47 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
-import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.WeekMosaic
-import com.tutorly.ui.components.WeeklyStats
 import com.tutorly.ui.theme.NowRed
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
-import com.tutorly.ui.lessoncard.LessonCardExitAction
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.time.DayOfWeek
@@ -55,8 +57,10 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
@@ -69,7 +73,6 @@ enum class CalendarMode { DAY, WEEK, MONTH }
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
-    onLessonDetails: (Long, Long, ZonedDateTime) -> Unit = { _, _, _ -> },
     onAddStudent: () -> Unit = {},
     creationViewModel: LessonCreationViewModel,
     viewModel: CalendarViewModel = hiltViewModel()
@@ -86,34 +89,16 @@ fun CalendarScreen(
 
     LessonCardSheet(
         state = lessonCardState,
-        zoneId = zoneId,
-        onDismissRequest = lessonCardViewModel::requestDismiss,
-        onCancelDismiss = lessonCardViewModel::cancelDismiss,
-        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
-        onNoteChange = lessonCardViewModel::onNoteChange,
-        onSaveNote = lessonCardViewModel::saveNote,
-        onMarkPaid = lessonCardViewModel::markPaid,
-        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
-        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
-        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
-        onRequestEdit = lessonCardViewModel::requestEdit,
+        onDismissRequest = lessonCardViewModel::dismiss,
+        onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onDateSelect = lessonCardViewModel::onDateSelected,
+        onTimeSelect = lessonCardViewModel::onTimeSelected,
+        onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onPriceChange = lessonCardViewModel::onPriceChanged,
+        onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
+        onNoteChange = lessonCardViewModel::onNoteChanged,
         onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
     )
-
-    val pendingExit = lessonCardState.pendingExitAction
-    LaunchedEffect(pendingExit) {
-        when (pendingExit) {
-            is LessonCardExitAction.NavigateToEdit -> {
-                val details = pendingExit.details
-                onLessonDetails(details.id, details.studentId, details.startAt.atZone(zoneId))
-                lessonCardViewModel.consumeExitAction()
-            }
-            LessonCardExitAction.Close -> {
-                lessonCardViewModel.consumeExitAction()
-            }
-            null -> Unit
-        }
-    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -201,6 +186,9 @@ fun CalendarScreen(
 
     Scaffold(
         modifier = modifier,
+        topBar = {
+            AppTopBar(title = stringResource(id = R.string.calendar_title))
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
@@ -221,7 +209,6 @@ fun CalendarScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .windowInsetsPadding(WindowInsets.statusBars)
         ) {
         // Хедер: тут же свайп (чтобы не конфликтовал со скроллом списка)
         PlanScreenHeader(
@@ -233,16 +220,6 @@ fun CalendarScreen(
             },
             onPrevPeriod = prevPeriod,
             onNextPeriod = nextPeriod,
-            onAddClick = {
-                val start = uiState.currentDateTime
-                creationViewModel.start(
-                    LessonCreationConfig(
-                        start = start,
-                        zoneId = uiState.zoneId,
-                        origin = LessonCreationOrigin.CALENDAR
-                    )
-                )
-            },
             onSelectDate = { selected ->
                 direction = when {
                     selected.isAfter(anchor) -> 1
@@ -321,11 +298,23 @@ fun CalendarScreen(
                         dayDataProvider = { date ->
                             uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
                         },
-                        stats = uiState.stats.toWeeklyStats(),
                         currentDateTime = uiState.currentDateTime,
                         onLessonClick = { brief -> lessonCardViewModel.open(brief.id) }
                     )
-                    CalendarMode.MONTH -> MonthPlaceholder(currentDate)
+                    CalendarMode.MONTH -> MonthCalendar(
+                        anchor = currentDate,
+                        lessonsByDate = uiState.lessonsByDate,
+                        currentDateTime = uiState.currentDateTime,
+                        onDaySelected = { selected ->
+                            direction = when {
+                                selected.isAfter(anchor) -> 1
+                                selected.isBefore(anchor) -> -1
+                                else -> 0
+                            }
+                            viewModel.setMode(CalendarMode.DAY)
+                            viewModel.selectDate(selected)
+                        }
+                    )
                 }
             }
         }
@@ -336,22 +325,14 @@ fun CalendarScreen(
 private fun CalendarLesson.toLessonBrief(): LessonBrief {
     return LessonBrief(
         id = id,
-        time = start.format(timeFormatter),
-        end = end.format(timeFormatter),
+        start = start.toLocalTime(),
+        end = end.toLocalTime(),
         student = studentName,
-        priceCents = priceCents.toLong(),
-        paid = paymentStatus == PaymentStatus.PAID
+        grade = studentGrade,
+        subjectName = subjectName,
+        subjectColorArgb = subjectColorArgb
     )
 }
-
-private fun LessonsRangeStats.toWeeklyStats(): WeeklyStats = WeeklyStats(
-    totalLessons = totalLessons,
-    paidCount = paidLessons,
-    debtCount = debtLessons,
-    earnedCents = earnedCents
-)
-
-private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 
 /* ----------------------------- HEADER ----------------------------------- */
@@ -363,7 +344,6 @@ fun PlanScreenHeader(
     onModeChange: (CalendarMode) -> Unit,
     onPrevPeriod: () -> Unit,
     onNextPeriod: () -> Unit,
-    onAddClick: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit
@@ -403,20 +383,11 @@ fun PlanScreenHeader(
                 )
             }
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = anchor.format(DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru")))
-                    .replaceFirstChar { it.titlecase(Locale("ru")) },
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onAddClick) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить занятие")
-            }
-        }
+        Text(
+            text = anchor.format(DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru")))
+                .replaceFirstChar { it.titlecase(Locale("ru")) },
+            style = MaterialTheme.typography.titleLarge
+        )
         TabRow(
             selectedTabIndex = mode.ordinal,
             containerColor = Color.Transparent,
@@ -447,7 +418,6 @@ private val GridColor = Color(0xFFE9F0FF)
 private val SpineColor = Color(0xFF2D7FF9).copy(alpha = 0.6f)
 private val LabelWidth = 64.dp
 private val HourHeight = 64.dp
-private val TimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
 private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
@@ -576,6 +546,7 @@ private fun DayTimeline(
                     lesson = lesson,
                     baseHour = startHour,
                     hourHeight = HourHeight,
+                    now = currentDateTime,
                     onLessonClick = onLessonClick
                 )
             }
@@ -608,7 +579,7 @@ private fun DayTimeline(
                     NowBadge(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
-                            .padding(start = LabelWidth + 16.dp)
+                            .padding(start = 8.dp)
                     )
                 }
             }
@@ -627,6 +598,7 @@ private fun LessonBlock(
     lesson: CalendarLesson,
     baseHour: Int,
     hourHeight: Dp,
+    now: ZonedDateTime,
     onLessonClick: (CalendarLesson) -> Unit
 ) {
     val startTime = lesson.start.toLocalTime()
@@ -640,16 +612,19 @@ private fun LessonBlock(
     val top = minuteDp * (startMin - baseMin)
     val height = minuteDp * durationMinutes.toInt()
 
-    val timeRange = buildString {
-        append(TimeFormatter.format(startTime))
-        append("–")
-        append(TimeFormatter.format(endTime))
+    val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
+    val grade = lesson.studentGrade?.takeIf { it.isNotBlank() }?.trim()
+    val firstLine = remember(lesson.studentName, subject, grade) {
+        buildString {
+            append(lesson.studentName)
+            val extras = listOfNotNull(subject, grade)
+            if (extras.isNotEmpty()) {
+                append(" • ")
+                append(extras.joinToString(" • "))
+            }
+        }
     }
-    val subtitle = lesson.subtitleText()
-    val detailLine = listOfNotNull(timeRange, subtitle).joinToString(" • ")
-    val statusText = lesson.paymentStatusLabel()
-    val statusColor = lesson.paymentStatusColor()
-    val statusIcon = lesson.paymentStatusIconVector()
+    val statusInfo = lesson.statusPresentation(now)
     val containerColor = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.12f) }
         ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
 
@@ -672,81 +647,62 @@ private fun LessonBlock(
                 Modifier
                     .fillMaxSize()
                     .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(lesson.studentName, style = MaterialTheme.typography.titleMedium)
-                if (detailLine.isNotBlank()) {
-                    Text(
-                        detailLine,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LocalContentColor.current.copy(alpha = 0.7f)
-                    )
-                }
-                if (statusText != null) {
-                    StatusBadge(text = statusText, color = statusColor, icon = statusIcon)
-                }
-            }
-        }
-    }
-}
-
-private fun CalendarLesson.subtitleText(): String? {
-    val parts = listOfNotNull(
-        subjectName?.takeIf { it.isNotBlank() }?.trim(),
-        lessonNote?.takeIf { it.isNotBlank() },
-        studentNote?.takeIf { it.isNotBlank() },
-        lessonTitle?.takeIf { it.isNotBlank() }
-    ).distinct()
-    return if (parts.isEmpty()) null else parts.joinToString(" • ")
-}
-
-@Composable
-private fun CalendarLesson.paymentStatusLabel(): String? = when (paymentStatus) {
-    PaymentStatus.PAID -> stringResource(R.string.lesson_status_paid)
-    PaymentStatus.DUE -> stringResource(R.string.lesson_status_due)
-    PaymentStatus.UNPAID -> stringResource(R.string.lesson_status_unpaid)
-    PaymentStatus.CANCELLED -> stringResource(R.string.lesson_status_cancelled)
-}
-
-@Composable
-private fun CalendarLesson.paymentStatusColor(): Color = when (paymentStatus) {
-    PaymentStatus.PAID -> MaterialTheme.colorScheme.tertiary
-    PaymentStatus.DUE, PaymentStatus.UNPAID -> MaterialTheme.colorScheme.error
-    PaymentStatus.CANCELLED -> MaterialTheme.colorScheme.outline
-}
-
-@Composable
-private fun CalendarLesson.paymentStatusIconVector(): ImageVector? = when (paymentStatusIcon) {
-    PaymentStatusIcon.PAID -> Icons.Filled.Check
-    PaymentStatusIcon.OUTSTANDING -> Icons.Filled.Warning
-    PaymentStatusIcon.CANCELLED -> Icons.Filled.Close
-}
-
-@Composable
-private fun StatusBadge(text: String, color: Color, icon: ImageVector?) {
-    Surface(
-        color = color.copy(alpha = 0.12f),
-        contentColor = color,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = text,
-                    modifier = Modifier.size(14.dp)
+                Text(
+                    text = firstLine,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = statusInfo.text,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = statusInfo.color
                 )
             }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall
-            )
         }
     }
+}
+
+private data class LessonStatusPresentation(val text: String, val color: Color)
+
+@Composable
+private fun CalendarLesson.statusPresentation(now: ZonedDateTime): LessonStatusPresentation {
+    val todayColor = MaterialTheme.colorScheme.primary
+    val paidColor = MaterialTheme.colorScheme.tertiary
+    val dueColor = MaterialTheme.colorScheme.error
+    val cancelledColor = MaterialTheme.colorScheme.outline
+
+    val status = paymentStatus
+    val text: String
+    val color: Color
+
+    if (status == PaymentStatus.CANCELLED) {
+        text = stringResource(R.string.lesson_status_cancelled)
+        color = cancelledColor
+    } else if (now.isBefore(start)) {
+        if (status == PaymentStatus.PAID) {
+            text = stringResource(R.string.calendar_status_prepaid)
+            color = paidColor
+        } else {
+            text = stringResource(R.string.calendar_status_planned)
+            color = todayColor
+        }
+    } else if (now.isAfter(end)) {
+        if (status == PaymentStatus.PAID) {
+            text = stringResource(R.string.lesson_status_paid)
+            color = paidColor
+        } else {
+            text = stringResource(R.string.lesson_status_due)
+            color = dueColor
+        }
+    } else {
+        text = stringResource(R.string.calendar_status_in_progress)
+        color = todayColor
+    }
+
+    return LessonStatusPresentation(text = text, color = color)
 }
 
 @Composable
@@ -777,24 +733,142 @@ private fun computeTimelineBounds(lessons: List<CalendarLesson>): Pair<Int, Int>
     return startHour to max(endHourExclusive, startHour + 1)
 }
 
-/* ---------------------- WEEK / MONTH PLACEHOLDERS ------------------------ */
+/* ----------------------------- MONTH GRID -------------------------------- */
 
-@Composable private fun WeekPlaceholder(anchor: LocalDate) {
-    Box(Modifier.fillMaxWidth().padding(16.dp)) {
-        Text("Неделя ${weekRange(anchor)} (заглушка)", style = MaterialTheme.typography.bodyMedium)
+@Composable
+private fun MonthCalendar(
+    anchor: LocalDate,
+    lessonsByDate: Map<LocalDate, List<CalendarLesson>>,
+    currentDateTime: ZonedDateTime,
+    onDaySelected: (LocalDate) -> Unit
+) {
+    val month = remember(anchor) { YearMonth.from(anchor) }
+    val firstDay = remember(month) { month.atDay(1) }
+    val lastDay = remember(month) { month.atEndOfMonth() }
+    val rangeStart = remember(firstDay) { firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+    val rangeEnd = remember(lastDay) { lastDay.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)) }
+    val days = remember(rangeStart, rangeEnd) {
+        generateSequence(rangeStart) { it.plusDays(1) }
+            .takeWhile { !it.isAfter(rangeEnd) }
+            .toList()
+    }
+    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
+    val weekDays = remember {
+        listOf(
+            DayOfWeek.MONDAY,
+            DayOfWeek.TUESDAY,
+            DayOfWeek.WEDNESDAY,
+            DayOfWeek.THURSDAY,
+            DayOfWeek.FRIDAY,
+            DayOfWeek.SATURDAY,
+            DayOfWeek.SUNDAY
+        )
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            weekDays.forEach { dayOfWeek ->
+                val label = dayOfWeek.getDisplayName(TextStyle.NARROW_STANDALONE, Locale("ru"))
+                    .uppercase(Locale("ru"))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(days) { date ->
+                val lessons = lessonsByDate[date].orEmpty()
+                MonthDayCell(
+                    date = date,
+                    inCurrentMonth = date.month == month.month,
+                    isToday = date == today,
+                    lessons = lessons,
+                    onClick = { onDaySelected(date) }
+                )
+            }
+        }
     }
 }
 
-@Composable private fun MonthPlaceholder(anchor: LocalDate) {
-    Box(Modifier.fillMaxWidth().padding(16.dp)) {
-        Text("${anchor.monthValue}.${anchor.year} (месяц — заглушка)", style = MaterialTheme.typography.bodyMedium)
+@Composable
+private fun MonthDayCell(
+    date: LocalDate,
+    inCurrentMonth: Boolean,
+    isToday: Boolean,
+    lessons: List<CalendarLesson>,
+    onClick: () -> Unit
+) {
+    val containerColor = when {
+        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        lessons.isNotEmpty() -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        else -> Color.Transparent
     }
-}
+    val border = if (isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+    val contentColor = if (inCurrentMonth) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    }
 
-private fun weekRange(d: LocalDate): String {
-    val start = d.with(DayOfWeek.MONDAY)
-    val end = start.plusDays(6)
-    return "${start.dayOfMonth}.${start.monthValue} — ${end.dayOfMonth}.${end.monthValue}"
+    Surface(
+        color = containerColor,
+        shape = MaterialTheme.shapes.medium,
+        border = border,
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor
+            )
+            if (lessons.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    lessons.take(2).forEach { lesson ->
+                        Text(
+                            text = lesson.studentName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    val remaining = lessons.size - min(lessons.size, 2)
+                    if (remaining > 0) {
+                        Text(
+                            text = "+$remaining",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 /* --------------------------- DAY/WEEK STRIP ------------------------------ */
@@ -860,37 +934,3 @@ private fun DayTwoLineChip(
         }
     }
 }
-//    LessonCardSheet(
-//        state = lessonCardState,
-//        zoneId = uiState.zoneId,
-//        onDismissRequest = lessonCardViewModel::requestDismiss,
-//        onCancelDismiss = lessonCardViewModel::cancelDismiss,
-//        onConfirmDismiss = lessonCardViewModel::confirmDismiss,
-//        onNoteChange = lessonCardViewModel::onNoteChange,
-//        onSaveNote = lessonCardViewModel::saveNote,
-//        onMarkPaid = lessonCardViewModel::markPaid,
-//        onRequestMarkDue = lessonCardViewModel::requestMarkDue,
-//        onDismissMarkDue = lessonCardViewModel::dismissMarkDueDialog,
-//        onConfirmMarkDue = lessonCardViewModel::confirmMarkDue,
-//        onRequestEdit = lessonCardViewModel::requestEdit,
-//        onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
-//    )
-//
-//    val pendingExit = lessonCardState.pendingExitAction
-//    LaunchedEffect(pendingExit) {
-//        when (pendingExit) {
-//            is LessonCardExitAction.NavigateToEdit -> {
-//                val details = pendingExit.details
-//                onLessonDetails(
-//                    details.id,
-//                    details.studentId,
-//                    details.startAt.atZone(uiState.zoneId)
-//                )
-//                lessonCardViewModel.consumeExitAction()
-//            }
-//            LessonCardExitAction.Close -> {
-//                lessonCardViewModel.consumeExitAction()
-//            }
-//            null -> Unit
-//        }
-//    }

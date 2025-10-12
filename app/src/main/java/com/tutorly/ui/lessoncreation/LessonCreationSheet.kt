@@ -3,7 +3,6 @@ package com.tutorly.ui.lessoncreation
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +21,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -39,22 +37,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Schedule
 import com.tutorly.R
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LessonCreationSheet(
     state: LessonCreationUiState,
@@ -103,7 +115,7 @@ fun LessonCreationSheet(
             TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
             DurationPriceSection(state = state, onDurationChange = onDurationChange, onPriceChange = onPriceChange)
             NoteSection(state = state, onNoteChange = onNoteChange)
-            ActionButtons(state = state, onDismiss = onDismiss, onSubmit = onSubmit)
+            ActionButtons(state = state, onSubmit = onSubmit)
         }
     }
 
@@ -139,68 +151,73 @@ private fun StudentSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = stringResource(id = R.string.lesson_create_student_label), fontWeight = FontWeight.Medium)
-        var query by remember(state.studentQuery) { mutableStateOf(state.studentQuery) }
-        OutlinedTextField(
-            value = query,
-            onValueChange = {
-                query = it
-                onQueryChange(it)
-            },
-            placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            isError = state.errors.containsKey(LessonCreationField.STUDENT)
-        )
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 160.dp)
-        ) {
-            item {
-                TextButton(onClick = onAddStudent, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = stringResource(id = R.string.lesson_create_new_student))
-                }
-            }
-            items(state.students, key = { it.id }) { option ->
-                StudentRow(
-                    option = option,
-                    selected = state.selectedStudent?.id == option.id,
-                    onSelect = { onStudentSelect(option.id) }
+        val selectedName = state.selectedStudent?.name ?: state.studentQuery
+        var query by remember(selectedName) { mutableStateOf(selectedName) }
+        var expanded by remember { mutableStateOf(false) }
+        var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
+        val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
+        val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+        Box {
+            OutlinedTextField(
+                value = query,
+                onValueChange = {
+                    query = it
+                    expanded = true
+                    onQueryChange(it)
+                },
+                placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { textFieldSize = it.size }
+                    .onFocusChanged { focusState -> expanded = focusState.isFocused },
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
+                },
+                isError = state.errors.containsKey(LessonCreationField.STUDENT)
+            )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = dropdownModifier
+            ) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },
+                    onClick = {
+                        expanded = false
+                        onAddStudent()
+                    }
                 )
+                state.students.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = option.name,
+                                style = LocalTextStyle.current
+                            )
+                        },
+                        trailingIcon = {
+                            if (state.selectedStudent?.id == option.id) {
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            }
+                        },
+                        onClick = {
+                            query = option.name
+                            expanded = false
+                            onStudentSelect(option.id)
+                        }
+                    )
+                }
             }
         }
         state.errors[LessonCreationField.STUDENT]?.let { message ->
             ErrorText(message)
         }
-    }
-}
-
-@Composable
-private fun StudentRow(option: StudentOption, selected: Boolean, onSelect: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onSelect)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = CircleShape
-                )
-                .padding(horizontal = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = option.name.firstOrNull()?.uppercase() ?: "?",
-                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        Text(text = option.name, modifier = Modifier.padding(start = 12.dp))
     }
 }
 
@@ -267,7 +284,10 @@ private fun TimeSection(
             },
             modifier = Modifier.weight(1f)
         ) {
-            Text(text = state.date.format(dateFormatter))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
+                Text(text = state.date.format(dateFormatter))
+            }
         }
         OutlinedButton(
             onClick = {
@@ -281,7 +301,10 @@ private fun TimeSection(
             },
             modifier = Modifier.weight(1f)
         ) {
-            Text(text = state.time.format(timeFormatter))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(imageVector = Icons.Outlined.Schedule, contentDescription = null)
+                Text(text = state.time.format(timeFormatter))
+            }
         }
     }
     state.errors[LessonCreationField.TIME]?.let { ErrorText(it) }
@@ -293,28 +316,49 @@ private fun DurationPriceSection(
     onDurationChange: (Int) -> Unit,
     onPriceChange: (Int) -> Unit
 ) {
-    var durationInput by remember(state.durationMinutes) {
-        mutableStateOf(state.durationMinutes.takeIf { it > 0 }?.toString() ?: "")
+    val presets = listOf(45, 60, 90, 120)
+    var customDurationInput by remember(state.durationMinutes) {
+        val value = state.durationMinutes.takeIf { it > 0 && it !in presets }?.toString().orEmpty()
+        mutableStateOf(value)
     }
     var priceInput by remember(state.priceCents) {
         mutableStateOf(state.priceCents.takeIf { it >= 0 }?.let { (it / 100).toString() } ?: "")
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedTextField(
-            value = durationInput,
-            onValueChange = { value ->
-                val digits = value.filter { it.isDigit() }
-                durationInput = digits
-                onDurationChange(digits.toIntOrNull() ?: 0)
-            },
-            label = { Text(text = stringResource(id = R.string.lesson_create_duration_label)) },
-            suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            isError = state.errors.containsKey(LessonCreationField.DURATION)
-        )
-        state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = stringResource(id = R.string.lesson_create_duration_label), fontWeight = FontWeight.Medium)
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presets.forEach { minutes ->
+                    val selected = state.durationMinutes == minutes
+                    FilterChip(
+                        selected = selected,
+                        onClick = {
+                            customDurationInput = ""
+                            onDurationChange(minutes)
+                        },
+                        label = { Text(text = stringResource(id = R.string.lesson_create_duration_chip, minutes)) }
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = customDurationInput,
+                onValueChange = { value ->
+                    val digits = value.filter { it.isDigit() }
+                    customDurationInput = digits
+                    onDurationChange(digits.toIntOrNull() ?: 0)
+                },
+                label = { Text(text = stringResource(id = R.string.lesson_create_duration_custom_label)) },
+                suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                isError = state.errors.containsKey(LessonCreationField.DURATION)
+            )
+            state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
+        }
 
         OutlinedTextField(
             value = priceInput,
@@ -324,7 +368,7 @@ private fun DurationPriceSection(
                 onPriceChange((digits.toIntOrNull() ?: 0) * 100)
             },
             label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
             isError = state.errors.containsKey(LessonCreationField.PRICE)
         )
@@ -347,30 +391,20 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
 @Composable
 private fun ActionButtons(
     state: LessonCreationUiState,
-    onDismiss: () -> Unit,
     onSubmit: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    androidx.compose.material3.Button(
+        onClick = onSubmit,
+        enabled = !state.isSubmitting && state.selectedStudent != null,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-            Text(text = stringResource(id = R.string.lesson_create_cancel))
-        }
-        androidx.compose.material3.Button(
-            onClick = onSubmit,
-            enabled = !state.isSubmitting && state.selectedStudent != null,
-            modifier = Modifier.weight(1f)
-        ) {
-            if (state.isSubmitting) {
-                androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.height(20.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(text = stringResource(id = R.string.lesson_create_submit))
-            }
+        if (state.isSubmitting) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.height(20.dp),
+                strokeWidth = 2.dp
+            )
+        } else {
+            Text(text = stringResource(id = R.string.lesson_create_submit))
         }
     }
 }

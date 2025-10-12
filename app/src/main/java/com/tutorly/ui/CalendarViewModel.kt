@@ -210,6 +210,7 @@ private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
         studentName = studentName,
         studentNote = studentNote,
         subjectName = subjectName,
+        studentGrade = studentGrade,
         lessonTitle = lessonTitle,
         lessonNote = lessonNote,
         paymentStatus = paymentStatus,
@@ -229,16 +230,17 @@ data class CalendarLesson(
     val end: ZonedDateTime,
     val duration: Duration,
     val studentName: String,
-    val studentNote: String?,
-    val subjectName: String?,
-    val lessonTitle: String?,
+        val studentNote: String?,
+        val subjectName: String?,
+        val studentGrade: String?,
+        val lessonTitle: String?,
     val lessonNote: String?,
     val paymentStatus: PaymentStatus,
     val paymentStatusIcon: PaymentStatusIcon,
     val paidCents: Int,
     val priceCents: Int,
-    val subjectColorArgb: Int?
-)
+        val subjectColorArgb: Int?
+    )
 
 data class CalendarUiState(
     val anchor: LocalDate,
