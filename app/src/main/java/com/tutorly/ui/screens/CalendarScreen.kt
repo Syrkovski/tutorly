@@ -214,7 +214,7 @@ fun CalendarScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_calendar_plus),
+                    painter = painterResource(id = R.drawable.ic_calendar_add_on),
                     contentDescription = stringResource(id = R.string.lesson_create_title)
                 )
             }
@@ -457,19 +457,12 @@ private fun DayTimeline(
     val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
     val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
     val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
-    val minuteHeight = remember { HourHeight / MinutesPerHour }
     val nowMinutesFromStart = remember(isToday, currentDateTime, startHour) {
         if (!isToday) null else {
             val currentMinutes = currentDateTime.hour * MinutesPerHour + currentDateTime.minute
             currentMinutes - startHour * MinutesPerHour
         }
     }
-    val nowBadgeOffset = remember(nowMinutesFromStart, totalMinutes) {
-        nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
-            minuteHeight * minutes.toFloat()
-        }
-    }
-
     val lessonRegions = remember(dayLessons, startHour, hourHeightPx, labelWidthPx, cardInsetPx) {
         val baseMin = startHour * MinutesPerHour
         dayLessons.map { lesson ->
@@ -577,21 +570,6 @@ private fun DayTimeline(
                 }
             }
 
-            nowBadgeOffset?.let { offset ->
-                val centered = offset - 12.dp
-                val badgeOffset = if (centered < 0.dp) 0.dp else centered
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .offset(y = badgeOffset)
-                ) {
-                    NowBadge(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 8.dp)
-                    )
-                }
-            }
         }
     }
 }
@@ -692,22 +670,6 @@ private fun LessonBlock(
 @Composable
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
-
-@Composable
-private fun NowBadge(modifier: Modifier = Modifier) {
-    Surface(
-        color = NowRed,
-        contentColor = Color.White,
-        shape = MaterialTheme.shapes.small,
-        modifier = modifier
-    ) {
-        Text(
-            text = stringResource(R.string.calendar_now_badge),
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
 
 private fun computeTimelineBounds(): Pair<Int, Int> = 0 to 24
 
