@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.CalendarAddOn
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
@@ -233,7 +232,7 @@ fun StudentDetailsScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(imageVector = Icons.Outlined.CalendarAddOn, contentDescription = null)
+                    Icon(imageVector = Icons.Outlined.CalendarToday, contentDescription = null)
                 }
             }
         },

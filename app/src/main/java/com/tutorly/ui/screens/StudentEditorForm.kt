@@ -25,6 +25,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -254,6 +255,7 @@ private fun ProfileSection(
     var customSubjects by remember { mutableStateOf("") }
     var isOtherSelected by remember { mutableStateOf(false) }
     val customSubjectFocusRequester = remember { FocusRequester() }
+    val textFieldColors = editorFieldColors()
 
     LaunchedEffect(state.subject) {
         val normalizedOptions = popularSubjects.associateBy { it.lowercase(Locale.getDefault()) }

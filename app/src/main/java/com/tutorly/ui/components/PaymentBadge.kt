@@ -15,7 +15,6 @@ import com.tutorly.ui.theme.DarkSuccessGreenContainer
 import com.tutorly.ui.theme.OnSuccessGreenContainer
 import com.tutorly.ui.theme.SuccessGreenContainer
 
-@Composable
 enum class PaymentBadgeStatus {
     PAID,
     DEBT,
