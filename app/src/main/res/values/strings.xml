@@ -48,6 +48,9 @@
     <string name="student_editor_subject_custom_support">Перечислите через запятую</string>
     <string name="student_editor_grade">Класс</string>
     <string name="student_editor_notes">Заметки</string>
+    <string name="student_editor_additional_data_title">Дополнительные данные</string>
+    <string name="student_editor_additional_data_show">Показать дополнительные данные</string>
+    <string name="student_editor_additional_data_hide">Скрыть дополнительные данные</string>
     <string name="student_editor_is_archived">Архивирован</string>
     <string name="student_editor_active">Активен</string>
     <string name="student_editor_cancel">Отмена</string>

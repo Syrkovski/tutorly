@@ -3,6 +3,7 @@ package com.tutorly.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -29,11 +30,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -97,6 +100,25 @@ fun StudentEditorForm(
     }
 
     val showFullForm = editTarget == null
+    val isNewStudent = state.studentId == null
+    var showAdditionalData by rememberSaveable(state.studentId) {
+        mutableStateOf(
+            !isNewStudent ||
+                state.phone.isNotBlank() ||
+                state.messenger.isNotBlank() ||
+                state.note.isNotBlank()
+        )
+    }
+
+    LaunchedEffect(editTarget) {
+        if (editTarget == StudentEditTarget.PHONE ||
+            editTarget == StudentEditTarget.MESSENGER ||
+            editTarget == StudentEditTarget.NOTES
+        ) {
+            showAdditionalData = true
+        }
+    }
+
     val columnModifier = if (enableScrolling) {
         modifier.verticalScroll(scrollState)
     } else {
@@ -136,7 +158,18 @@ fun StudentEditorForm(
             )
         }
 
-        if (showFullForm || editTarget == StudentEditTarget.PHONE) {
+        val shouldShowAdditionalSections = !isNewStudent || showAdditionalData
+
+        if (showFullForm && isNewStudent) {
+            AdditionalDataToggle(
+                expanded = showAdditionalData,
+                onToggle = { showAdditionalData = !showAdditionalData },
+                enabled = enabled,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        }
+
+        if ((showFullForm && shouldShowAdditionalSections) || editTarget == StudentEditTarget.PHONE) {
             PhoneSection(
                 phone = state.phone,
                 onPhoneChange = onPhoneChange,
@@ -147,7 +180,7 @@ fun StudentEditorForm(
             )
         }
 
-        if (showFullForm || editTarget == StudentEditTarget.MESSENGER) {
+        if ((showFullForm && shouldShowAdditionalSections) || editTarget == StudentEditTarget.MESSENGER) {
             MessengerSection(
                 messenger = state.messenger,
                 onMessengerChange = onMessengerChange,
@@ -158,7 +191,7 @@ fun StudentEditorForm(
             )
         }
 
-        if (showFullForm || editTarget == StudentEditTarget.NOTES) {
+        if ((showFullForm && shouldShowAdditionalSections) || editTarget == StudentEditTarget.NOTES) {
             NotesSection(
                 note = state.note,
                 onNoteChange = onNoteChange,
@@ -553,6 +586,35 @@ private fun RateSection(
                 enabled = enabled
             )
         }
+    }
+}
+
+@Composable
+private fun AdditionalDataToggle(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val title = stringResource(id = R.string.student_editor_additional_data_title)
+    val description = stringResource(
+        id = if (expanded) {
+            R.string.student_editor_additional_data_hide
+        } else {
+            R.string.student_editor_additional_data_show
+        }
+    )
+    TextButton(
+        onClick = onToggle,
+        modifier = modifier,
+        enabled = enabled
+    ) {
+        Text(text = title)
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+            contentDescription = description
+        )
     }
 }
 
