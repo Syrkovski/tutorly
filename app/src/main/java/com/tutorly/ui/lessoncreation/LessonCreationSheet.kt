@@ -123,9 +123,10 @@ fun LessonCreationSheet(
                     onStudentSelect = onStudentSelect,
                     onAddStudent = onAddStudent
                 )
-                SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
                 TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
-                DurationPriceSection(state = state, onDurationChange = onDurationChange, onPriceChange = onPriceChange)
+                DurationSection(state = state, onDurationChange = onDurationChange)
+                SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
+                PriceSection(state = state, onPriceChange = onPriceChange)
                 NoteSection(state = state, onNoteChange = onNoteChange)
                 ActionButtons(state = state, onSubmit = onSubmit)
             }
@@ -291,21 +292,36 @@ private fun StudentAvatar(
 private fun SubjectSection(state: LessonCreationUiState, onSubjectSelect: (Long?) -> Unit) {
     val availableSubjects = state.availableSubjects
     val studentSubjects = state.selectedStudent?.subjects.orEmpty()
-    if (availableSubjects.isEmpty() && studentSubjects.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = stringResource(id = R.string.lesson_create_subject_label), fontWeight = FontWeight.Medium)
-        if (availableSubjects.isNotEmpty()) {
+        when {
+            availableSubjects.isNotEmpty() && state.selectedStudent != null -> {
             FlowSubjectChips(
                 subjects = availableSubjects,
                 selectedSubjectId = state.selectedSubjectId,
                 onSubjectSelect = onSubjectSelect
             )
-        } else {
-            Text(
-                text = studentSubjects.joinToString(separator = ", "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            state.selectedStudent == null -> {
+                Text(
+                    text = stringResource(id = R.string.lesson_create_subject_placeholder),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            studentSubjects.isNotEmpty() -> {
+                Text(
+                    text = studentSubjects.joinToString(separator = ", "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            else -> {
+                Text(
+                    text = stringResource(id = R.string.lesson_create_subject_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -403,15 +419,70 @@ private fun TimeSection(
 }
 
 @Composable
-private fun DurationPriceSection(
+private fun DurationSection(
     state: LessonCreationUiState,
-    onDurationChange: (Int) -> Unit,
-    onPriceChange: (Int) -> Unit
+    onDurationChange: (Int) -> Unit
 ) {
     val presets = listOf(45, 60, 90, 120)
     var customDurationInput by remember(state.durationMinutes) {
         mutableStateOf(state.durationMinutes.takeIf { it > 0 }?.toString().orEmpty())
     }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = customDurationInput,
+            onValueChange = { value ->
+                val digits = value.filter { it.isDigit() }
+                customDurationInput = digits
+                onDurationChange(digits.toIntOrNull() ?: 0)
+            },
+            label = { Text(text = stringResource(id = R.string.lesson_create_duration_label)) },
+            suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Schedule, contentDescription = null)
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            isError = state.errors.containsKey(LessonCreationField.DURATION)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            presets.forEach { minutes ->
+                val selected = state.durationMinutes == minutes
+                Box(modifier = Modifier.weight(1f)) {
+                    FilterChip(
+                        selected = selected,
+                        onClick = {
+                            customDurationInput = minutes.toString()
+                            onDurationChange(minutes)
+                        },
+                        label = {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.lesson_create_duration_chip, minutes),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
+    }
+}
+
+@Composable
+private fun PriceSection(
+    state: LessonCreationUiState,
+    onPriceChange: (Int) -> Unit
+) {
     var priceInput by remember(state.priceCents) {
         mutableStateOf(state.priceCents.takeIf { it >= 0 }?.let { (it / 100).toString() } ?: "")
     }
@@ -419,35 +490,35 @@ private fun DurationPriceSection(
         NumberFormat.getIntegerInstance(state.locale).apply { maximumFractionDigits = 0 }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = customDurationInput,
-                onValueChange = { value ->
-                    val digits = value.filter { it.isDigit() }
-                    customDurationInput = digits
-                    onDurationChange(digits.toIntOrNull() ?: 0)
-                },
-                suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Schedule, contentDescription = null)
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                isError = state.errors.containsKey(LessonCreationField.DURATION)
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = priceInput,
+            onValueChange = { value ->
+                val digits = value.filter { it.isDigit() }
+                priceInput = digits
+                onPriceChange((digits.toIntOrNull() ?: 0) * 100)
+            },
+            label = { Text(text = stringResource(id = R.string.lesson_create_price_label)) },
+            leadingIcon = {
+                Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            isError = state.errors.containsKey(LessonCreationField.PRICE)
+        )
+        if (state.pricePresets.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                presets.forEach { minutes ->
-                    val selected = state.durationMinutes == minutes
+                state.pricePresets.take(4).forEach { preset ->
+                    val formatted = priceFormatter.format(preset / 100)
                     Box(modifier = Modifier.weight(1f)) {
                         FilterChip(
-                            selected = selected,
+                            selected = state.priceCents == preset,
                             onClick = {
-                                customDurationInput = minutes.toString()
-                                onDurationChange(minutes)
+                                priceInput = (preset / 100).toString()
+                                onPriceChange(preset)
                             },
                             label = {
                                 Box(
@@ -455,63 +526,13 @@ private fun DurationPriceSection(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = stringResource(id = R.string.lesson_create_duration_chip, minutes),
+                                        text = "$formatted ${state.currencySymbol}",
                                         textAlign = TextAlign.Center
                                     )
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
-                    }
-                }
-            }
-            state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = priceInput,
-                onValueChange = { value ->
-                    val digits = value.filter { it.isDigit() }
-                    priceInput = digits
-                    onPriceChange((digits.toIntOrNull() ?: 0) * 100)
-                },
-                label = { Text(text = stringResource(id = R.string.lesson_create_price_label, state.currencySymbol)) },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                isError = state.errors.containsKey(LessonCreationField.PRICE)
-            )
-            if (state.pricePresets.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    state.pricePresets.take(4).forEach { preset ->
-                        val formatted = priceFormatter.format(preset / 100)
-                        Box(modifier = Modifier.weight(1f)) {
-                            FilterChip(
-                                selected = state.priceCents == preset,
-                                onClick = {
-                                    priceInput = (preset / 100).toString()
-                                    onPriceChange(preset)
-                                },
-                                label = {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "$formatted ${state.currencySymbol}",
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
                     }
                 }
             }
