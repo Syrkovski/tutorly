@@ -3,9 +3,8 @@ package com.tutorly.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,7 +27,7 @@ import java.time.format.TextStyle
 import java.time.ZoneId
 import java.util.Locale
 
-/* =====================  WEEK MOSAIC (compact, 2×4)  ===================== */
+/* =====================  WEEK MOSAIC (single column list)  ===================== */
 
 @Composable
 fun WeekMosaic(
@@ -37,48 +36,36 @@ fun WeekMosaic(
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
     currentDateTime: ZonedDateTime,
     onLessonClick: (LessonBrief) -> Unit = {},
-    contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-    hSpacing: Dp = 8.dp,
-    vSpacing: Dp = 8.dp
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+    itemSpacing: Dp = 12.dp
 ) {
     val monday = anchor.with(DayOfWeek.MONDAY)
     val days = remember(monday) { (0..6).map { monday.plusDays(it.toLong()) } }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
     val now = remember(currentDateTime) { currentDateTime }
 
-    val dayCards = remember(days, dayDataProvider) {
-        days.map { d ->
-            val lessons = dayDataProvider(d)
-            DayCardModel(
-                date = d,
-                brief = lessons.take(6), // больше строк вмещаем
-                totalLessons = lessons.size
-            )
-        }
+    val dayCards = days.map { d ->
+        val lessons = dayDataProvider(d)
+        DayCardModel(
+            date = d,
+            brief = lessons,
+            totalLessons = lessons.size
+        )
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val gridH =
-            maxHeight - contentPadding.calculateTopPadding() - contentPadding.calculateBottomPadding()
-        val cellH = (gridH - vSpacing * 3f) / 4f
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(vSpacing),
-            horizontalArrangement = Arrangement.spacedBy(hSpacing)
-        ) {
-            items(dayCards) { model ->
-                DayTile(
-                    model = model,
-                    height = cellH,
-                    onClick = { onOpenDay(model.date) },
-                    today = today,
-                    now = now,
-                    onLessonClick = onLessonClick
-                )
-            }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(itemSpacing)
+    ) {
+        items(dayCards, key = { it.date }) { model ->
+            DayTile(
+                model = model,
+                onClick = { onOpenDay(model.date) },
+                today = today,
+                now = now,
+                onLessonClick = onLessonClick
+            )
         }
     }
 }
@@ -88,7 +75,6 @@ fun WeekMosaic(
 @Composable
 private fun DayTile(
     model: DayCardModel,
-    height: Dp,
     onClick: () -> Unit,
     today: LocalDate,
     now: ZonedDateTime,
@@ -113,12 +99,12 @@ private fun DayTile(
         color = bg,
         shape = dayShape,
         modifier = Modifier
-            .height(height)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
         Column(
             Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(8.dp), // компакт
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
