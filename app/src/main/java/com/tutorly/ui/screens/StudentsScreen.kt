@@ -27,16 +27,15 @@ import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,9 +57,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.window.DialogProperties
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.components.TutorlyDialog
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
 
@@ -232,85 +231,78 @@ fun StudentEditorDialogContent(
     snackbarHostState: SnackbarHostState? = null,
 ) {
     val isEditing = state.studentId != null
-    BasicAlertDialog(
+    TutorlyDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        modifier = modifier
     ) {
-        Surface(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .widthIn(max = 560.dp),
-            shape = AlertDialogDefaults.shape,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-            color = AlertDialogDefaults.containerColor
+        if (state.isSaving) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+
+        Text(
+            text = stringResource(
+                id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
+            ),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        StudentEditorForm(
+            state = state,
+            onNameChange = onNameChange,
+            onPhoneChange = onPhoneChange,
+            onMessengerChange = onMessengerChange,
+            onRateChange = onRateChange,
+            onSubjectChange = onSubjectChange,
+            onGradeChange = onGradeChange,
+            onNoteChange = onNoteChange,
+            onArchivedChange = onArchivedChange,
+            onActiveChange = onActiveChange,
+            modifier = Modifier.fillMaxWidth(),
+            editTarget = editTarget,
+            initialFocus = initialFocus,
+            enableScrolling = editTarget == null,
+            enabled = !state.isSaving,
+            onSubmit = onSave
+        )
+
+        if (snackbarHostState != null) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .heightIn(max = 600.dp)
+            TextButton(
+                onClick = onDismiss,
+                enabled = !state.isSaving,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                )
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    if (state.isSaving) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
+                Text(text = stringResource(id = R.string.lesson_create_cancel))
+            }
 
-                    Text(
-                        text = stringResource(
-                            id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
-                        ),
-                        style = MaterialTheme.typography.titleLarge
-                    )
+            Spacer(Modifier.width(12.dp))
 
-                    StudentEditorForm(
-                        state = state,
-                        onNameChange = onNameChange,
-                        onPhoneChange = onPhoneChange,
-                        onMessengerChange = onMessengerChange,
-                        onRateChange = onRateChange,
-                        onSubjectChange = onSubjectChange,
-                        onGradeChange = onGradeChange,
-                        onNoteChange = onNoteChange,
-                        onArchivedChange = onArchivedChange,
-                        onActiveChange = onActiveChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        editTarget = editTarget,
-                        initialFocus = initialFocus,
-                        enableScrolling = editTarget == null,
-                        enabled = !state.isSaving,
-                        onSubmit = onSave
-                    )
-
-                    if (snackbarHostState != null) {
-                        SnackbarHost(
-                            hostState = snackbarHostState,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(
-                            onClick = onDismiss,
-                            enabled = !state.isSaving
-                        ) {
-                            Text(text = stringResource(id = R.string.lesson_create_cancel))
-                        }
-                        TextButton(
-                            onClick = onSave,
-                            enabled = !state.isSaving && state.name.isNotBlank()
-                        ) {
-                            Text(text = stringResource(id = R.string.student_editor_save))
-                        }
-                    }
-                }
+            FilledTonalButton(
+                onClick = onSave,
+                enabled = !state.isSaving && state.name.isNotBlank(),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_save))
             }
         }
     }
