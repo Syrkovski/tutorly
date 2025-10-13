@@ -127,7 +127,15 @@ fun AppNavRoot() {
                     creationViewModel = creationViewModel
                 )
             }
-            composable(ROUTE_TODAY)    { TodayScreen() }      // сам рисует свой верх (заголовок + счетчики)
+            composable(ROUTE_TODAY) {
+                TodayScreen(
+                    onAddStudent = {
+                        nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }      // сам рисует свой верх (заголовок + счетчики)
             composable(
                 route = ROUTE_STUDENTS_PATTERN,
                 arguments = listOf(

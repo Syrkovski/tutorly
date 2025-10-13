@@ -105,6 +105,10 @@ fun StudentDetailsScreen(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
         onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onAddStudent = {
+            lessonCardViewModel.dismiss()
+            onAddStudentFromCreation()
+        },
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,
