@@ -671,7 +671,7 @@ private fun LessonBlock(
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
 
-private fun computeTimelineBounds(): Pair<Int, Int> = 0 to 24
+private fun computeTimelineBounds(): Pair<Int, Int> = 6 to 24
 
 /* ----------------------------- MONTH GRID -------------------------------- */
 
