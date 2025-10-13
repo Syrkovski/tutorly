@@ -187,6 +187,11 @@ fun AppNavRoot() {
                 val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
                 StudentDetailsScreen(
                     onBack = { nav.popBackStack() },
+                    onEdit = { id, target ->
+                        nav.navigate(studentEditRoute(id, target)) {
+                            launchSingleTop = true
+                        }
+                    },
                     onAddStudentFromCreation = {
                         nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
                             launchSingleTop = true
