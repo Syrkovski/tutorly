@@ -49,7 +49,6 @@ import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.theme.NowRed
-import com.tutorly.ui.theme.RailBlue
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
@@ -426,7 +425,6 @@ fun PlanScreenHeader(
 
 /* --------------------------- DAY TIMELINE -------------------------------- */
 
-private val SpineColor = RailBlue.copy(alpha = 0.6f)
 private val LabelWidth = 64.dp
 private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
@@ -520,6 +518,7 @@ private fun DayTimeline(
         ) {
             // 1) Сетка фоном
             val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+            val spineColor = MaterialTheme.colorScheme.primary
             Canvas(Modifier.matchParentSize()) {
                 val rowH = HourHeight.toPx()
                 val leftPad = LabelWidth.toPx()
@@ -535,7 +534,7 @@ private fun DayTimeline(
                     )
                 }
                 drawRect(
-                    color = SpineColor,
+                    color = spineColor,
                     topLeft = androidx.compose.ui.geometry.Offset(leftPad, 0f),
                     size = androidx.compose.ui.geometry.Size(spineW, size.height)
                 )
@@ -639,7 +638,7 @@ private fun LessonBlock(
             onClick = { onLessonClick(lesson) },
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White
             ),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 1.dp,
@@ -668,7 +667,7 @@ private fun LessonBlock(
                 ) {
                     Text(
                         text = lesson.studentName,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
