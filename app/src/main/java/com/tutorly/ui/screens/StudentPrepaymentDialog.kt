@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,7 +37,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StudentPrepaymentDialog(
     onDismiss: () -> Unit,
-    onSaved: (Int) -> Unit,
+    onSaved: (StudentPrepaymentResult) -> Unit,
     vm: StudentPrepaymentViewModel = hiltViewModel(),
 ) {
     val state = vm.formState
@@ -62,10 +61,9 @@ fun StudentPrepaymentDialog(
     val attemptSave: () -> Unit = {
         if (!state.isSaving) {
             vm.submit(
-                onSuccess = { amount ->
+                onSuccess = { result ->
                     vm.reset()
-                    onSaved(amount)
-                    onDismiss()
+                    onSaved(result)
                 },
                 onError = { message ->
                     val text = message.ifBlank { context.getString(R.string.student_prepayment_error) }
@@ -111,8 +109,9 @@ fun StudentPrepaymentDialog(
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Next
+                imeAction = ImeAction.Done
             ),
+            keyboardActions = KeyboardActions(onDone = { attemptSave() }),
             isError = state.amountError,
             supportingText = {
                 if (state.amountError) {
@@ -121,24 +120,6 @@ fun StudentPrepaymentDialog(
             },
             singleLine = true,
             enabled = !state.isSaving
-        )
-
-        OutlinedTextField(
-            value = state.note,
-            onValueChange = vm::onNoteChange,
-            label = { Text(text = stringResource(id = R.string.student_prepayment_note_label)) },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Filled.Description,
-                    contentDescription = null,
-                    tint = iconTint
-                )
-            },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { attemptSave() }),
-            enabled = !state.isSaving,
-            minLines = 3
         )
 
         FilledTonalButton(

@@ -15,9 +15,13 @@ import kotlinx.coroutines.launch
 
 data class StudentPrepaymentFormState(
     val amount: String = "",
-    val note: String = "",
     val isSaving: Boolean = false,
     val amountError: Boolean = false,
+)
+
+data class StudentPrepaymentResult(
+    val depositedCents: Int,
+    val debtCoveredCents: Long
 )
 
 @HiltViewModel
@@ -36,16 +40,12 @@ class StudentPrepaymentViewModel @Inject constructor(
         formState = formState.copy(amount = value, amountError = false)
     }
 
-    fun onNoteChange(value: String) {
-        formState = formState.copy(note = value)
-    }
-
     fun reset() {
         formState = StudentPrepaymentFormState()
     }
 
     fun submit(
-        onSuccess: (Int) -> Unit,
+        onSuccess: (StudentPrepaymentResult) -> Unit,
         onError: (String) -> Unit,
     ) {
         if (formState.isSaving) return
@@ -56,12 +56,9 @@ class StudentPrepaymentViewModel @Inject constructor(
             return
         }
 
-        val trimmedNote = formState.note.trim().ifBlank { null }
-
         viewModelScope.launch {
             formState = formState.copy(
                 amount = formatMoneyInput(parsedAmount),
-                note = trimmedNote.orEmpty(),
                 amountError = false,
                 isSaving = true,
             )
@@ -70,17 +67,23 @@ class StudentPrepaymentViewModel @Inject constructor(
                 lessonId = null,
                 studentId = studentId,
                 amountCents = parsedAmount,
-                note = trimmedNote,
                 status = PaymentStatus.PAID,
             )
 
             runCatching {
+                val outstandingBefore = paymentsRepository.totalDebt(studentId)
                 paymentsRepository.insert(payment)
                 paymentsRepository.applyPrepayment(studentId)
+                val outstandingAfter = paymentsRepository.totalDebt(studentId)
+                val debtCovered = (outstandingBefore - outstandingAfter).coerceAtLeast(0)
+                StudentPrepaymentResult(
+                    depositedCents = parsedAmount,
+                    debtCoveredCents = debtCovered
+                )
             }
-                .onSuccess {
+                .onSuccess { result ->
                     formState = StudentPrepaymentFormState()
-                    onSuccess(parsedAmount)
+                    onSuccess(result)
                 }
                 .onFailure { throwable ->
                     formState = formState.copy(isSaving = false)

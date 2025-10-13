@@ -1,6 +1,8 @@
 package com.tutorly.ui.screens
 
-internal fun formatMoneyInput(cents: Int?): String {
+internal fun formatMoneyInput(cents: Int?): String = formatMoneyInput(cents?.toLong())
+
+internal fun formatMoneyInput(cents: Long?): String {
     if (cents == null) return ""
     val decimal = java.math.BigDecimal(cents)
         .divide(java.math.BigDecimal(100))
