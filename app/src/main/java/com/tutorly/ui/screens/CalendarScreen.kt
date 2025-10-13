@@ -22,7 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -50,8 +50,6 @@ import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.theme.NowRed
-import com.tutorly.ui.theme.RailBlue
-import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
@@ -70,8 +68,6 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.*
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 enum class CalendarMode { DAY, WEEK, MONTH }
@@ -204,17 +200,24 @@ fun CalendarScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val start = uiState.currentDateTime
-                creationViewModel.start(
-                    LessonCreationConfig(
-                        start = start,
-                        zoneId = uiState.zoneId,
-                        origin = LessonCreationOrigin.CALENDAR
+            FloatingActionButton(
+                onClick = {
+                    val start = uiState.currentDateTime
+                    creationViewModel.start(
+                        LessonCreationConfig(
+                            start = start,
+                            zoneId = uiState.zoneId,
+                            origin = LessonCreationOrigin.CALENDAR
+                        )
                     )
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.DateRange,
+                    contentDescription = stringResource(id = R.string.lesson_create_title)
                 )
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = null)
             }
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -348,26 +351,6 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
     )
 }
 
-private fun CalendarLesson.compactTitle(): String {
-    val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
-    val gradeNumber = studentGrade?.let { grade ->
-        Regex("\\d+").find(grade)?.value
-    }
-    val trailing = when {
-        subject != null && gradeNumber != null -> "$subject $gradeNumber"
-        subject != null -> subject
-        gradeNumber != null -> gradeNumber
-        else -> null
-    }
-    return buildString {
-        append(studentName)
-        if (!trailing.isNullOrBlank()) {
-            append('•')
-            append(trailing)
-        }
-    }
-}
-
 
 /* ----------------------------- HEADER ----------------------------------- */
 
@@ -443,9 +426,8 @@ fun PlanScreenHeader(
 
 /* --------------------------- DAY TIMELINE -------------------------------- */
 
-private val SpineColor = RailBlue.copy(alpha = 0.6f)
 private val LabelWidth = 64.dp
-private val HourHeight = 64.dp
+private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
 private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
@@ -461,9 +443,7 @@ private fun DayTimeline(
 ) {
     val dayLessons = remember(date, lessons) { lessons }
     val isToday = remember(date, currentDateTime) { currentDateTime.toLocalDate() == date }
-    val (startHour, endHourExclusive) = remember(dayLessons) {
-        computeTimelineBounds(dayLessons)
-    }
+    val (startHour, endHourExclusive) = remember { computeTimelineBounds() }
     val hours = remember(startHour, endHourExclusive) {
         (startHour until endHourExclusive).map { "%02d:00".format(it) }
     }
@@ -478,19 +458,12 @@ private fun DayTimeline(
     val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
     val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
     val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
-    val minuteHeight = remember { HourHeight / MinutesPerHour }
     val nowMinutesFromStart = remember(isToday, currentDateTime, startHour) {
         if (!isToday) null else {
             val currentMinutes = currentDateTime.hour * MinutesPerHour + currentDateTime.minute
             currentMinutes - startHour * MinutesPerHour
         }
     }
-    val nowBadgeOffset = remember(nowMinutesFromStart, totalMinutes) {
-        nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
-            minuteHeight * minutes.toFloat()
-        }
-    }
-
     val lessonRegions = remember(dayLessons, startHour, hourHeightPx, labelWidthPx, cardInsetPx) {
         val baseMin = startHour * MinutesPerHour
         dayLessons.map { lesson ->
@@ -539,6 +512,7 @@ private fun DayTimeline(
         ) {
             // 1) Сетка фоном
             val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+            val spineColor = MaterialTheme.colorScheme.primary
             Canvas(Modifier.matchParentSize()) {
                 val rowH = HourHeight.toPx()
                 val leftPad = LabelWidth.toPx()
@@ -554,7 +528,7 @@ private fun DayTimeline(
                     )
                 }
                 drawRect(
-                    color = SpineColor,
+                    color = spineColor,
                     topLeft = androidx.compose.ui.geometry.Offset(leftPad, 0f),
                     size = androidx.compose.ui.geometry.Size(spineW, size.height)
                 )
@@ -597,21 +571,6 @@ private fun DayTimeline(
                 }
             }
 
-            nowBadgeOffset?.let { offset ->
-                val centered = offset - 12.dp
-                val badgeOffset = if (centered < 0.dp) 0.dp else centered
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .offset(y = badgeOffset)
-                ) {
-                    NowBadge(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 8.dp)
-                    )
-                }
-            }
         }
     }
 }
@@ -631,7 +590,6 @@ private fun LessonBlock(
     onLessonClick: (CalendarLesson) -> Unit
 ) {
     val startTime = lesson.start.toLocalTime()
-    val endTime = lesson.end.toLocalTime()
     val startMin = startTime.hour * 60 + startTime.minute
     val baseMin = baseHour * 60
     val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
@@ -641,14 +599,12 @@ private fun LessonBlock(
     val top = minuteDp * (startMin - baseMin)
     val height = minuteDp * durationMinutes.toInt()
 
-    val firstLine = remember(
-        lesson.studentName,
-        lesson.subjectName,
-        lesson.studentGrade
-    ) { lesson.compactTitle() }
     val statusInfo = lesson.statusPresentation(now)
-    val containerColor = lesson.subjectColorArgb?.let { Color(it).copy(alpha = 0.12f) }
-        ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+    val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
+        listOfNotNull(lesson.studentGrade, lesson.subjectName)
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(separator = " • ")
+    }
 
     Box(
         Modifier
@@ -661,16 +617,27 @@ private fun LessonBlock(
             onClick = { onLessonClick(lesson) },
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
-                containerColor = containerColor
+                containerColor = Color.White
             ),
-            elevation = TutorlyCardDefaults.elevation(),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 1.dp,
+                focusedElevation = 2.dp,
+                hoveredElevation = 2.dp,
+                pressedElevation = 1.dp,
+                draggedElevation = 3.dp,
+                disabledElevation = 0.dp
+            ),
             modifier = Modifier.fillMaxSize()
         ) {
             Column(
                 Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.Center
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = if (secondaryLine.isNullOrBlank()) {
+                    Arrangement.Center
+                } else {
+                    Arrangement.spacedBy(4.dp)
+                }
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -678,15 +645,22 @@ private fun LessonBlock(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = firstLine,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
+                        text = lesson.studentName,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     StatusChip(
-                        data = statusInfo,
-                        modifier = Modifier.size(28.dp)
+                        data = statusInfo
+                    )
+                }
+                if (!secondaryLine.isNullOrBlank()) {
+                    Text(
+                        text = secondaryLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -698,33 +672,7 @@ private fun LessonBlock(
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
 
-@Composable
-private fun NowBadge(modifier: Modifier = Modifier) {
-    Surface(
-        color = NowRed,
-        contentColor = Color.White,
-        shape = MaterialTheme.shapes.small,
-        modifier = modifier
-    ) {
-        Text(
-            text = stringResource(R.string.calendar_now_badge),
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
-
-private fun computeTimelineBounds(lessons: List<CalendarLesson>): Pair<Int, Int> {
-    val defaultStart = 9
-    val defaultEnd = 21
-    if (lessons.isEmpty()) return defaultStart to defaultEnd
-
-    val earliestMinutes = lessons.minOf { it.start.hour * 60 + it.start.minute }
-    val latestMinutes = lessons.maxOf { it.end.hour * 60 + it.end.minute }
-    val startHour = min(defaultStart, earliestMinutes / 60)
-    val endHourExclusive = max(defaultEnd, ((latestMinutes + 59) / 60))
-    return startHour to max(endHourExclusive, startHour + 1)
-}
+private fun computeTimelineBounds(): Pair<Int, Int> = 6 to 24
 
 /* ----------------------------- MONTH GRID -------------------------------- */
 
