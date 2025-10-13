@@ -15,24 +15,34 @@ import com.tutorly.ui.theme.DarkSuccessGreenContainer
 import com.tutorly.ui.theme.OnSuccessGreenContainer
 import com.tutorly.ui.theme.SuccessGreenContainer
 
+enum class PaymentBadgeStatus {
+    PAID,
+    DEBT,
+    PREPAID
+}
+
 @Composable
-fun PaymentBadge(paid: Boolean) {
+fun PaymentBadge(status: PaymentBadgeStatus) {
     val colorScheme = MaterialTheme.colorScheme
     val isLightTheme = colorScheme.surface.luminance() > 0.5f
-    val (txt, container, content) = if (paid) {
-        val background = if (isLightTheme) SuccessGreenContainer else DarkSuccessGreenContainer
-        val foreground = if (isLightTheme) OnSuccessGreenContainer else DarkOnSuccessGreenContainer
-        Triple(
-            "Оплачено",
-            background,
-            foreground
-        )
-    } else {
-        Triple(
-            "Долг",
-            colorScheme.errorContainer,
-            colorScheme.onErrorContainer
-        )
+    val (txt, container, content) = when (status) {
+        PaymentBadgeStatus.PAID -> {
+            val background = if (isLightTheme) SuccessGreenContainer else DarkSuccessGreenContainer
+            val foreground = if (isLightTheme) OnSuccessGreenContainer else DarkOnSuccessGreenContainer
+            Triple("Оплачено", background, foreground)
+        }
+
+        PaymentBadgeStatus.DEBT -> {
+            Triple("Долг", colorScheme.errorContainer, colorScheme.onErrorContainer)
+        }
+
+        PaymentBadgeStatus.PREPAID -> {
+            Triple(
+                "Предоплата",
+                colorScheme.primaryContainer,
+                colorScheme.onPrimaryContainer
+            )
+        }
     }
     Surface(
         color = container,

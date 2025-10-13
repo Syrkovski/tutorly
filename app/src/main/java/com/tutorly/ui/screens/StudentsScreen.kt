@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
@@ -263,7 +264,7 @@ fun StudentEditorSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        TutorlyBottomSheetContainer(dragHandle = null) {
+        TutorlyBottomSheetContainer(color = Color.White, dragHandle = null) {
             Column(
                 modifier = modifier
                     .fillMaxWidth()
@@ -324,9 +325,12 @@ fun StudentEditorSheet(
                     enabled = !state.isSaving && state.name.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
+                        containerColor = Color.White,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 ) {
                     Text(text = stringResource(id = R.string.student_editor_save))
                 }
@@ -489,7 +493,7 @@ private fun StudentCard(
                             if (phone != null || email != null) {
                                 Spacer(Modifier.width(12.dp))
                             }
-                            PaymentBadge(paid = false)
+                            PaymentBadge(status = PaymentBadgeStatus.DEBT)
                         }
                     }
                 }

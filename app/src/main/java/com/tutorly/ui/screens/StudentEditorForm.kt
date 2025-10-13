@@ -25,6 +25,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +54,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.tutorly.R
 import java.util.Locale
 
@@ -60,10 +62,10 @@ import java.util.Locale
 private fun editorFieldColors(): TextFieldColors {
     val colorScheme = MaterialTheme.colorScheme
     return OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = colorScheme.surfaceContainerLowest,
-        unfocusedContainerColor = colorScheme.surfaceContainerLowest,
-        disabledContainerColor = colorScheme.surfaceContainerLowest,
-        errorContainerColor = colorScheme.surfaceContainerLowest,
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
+        disabledContainerColor = Color.White,
+        errorContainerColor = Color.White,
         focusedBorderColor = colorScheme.outline.copy(alpha = 0.24f),
         unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.16f),
         disabledBorderColor = colorScheme.outline.copy(alpha = 0.12f),
@@ -253,6 +255,7 @@ private fun ProfileSection(
     var customSubjects by remember { mutableStateOf("") }
     var isOtherSelected by remember { mutableStateOf(false) }
     val customSubjectFocusRequester = remember { FocusRequester() }
+    val textFieldColors = editorFieldColors()
 
     LaunchedEffect(state.subject) {
         val normalizedOptions = popularSubjects.associateBy { it.lowercase(Locale.getDefault()) }
@@ -364,7 +367,7 @@ private fun ProfileSection(
                 expanded = isSubjectDropdownExpanded,
                 onDismissRequest = { isSubjectDropdownExpanded = false },
                 modifier = subjectDropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                containerColor = Color.White
             ) {
                 popularSubjects.forEach { option ->
                     val isSelected = selectedSubjects.contains(option)
@@ -504,7 +507,7 @@ private fun ProfileSection(
                 expanded = isGradeDropdownExpanded,
                 onDismissRequest = { onGradeDropdownExpandedChange(false) },
                 modifier = gradeDropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                containerColor = Color.White
             ) {
                 gradeOptions.forEach { option ->
                     DropdownMenuItem(
@@ -592,7 +595,7 @@ private fun RateSection(
             expanded = isRateDropdownExpanded,
             onDismissRequest = { isRateDropdownExpanded = false },
             modifier = rateDropdownModifier,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            containerColor = Color.White
         ) {
             rateOptions.forEach { option ->
                 DropdownMenuItem(
@@ -751,7 +754,7 @@ private fun MessengerSection(
             DropdownMenu(
                 expanded = isDropdownExpanded,
                 onDismissRequest = { isDropdownExpanded = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                containerColor = Color.White
             ) {
                 messengerOptions.forEach { option ->
                     DropdownMenuItem(

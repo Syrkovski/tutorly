@@ -18,15 +18,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
+import androidx.compose.material.icons.outlined.Unarchive
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -66,6 +70,7 @@ import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
@@ -74,6 +79,7 @@ import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
+import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.YearMonth
@@ -101,6 +107,9 @@ fun StudentDetailsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPrepaymentDialog by rememberSaveable { mutableStateOf(false) }
+    var isArchiving by remember { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
@@ -152,19 +161,30 @@ fun StudentDetailsScreen(
     if (showPrepaymentDialog) {
         StudentPrepaymentDialog(
             onDismiss = { showPrepaymentDialog = false },
-            onSaved = { amount ->
+            onSaved = { result ->
                 showPrepaymentDialog = false
-                val amountText = formatMoneyInput(amount)
-                val successMessage = context.getString(R.string.student_prepayment_success, amountText)
-                coroutineScope.launch { snackbarHostState.showSnackbar(successMessage) }
+                val amountText = formatMoneyInput(result.depositedCents)
+                val message = if (result.debtCoveredCents > 0) {
+                    val debtText = formatMoneyInput(result.debtCoveredCents)
+                    context.getString(R.string.student_prepayment_success_with_debt, amountText, debtText)
+                } else {
+                    context.getString(R.string.student_prepayment_success, amountText)
+                }
+                coroutineScope.launch { snackbarHostState.showSnackbar(message) }
             }
         )
     }
 
-    val title = when (state) {
-        is StudentProfileUiState.Content -> (state as StudentProfileUiState.Content).profile.student.name
-        else -> stringResource(id = R.string.student_details_title_placeholder)
+    LaunchedEffect(showDeleteDialog) {
+        if (!showDeleteDialog) {
+            isDeleting = false
+        }
     }
+
+    val contentState = state as? StudentProfileUiState.Content
+
+    val title = contentState?.profile?.student?.name
+        ?: stringResource(id = R.string.student_details_title_placeholder)
 
     val openLessonCreation: (Long) -> Unit = { id ->
         creationViewModel.start(
@@ -180,20 +200,39 @@ fun StudentDetailsScreen(
         topBar = {
             StudentProfileTopBar(
                 title = title,
-                onBack = onBack
+                isArchived = contentState?.profile?.student?.isArchived,
+                onBack = onBack,
+                onArchiveClick = contentState?.let {
+                    {
+                        if (!isArchiving) {
+                            isArchiving = true
+                            vm.toggleArchive(
+                                onComplete = { isArchiving = false },
+                                onError = { throwable ->
+                                    val message = throwable.message?.takeIf { it.isNotBlank() }
+                                        ?: context.getString(R.string.student_details_archive_error)
+                                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            )
+                        }
+                    }
+                },
+                onDeleteClick = contentState?.let { { showDeleteDialog = true } },
+                archiveEnabled = !isArchiving,
+                deleteEnabled = !isDeleting
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            if (state is StudentProfileUiState.Content) {
-                val profile = (state as StudentProfileUiState.Content).profile
+            contentState?.let { current ->
+                val profile = current.profile
                 FloatingActionButton(
                     onClick = { openLessonCreation(profile.student.id) },
                     modifier = Modifier.navigationBarsPadding(),
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+                    Icon(imageVector = Icons.Outlined.CalendarToday, contentDescription = null)
                 }
             }
         },
@@ -237,16 +276,69 @@ fun StudentDetailsScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                 )
-            }
-        }
     }
+}
+
+    if (showDeleteDialog && contentState != null) {
+        val studentName = contentState.profile.student.name
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDeleting) {
+                    showDeleteDialog = false
+                }
+            },
+            title = { Text(text = stringResource(id = R.string.student_details_delete_title)) },
+            text = {
+                Text(text = stringResource(id = R.string.student_details_delete_message, studentName))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (!isDeleting) {
+                            isDeleting = true
+                            vm.deleteStudent(
+                                onSuccess = {
+                                    isDeleting = false
+                                    showDeleteDialog = false
+                                    onBack()
+                                },
+                                onError = { throwable ->
+                                    isDeleting = false
+                                    val message = throwable.message?.takeIf { it.isNotBlank() }
+                                        ?: context.getString(R.string.student_details_delete_error)
+                                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            )
+                        }
+                    },
+                    enabled = !isDeleting
+                ) {
+                    Text(text = stringResource(id = R.string.student_details_delete_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    enabled = !isDeleting
+                ) {
+                    Text(text = stringResource(id = R.string.student_details_delete_cancel))
+                }
+            }
+        )
+    }
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StudentProfileTopBar(
     title: String,
+    isArchived: Boolean?,
     onBack: () -> Unit,
+    onArchiveClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
+    archiveEnabled: Boolean = true,
+    deleteEnabled: Boolean = true,
 ) {
     TopAppBar(
         title = {
@@ -262,6 +354,26 @@ private fun StudentProfileTopBar(
                     imageVector = Icons.Filled.ArrowBack,
                     contentDescription = stringResource(id = R.string.student_details_back)
                 )
+            }
+        },
+        actions = {
+            if (onArchiveClick != null && isArchived != null) {
+                IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
+                    val (icon, description) = if (isArchived) {
+                        Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                    } else {
+                        Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                    }
+                    Icon(imageVector = icon, contentDescription = description)
+                }
+            }
+            if (onDeleteClick != null) {
+                IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = stringResource(id = R.string.student_details_delete)
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -283,16 +395,19 @@ private fun StudentProfileContent(
     val locale = remember { Locale("ru", "RU") }
     val numberFormatter = remember(locale) {
         NumberFormat.getNumberInstance(locale).apply {
-            maximumFractionDigits = 2
+            maximumFractionDigits = 0
             minimumFractionDigits = 0
         }
     }
     val currencyFormatter = remember(locale) {
         NumberFormat.getCurrencyInstance(locale).apply {
             currency = Currency.getInstance("RUB")
+            maximumFractionDigits = 0
+            minimumFractionDigits = 0
         }
     }
     val zoneId = remember { ZoneId.systemDefault() }
+    val referenceTime = remember(profile) { Instant.now() }
     val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
     val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
     val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
@@ -377,6 +492,7 @@ private fun StudentProfileContent(
                                         zoneId = zoneId,
                                         dateFormatter = dateFormatter,
                                         timeFormatter = timeFormatter,
+                                        referenceTime = referenceTime,
                                         onClick = { onLessonClick(lesson.id) }
                                     )
                                 }
@@ -625,13 +741,6 @@ private fun ProfileContactsCard(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = stringResource(id = R.string.student_details_contact_title),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             ProfileContactRow(
                 icon = Icons.Outlined.Phone,
                 label = stringResource(id = R.string.student_details_phone_label),
@@ -732,6 +841,7 @@ private fun StudentProfileLessonCard(
     zoneId: ZoneId,
     dateFormatter: DateTimeFormatter,
     timeFormatter: DateTimeFormatter,
+    referenceTime: Instant,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -751,6 +861,12 @@ private fun StudentProfileLessonCard(
         ?: stringResource(id = R.string.lesson_card_subject_placeholder)
     val amount = currencyFormatter.format(lesson.priceCents / 100.0)
     val isPaid = lesson.paymentStatus == PaymentStatus.PAID
+    val isUpcoming = lesson.startAt.isAfter(referenceTime)
+    val badgeStatus = when {
+        !isPaid -> PaymentBadgeStatus.DEBT
+        isUpcoming -> PaymentBadgeStatus.PREPAID
+        else -> PaymentBadgeStatus.PAID
+    }
 
     Card(
         onClick = onClick,
@@ -788,7 +904,7 @@ private fun StudentProfileLessonCard(
                     text = amount,
                     style = MaterialTheme.typography.titleMedium
                 )
-                PaymentBadge(paid = isPaid)
+                PaymentBadge(status = badgeStatus)
             }
         }
     }
