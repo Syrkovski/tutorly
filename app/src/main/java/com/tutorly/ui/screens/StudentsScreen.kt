@@ -291,7 +291,7 @@ fun StudentEditorSheet(
                     modifier = Modifier.fillMaxWidth(),
                     editTarget = editTarget,
                     initialFocus = initialFocus,
-                    enableScrolling = editTarget == null,
+                    enableScrolling = false,
                     enabled = !state.isSaving,
                     onSubmit = onSave
                 )
