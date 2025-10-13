@@ -118,11 +118,13 @@
     <string name="lesson_create_student_placeholder">Начните вводить имя</string>
     <string name="lesson_create_new_student">+ Новый ученик</string>
     <string name="lesson_create_subject_label">Предмет</string>
+    <string name="lesson_create_subject_placeholder">Выберите ученика, чтобы выбрать предмет</string>
+    <string name="lesson_create_subject_empty">Для ученика не найдены предметы</string>
     <string name="lesson_create_duration_label">Длительность</string>
     <string name="lesson_create_duration_chip">%1$d мин</string>
     <string name="lesson_create_duration_custom_label">Своя длительность</string>
     <string name="lesson_create_minutes_suffix">мин</string>
-    <string name="lesson_create_price_label">Стоимость (%1$s)</string>
+    <string name="lesson_create_price_label">Стоимость</string>
     <string name="lesson_create_note_label">Заметка</string>
     <string name="lesson_create_cancel">Отмена</string>
     <string name="lesson_create_submit">Добавить</string>
