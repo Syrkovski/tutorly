@@ -1,21 +1,13 @@
 package com.tutorly.ui.screens
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -23,7 +15,6 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
-import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -175,7 +166,6 @@ class StudentEditorVM @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentEditorDialog(
     onDismiss: () -> Unit,
@@ -184,35 +174,18 @@ fun StudentEditorDialog(
 ) {
     val formState = vm.formState
     val editTarget = vm.editTarget
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
     val currentOnDismiss by androidx.compose.runtime.rememberUpdatedState(onDismiss)
     val currentOnSaved by androidx.compose.runtime.rememberUpdatedState(onSaved)
 
-    fun closeEditor(action: () -> Unit) {
-        if (sheetState.isVisible) {
-            coroutineScope.launch {
-                sheetState.hide()
-            }.invokeOnCompletion { action() }
-        } else {
-            action()
-        }
-    }
-
-    BackHandler(enabled = !formState.isSaving) {
-        if (!formState.isSaving) {
-            closeEditor(currentOnDismiss)
-        }
-    }
-
     val attemptSave: () -> Unit = {
         if (!formState.isSaving) {
             vm.save(
                 onSaved = { id ->
-                    closeEditor { currentOnSaved(id) }
+                    currentOnSaved(id)
                 },
                 onError = { message ->
                     val text = if (message.isNotBlank()) {
@@ -226,35 +199,25 @@ fun StudentEditorDialog(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = {
+    StudentEditorDialogContent(
+        state = formState,
+        onNameChange = vm::onNameChange,
+        onPhoneChange = vm::onPhoneChange,
+        onMessengerChange = vm::onMessengerChange,
+        onRateChange = vm::onRateChange,
+        onSubjectChange = vm::onSubjectChange,
+        onGradeChange = vm::onGradeChange,
+        onNoteChange = vm::onNoteChange,
+        onArchivedChange = vm::onArchivedChange,
+        onActiveChange = vm::onActiveChange,
+        onSave = attemptSave,
+        onDismiss = {
             if (!formState.isSaving) {
-                closeEditor(currentOnDismiss)
+                currentOnDismiss()
             }
         },
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
-        contentColor = Color.Unspecified,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
-    ) {
-        TutorlyBottomSheetContainer {
-            StudentEditorSheet(
-                state = formState,
-                onNameChange = vm::onNameChange,
-                onPhoneChange = vm::onPhoneChange,
-                onMessengerChange = vm::onMessengerChange,
-                onRateChange = vm::onRateChange,
-                onSubjectChange = vm::onSubjectChange,
-                onGradeChange = vm::onGradeChange,
-                onNoteChange = vm::onNoteChange,
-                onArchivedChange = vm::onArchivedChange,
-                onActiveChange = vm::onActiveChange,
-                onSave = attemptSave,
-                modifier = Modifier.fillMaxWidth(),
-                editTarget = editTarget,
-                initialFocus = editTarget,
-                snackbarHostState = snackbarHostState
-            )
-        }
-    }
+        editTarget = editTarget,
+        initialFocus = editTarget,
+        snackbarHostState = snackbarHostState
+    )
 }

@@ -100,7 +100,7 @@ fun StudentDetailsScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    var showPrepaymentSheet by rememberSaveable { mutableStateOf(false) }
+    var showPrepaymentDialog by rememberSaveable { mutableStateOf(false) }
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
@@ -144,11 +144,11 @@ fun StudentDetailsScreen(
         }
     }
 
-    if (showPrepaymentSheet) {
-        StudentPrepaymentSheet(
-            onDismiss = { showPrepaymentSheet = false },
+    if (showPrepaymentDialog) {
+        StudentPrepaymentDialog(
+            onDismiss = { showPrepaymentDialog = false },
             onSaved = { amount ->
-                showPrepaymentSheet = false
+                showPrepaymentDialog = false
                 val amountText = formatMoneyInput(amount)
                 val successMessage = context.getString(R.string.student_prepayment_success, amountText)
                 coroutineScope.launch { snackbarHostState.showSnackbar(successMessage) }
@@ -226,7 +226,7 @@ fun StudentDetailsScreen(
                     profile = currentState.profile,
                     onEdit = onEdit,
                     onAddLesson = openLessonCreation,
-                    onPrepaymentClick = { showPrepaymentSheet = true },
+                    onPrepaymentClick = { showPrepaymentDialog = true },
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()

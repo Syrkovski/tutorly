@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -204,6 +205,7 @@ private fun ProfileSection(
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
 ) {
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
             value = state.name,
@@ -216,7 +218,11 @@ private fun ProfileSection(
             enabled = enabled,
             isError = state.nameError,
             leadingIcon = {
-                Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = iconTint
+                )
             },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
         )
@@ -236,7 +242,11 @@ private fun ProfileSection(
             singleLine = true,
             enabled = enabled,
             leadingIcon = {
-                Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Filled.Book,
+                    contentDescription = null,
+                    tint = iconTint
+                )
             },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
         )
@@ -263,7 +273,11 @@ private fun ProfileSection(
                 singleLine = true,
                 enabled = enabled,
                 leadingIcon = {
-                    Icon(imageVector = Icons.Filled.School, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Filled.School,
+                        contentDescription = null,
+                        tint = iconTint
+                    )
                 },
                 trailingIcon = {
                     IconButton(
@@ -272,7 +286,8 @@ private fun ProfileSection(
                     ) {
                         Icon(
                             imageVector = if (isGradeDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null
+                            contentDescription = null,
+                            tint = iconTint
                         )
                     }
                 },
@@ -320,6 +335,7 @@ private fun RateSection(
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
 ) {
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     OutlinedTextField(
         value = rate,
         onValueChange = onRateChange,
@@ -330,7 +346,11 @@ private fun RateSection(
         singleLine = true,
         enabled = enabled,
         leadingIcon = {
-            Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
+            Icon(
+                imageVector = Icons.Outlined.CurrencyRuble,
+                contentDescription = null,
+                tint = iconTint
+            )
         },
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = KeyboardType.Decimal,
@@ -353,6 +373,7 @@ private fun PhoneSection(
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
 ) {
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     OutlinedTextField(
         value = phone,
         onValueChange = onPhoneChange,
@@ -363,7 +384,11 @@ private fun PhoneSection(
         singleLine = true,
         enabled = enabled,
         leadingIcon = {
-            Icon(imageVector = Icons.Filled.Phone, contentDescription = null)
+            Icon(
+                imageVector = Icons.Filled.Phone,
+                contentDescription = null,
+                tint = iconTint
+            )
         },
         keyboardOptions = KeyboardOptions.Default.copy(
             imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
@@ -389,6 +414,7 @@ private fun MessengerSection(
     var selectedType by remember { mutableStateOf(StudentMessengerType.TELEGRAM) }
     var customLabel by remember { mutableStateOf("") }
     var identifier by remember { mutableStateOf("") }
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
 
     LaunchedEffect(messenger) {
         val parsed = messenger.parseMessengerValue()
@@ -419,13 +445,18 @@ private fun MessengerSection(
                 enabled = enabled,
                 readOnly = selectedType != StudentMessengerType.OTHER,
                 leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Message, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Filled.Message,
+                        contentDescription = null,
+                        tint = iconTint
+                    )
                 },
                 trailingIcon = {
                     IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }, enabled = enabled) {
                         Icon(
                             imageVector = if (isDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null
+                            contentDescription = null,
+                            tint = iconTint
                         )
                     }
                 }
@@ -465,7 +496,11 @@ private fun MessengerSection(
             singleLine = true,
             enabled = enabled,
             leadingIcon = {
-                Icon(imageVector = Icons.Filled.AlternateEmail, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Filled.AlternateEmail,
+                    contentDescription = null,
+                    tint = iconTint
+                )
             },
             keyboardOptions = KeyboardOptions.Default.copy(
                 imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
@@ -487,6 +522,7 @@ private fun NotesSection(
     focusRequester: FocusRequester,
     onSubmit: (() -> Unit)?
 ) {
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     OutlinedTextField(
         value = note,
         onValueChange = onNoteChange,
@@ -497,7 +533,11 @@ private fun NotesSection(
         minLines = 3,
         enabled = enabled,
         leadingIcon = {
-            Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+            Icon(
+                imageVector = Icons.Filled.Description,
+                contentDescription = null,
+                tint = iconTint
+            )
         },
         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = {
@@ -564,7 +604,15 @@ private fun RowSwitch(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            enabled = enabled
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+                checkedThumbColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledCheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.38f),
+                disabledUncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+            )
         )
     }
 }
