@@ -1,7 +1,7 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,9 +21,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
@@ -39,6 +39,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -57,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -151,7 +153,7 @@ fun StudentsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = Icons.Default.PersonAdd,
                     contentDescription = stringResource(id = R.string.add_student)
                 )
             }
@@ -166,11 +168,23 @@ fun StudentsScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = vm::onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, MaterialTheme.shapes.large, clip = false),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
-                shape = MaterialTheme.shapes.large
+                shape = MaterialTheme.shapes.large,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    disabledContainerColor = Color.White,
+                    errorContainerColor = Color.White,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
+                )
             )
 
             Spacer(Modifier.height(16.dp))
@@ -358,7 +372,7 @@ private fun StudentCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             StudentAvatar(name = item.student.name, size = 48.dp)
             Spacer(Modifier.width(12.dp))
@@ -384,9 +398,10 @@ private fun StudentCard(
                 }
                 note?.let {
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        shape = MaterialTheme.shapes.small
+                        color = Color.White,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -410,9 +425,10 @@ private fun StudentCard(
                     }
                 }
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    color = Color.White,
                     contentColor = MaterialTheme.colorScheme.primary,
-                    shape = MaterialTheme.shapes.small
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                 ) {
                     Row(
                         modifier = Modifier
