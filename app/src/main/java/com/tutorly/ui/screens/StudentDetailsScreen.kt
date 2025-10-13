@@ -108,6 +108,11 @@ fun StudentDetailsScreen(
     var showStudentEditor by rememberSaveable { mutableStateOf(false) }
     var editorTarget by rememberSaveable { mutableStateOf<StudentEditTarget?>(null) }
     val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val closeStudentEditor = {
+        showStudentEditor = false
+        editorTarget = null
+        vm.resetStudentEditor()
+    }
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
@@ -148,6 +153,26 @@ fun StudentDetailsScreen(
         if (message != null) {
             snackbarHostState.showSnackbar(message)
             creationViewModel.consumeSnackbar()
+        }
+    }
+
+    val handleStudentSave = {
+        if (!editorFormState.isSaving) {
+            vm.submitStudent(
+                onSuccess = { name ->
+                    closeStudentEditor()
+                    val message = context.getString(R.string.student_updated_message, name)
+                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                },
+                onError = { error ->
+                    val message = if (error.isNotBlank()) {
+                        error
+                    } else {
+                        context.getString(R.string.student_editor_save_error)
+                    }
+                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                }
+            )
         }
     }
 
@@ -213,32 +238,6 @@ fun StudentDetailsScreen(
                 origin = LessonCreationOrigin.STUDENT
             )
         )
-    }
-
-    val closeStudentEditor = {
-        showStudentEditor = false
-        editorTarget = null
-        vm.resetStudentEditor()
-    }
-
-    val handleStudentSave = {
-        if (!editorFormState.isSaving) {
-            vm.submitStudent(
-                onSuccess = { name ->
-                    closeStudentEditor()
-                    val message = context.getString(R.string.student_updated_message, name)
-                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                },
-                onError = { error ->
-                    val message = if (error.isNotBlank()) {
-                        error
-                    } else {
-                        context.getString(R.string.student_editor_save_error)
-                    }
-                    coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                }
-            )
-        }
     }
 
     Scaffold(
