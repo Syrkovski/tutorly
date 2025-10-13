@@ -236,10 +236,11 @@ class LessonCreationViewModel @Inject constructor(
         }
 
         if (applyDefaults) {
-            resolvedSubjectId?.let { onSubjectSelected(it) }
-                ?: if (resolvedSubjectName.isNotBlank()) {
-                    onSubjectInputChanged(resolvedSubjectName)
-                }
+            if (resolvedSubjectId != null) {
+                onSubjectSelected(resolvedSubjectId)
+            } else if (resolvedSubjectName.isNotBlank()) {
+                onSubjectInputChanged(resolvedSubjectName)
+            }
         }
     }
 
