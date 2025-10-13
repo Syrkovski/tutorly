@@ -1,7 +1,7 @@
 package com.tutorly.ui.screens
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.TrendingFlat
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -27,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
@@ -47,13 +50,50 @@ import java.util.Locale
 import kotlin.math.abs
 
 @Composable
-fun FinanceScreen(modifier: Modifier = Modifier) {
+fun FinanceScreen(
+    modifier: Modifier = Modifier,
+    viewModel: FinanceViewModel = hiltViewModel()
+) {
     var selectedPeriod by rememberSaveable { mutableStateOf(FinancePeriod.DAY) }
-    val summary = FinanceSampleData[selectedPeriod] ?: FinanceSummary.EMPTY
+    val state by viewModel.uiState.collectAsState()
+
+    when (val uiState = state) {
+        FinanceUiState.Loading -> FinanceLoading(modifier)
+        is FinanceUiState.Content -> FinanceContent(
+            modifier = modifier,
+            selectedPeriod = selectedPeriod,
+            onSelectPeriod = { selectedPeriod = it },
+            state = uiState
+        )
+    }
+}
+
+@Composable
+private fun FinanceLoading(modifier: Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun FinanceContent(
+    modifier: Modifier,
+    selectedPeriod: FinancePeriod,
+    onSelectPeriod: (FinancePeriod) -> Unit,
+    state: FinanceUiState.Content
+) {
     val currencyFormatter = rememberCurrencyFormatter()
     val percentFormatter = rememberPercentFormatter()
     val numberFormatter = rememberNumberFormatter()
     val scrollState = rememberScrollState()
+
+    val summary = state.summaries[selectedPeriod] ?: FinanceSummary.EMPTY
+    val averages = state.averages
 
     val periodLabel = stringResource(selectedPeriod.periodLabelRes)
     val periodText = stringResource(R.string.finance_metric_period, periodLabel)
@@ -61,9 +101,9 @@ fun FinanceScreen(modifier: Modifier = Modifier) {
     val debtValue = currencyFormatter.format(summary.debt)
     val hoursValue = numberFormatter.format(summary.hours)
     val lessonsValue = summary.lessons.toString()
-    val averageDay = currencyFormatter.format(summary.averages.day)
-    val averageWeek = currencyFormatter.format(summary.averages.week)
-    val averageMonth = currencyFormatter.format(summary.averages.month)
+    val averageDay = currencyFormatter.format(averages.day)
+    val averageWeek = currencyFormatter.format(averages.week)
+    val averageMonth = currencyFormatter.format(averages.month)
 
     val incomeChangeDisplay = summary.incomeChange.toDisplay(
         period = selectedPeriod,
@@ -91,7 +131,7 @@ fun FinanceScreen(modifier: Modifier = Modifier) {
 
         FinancePeriodSelector(
             selected = selectedPeriod,
-            onSelect = { selectedPeriod = it }
+            onSelect = onSelectPeriod
         )
 
         Row(
@@ -355,157 +395,50 @@ private data class ChangeDisplay(
     val text: String
 )
 
-private data class FinanceChange(val percent: Double) {
-    @Composable
-    fun toDisplay(
-        period: FinancePeriod,
-        percentFormatter: NumberFormat,
-        increaseIsGood: Boolean
-    ): ChangeDisplay {
-        val previousLabel = period.previousLabelRes
-        val previousText = stringResource(previousLabel)
-        val percentValue = abs(percent)
-        val formattedPercent = percentFormatter.format(percentValue)
-        val text = when {
-            percent > 0 -> stringResource(
-                R.string.finance_change_positive,
-                formattedPercent,
-                previousText
-            )
+@Composable
+private fun FinanceChange.toDisplay(
+    period: FinancePeriod,
+    percentFormatter: NumberFormat,
+    increaseIsGood: Boolean
+): ChangeDisplay {
+    val previousLabel = period.previousLabelRes
+    val previousText = stringResource(previousLabel)
+    val percentValue = abs(percent)
+    val formattedPercent = percentFormatter.format(percentValue)
+    val text = when {
+        percent > 0 -> stringResource(
+            R.string.finance_change_positive,
+            formattedPercent,
+            previousText
+        )
 
-            percent < 0 -> stringResource(
-                R.string.finance_change_negative,
-                formattedPercent,
-                previousText
-            )
+        percent < 0 -> stringResource(
+            R.string.finance_change_negative,
+            formattedPercent,
+            previousText
+        )
 
-            else -> stringResource(R.string.finance_change_neutral, previousText)
+        else -> stringResource(R.string.finance_change_neutral, previousText)
+    }
+
+    val (icon, color) = when {
+        percent > 0 -> Icons.Outlined.TrendingUp to if (increaseIsGood) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.error
         }
 
-        val (icon, color) = when {
-            percent > 0 -> Icons.Outlined.TrendingUp to if (increaseIsGood) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.error
-            }
-
-            percent < 0 -> Icons.Outlined.TrendingDown to if (increaseIsGood) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
-
-            else -> Icons.Outlined.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
+        percent < 0 -> Icons.Outlined.TrendingDown to if (increaseIsGood) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.primary
         }
 
-        return ChangeDisplay(icon = icon, tint = color, text = text)
+        else -> Icons.Outlined.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
     }
+
+    return ChangeDisplay(icon = icon, tint = color, text = text)
 }
-
-private data class FinanceAverages(
-    val day: Long,
-    val week: Long,
-    val month: Long
-)
-
-private data class StudentEarning(
-    val name: String,
-    val amount: Long
-)
-
-private data class FinanceSummary(
-    val income: Long,
-    val incomeChange: FinanceChange,
-    val debt: Long,
-    val debtChange: FinanceChange,
-    val hours: Double,
-    val lessons: Int,
-    val averages: FinanceAverages,
-    val topStudents: List<StudentEarning>
-) {
-    companion object {
-        val EMPTY = FinanceSummary(
-            income = 0,
-            incomeChange = FinanceChange(0.0),
-            debt = 0,
-            debtChange = FinanceChange(0.0),
-            hours = 0.0,
-            lessons = 0,
-            averages = FinanceAverages(day = 0, week = 0, month = 0),
-            topStudents = emptyList()
-        )
-    }
-}
-
-private enum class FinancePeriod(
-    @StringRes val tabLabelRes: Int,
-    @StringRes val periodLabelRes: Int,
-    @StringRes val previousLabelRes: Int
-) {
-    DAY(
-        tabLabelRes = R.string.finance_period_day,
-        periodLabelRes = R.string.finance_period_day_accusative,
-        previousLabelRes = R.string.finance_previous_day
-    ),
-    WEEK(
-        tabLabelRes = R.string.finance_period_week,
-        periodLabelRes = R.string.finance_period_week_accusative,
-        previousLabelRes = R.string.finance_previous_week
-    ),
-    MONTH(
-        tabLabelRes = R.string.finance_period_month,
-        periodLabelRes = R.string.finance_period_month_accusative,
-        previousLabelRes = R.string.finance_previous_month
-    )
-}
-
-private val FinanceSampleData = mapOf(
-    FinancePeriod.DAY to FinanceSummary(
-        income = 12500,
-        incomeChange = FinanceChange(0.12),
-        debt = 3200,
-        debtChange = FinanceChange(-0.08),
-        hours = 5.5,
-        lessons = 4,
-        averages = FinanceAverages(day = 11200, week = 68400, month = 298000),
-        topStudents = listOf(
-            StudentEarning("Дмитрий П.", 4800),
-            StudentEarning("Мария С.", 3500),
-            StudentEarning("Алексей К.", 2900),
-            StudentEarning("Екатерина Л.", 2500)
-        )
-    ),
-    FinancePeriod.WEEK to FinanceSummary(
-        income = 84500,
-        incomeChange = FinanceChange(0.18),
-        debt = 12100,
-        debtChange = FinanceChange(-0.04),
-        hours = 32.0,
-        lessons = 18,
-        averages = FinanceAverages(day = 11800, week = 84500, month = 312000),
-        topStudents = listOf(
-            StudentEarning("Мария С.", 18200),
-            StudentEarning("Дмитрий П.", 16800),
-            StudentEarning("Григорий Н.", 15200),
-            StudentEarning("Алексей К.", 13100)
-        )
-    ),
-    FinancePeriod.MONTH to FinanceSummary(
-        income = 352000,
-        incomeChange = FinanceChange(0.09),
-        debt = 45700,
-        debtChange = FinanceChange(-0.11),
-        hours = 132.0,
-        lessons = 74,
-        averages = FinanceAverages(day = 11700, week = 81200, month = 352000),
-        topStudents = listOf(
-            StudentEarning("Мария С.", 74200),
-            StudentEarning("Григорий Н.", 66800),
-            StudentEarning("Алексей К.", 59700),
-            StudentEarning("Ирина Т.", 54200)
-        )
-    )
-)
 
 @Composable
 private fun rememberCurrencyFormatter(): NumberFormat {
