@@ -36,12 +36,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -66,6 +69,7 @@ import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.PaymentBadge
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
@@ -87,7 +91,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun StudentDetailsScreen(
     onBack: () -> Unit,
-    onEdit: (Long, StudentEditTarget) -> Unit,
     onAddStudentFromCreation: () -> Unit = {},
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
@@ -101,6 +104,12 @@ fun StudentDetailsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPrepaymentSheet by rememberSaveable { mutableStateOf(false) }
+    val editorFormState by vm.editorFormState.collectAsState()
+    val isEditorVisible by vm.isEditorVisible.collectAsState()
+    val editorTarget by vm.editorTarget.collectAsState()
+    val editorInitialFocus by vm.editorInitialFocus.collectAsState()
+    val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val editorSnackbarHostState = remember { SnackbarHostState() }
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
@@ -171,6 +180,37 @@ fun StudentDetailsScreen(
         )
     }
 
+    val closeStudentEditor: ((() -> Unit) -> Unit) = { action ->
+        if (editorSheetState.isVisible) {
+            coroutineScope.launch { editorSheetState.hide() }
+                .invokeOnCompletion { action() }
+        } else {
+            action()
+        }
+    }
+
+    val handleEditorSave = {
+        if (!editorFormState.isSaving) {
+            vm.submitEditor(
+                onSuccess = { _, name ->
+                    closeStudentEditor {
+                        vm.onEditorDismissed()
+                        val message = context.getString(R.string.student_updated_message, name)
+                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                    }
+                },
+                onError = { error ->
+                    val message = if (error.isNotBlank()) {
+                        error
+                    } else {
+                        context.getString(R.string.student_editor_save_error)
+                    }
+                    coroutineScope.launch { editorSnackbarHostState.showSnackbar(message) }
+                }
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             StudentProfileTopBar(
@@ -224,13 +264,52 @@ fun StudentDetailsScreen(
             is StudentProfileUiState.Content -> {
                 StudentProfileContent(
                     profile = currentState.profile,
-                    onEdit = onEdit,
+                    onEdit = vm::openEditor,
                     onAddLesson = openLessonCreation,
                     onPrepaymentClick = { showPrepaymentSheet = true },
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
                         .padding(innerPadding)
+                )
+            }
+        }
+    }
+
+    if (isEditorVisible) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                if (!editorFormState.isSaving) {
+                    closeStudentEditor(vm::onEditorDismissed)
+                }
+            },
+            sheetState = editorSheetState,
+            containerColor = Color.Transparent,
+            contentColor = Color.Unspecified,
+            scrimColor = Color.Black.copy(alpha = 0.32f),
+        ) {
+            TutorlyBottomSheetContainer(dragHandle = null) {
+                StudentEditorSheet(
+                    state = editorFormState,
+                    onNameChange = vm::onEditorNameChange,
+                    onPhoneChange = vm::onEditorPhoneChange,
+                    onMessengerChange = vm::onEditorMessengerChange,
+                    onRateChange = vm::onEditorRateChange,
+                    onSubjectChange = vm::onEditorSubjectChange,
+                    onGradeChange = vm::onEditorGradeChange,
+                    onNoteChange = vm::onEditorNoteChange,
+                    onArchivedChange = vm::onEditorArchivedChange,
+                    onActiveChange = vm::onEditorActiveChange,
+                    onSave = handleEditorSave,
+                    modifier = Modifier.fillMaxWidth(),
+                    editTarget = editorTarget,
+                    initialFocus = editorInitialFocus,
+                    snackbarHostState = editorSnackbarHostState,
+                    onDismiss = {
+                        if (!editorFormState.isSaving) {
+                            closeStudentEditor(vm::onEditorDismissed)
+                        }
+                    }
                 )
             }
         }
@@ -269,7 +348,7 @@ private fun StudentProfileTopBar(
 @Composable
 private fun StudentProfileContent(
     profile: StudentProfile,
-    onEdit: (Long, StudentEditTarget) -> Unit,
+    onEdit: (StudentEditTarget) -> Unit,
     onAddLesson: (Long) -> Unit,
     onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
@@ -313,7 +392,7 @@ private fun StudentProfileContent(
         item {
             StudentProfileHeader(
                 profile = profile,
-                onEdit = { target -> onEdit(profile.student.id, target) }
+                onEdit = onEdit
             )
         }
 
@@ -321,7 +400,7 @@ private fun StudentProfileContent(
             StudentProfileMetricsSection(
                 profile = profile,
                 numberFormatter = numberFormatter,
-                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) },
+                onRateClick = { onEdit(StudentEditTarget.RATE) },
                 onPrepaymentClick = { onPrepaymentClick(profile.student.id) }
             )
         }
@@ -331,14 +410,14 @@ private fun StudentProfileContent(
                 ProfileContactsCard(
                     phone = profile.student.phone,
                     messenger = profile.student.messenger,
-                    onPhoneClick = { onEdit(profile.student.id, StudentEditTarget.PHONE) },
-                    onMessengerClick = { onEdit(profile.student.id, StudentEditTarget.MESSENGER) }
+                    onPhoneClick = { onEdit(StudentEditTarget.PHONE) },
+                    onMessengerClick = { onEdit(StudentEditTarget.MESSENGER) }
                 )
                 ProfileInfoCard(
                     icon = Icons.Outlined.StickyNote2,
                     label = stringResource(id = R.string.student_details_notes_title),
                     value = profile.student.note,
-                    onClick = { onEdit(profile.student.id, StudentEditTarget.NOTES) },
+                    onClick = { onEdit(StudentEditTarget.NOTES) },
                     valueMaxLines = 4
                 )
             }
