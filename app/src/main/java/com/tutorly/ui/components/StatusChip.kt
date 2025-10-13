@@ -18,6 +18,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.theme.DarkSuccessGreen
+import com.tutorly.ui.theme.SuccessGreen
 import java.time.ZonedDateTime
 
 /** Visual parameters for the payment status indicator. */
@@ -62,7 +64,8 @@ fun statusChipData(
 ): StatusChipData {
     val colorScheme = MaterialTheme.colorScheme
     val todayColor = colorScheme.primary
-    val paidColor = colorScheme.tertiary
+    val isLightTheme = colorScheme.surface.luminance() > 0.5f
+    val paidColor = if (isLightTheme) SuccessGreen else DarkSuccessGreen
     val dueColor = colorScheme.error
     val cancelledColor = colorScheme.outline
 

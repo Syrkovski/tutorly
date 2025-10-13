@@ -706,7 +706,8 @@ private fun StudentPickerDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     )
 }
 
@@ -762,7 +763,8 @@ private fun DurationDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     )
 }
 
@@ -801,7 +803,8 @@ private fun PriceDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     )
 }
 
@@ -834,7 +837,8 @@ private fun NoteDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     )
 }
 
@@ -861,7 +865,8 @@ private fun DeleteLessonDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     )
 }
 

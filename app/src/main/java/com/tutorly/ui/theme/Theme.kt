@@ -62,7 +62,7 @@ private val LightColorScheme = lightColorScheme(
     onTertiaryContainer = OnTertiaryPeachContainer,
     background = SurfaceBlush,
     onBackground = OnSurfaceBlush,
-    surface = SurfaceBlush,
+    surface = SurfaceContainerLowest,
     onSurface = OnSurfaceBlush,
     surfaceTint = PrimaryPurple,
     surfaceVariant = SurfaceVariantSoft,
@@ -110,7 +110,7 @@ fun TutorlyTheme(
 private val LightColors = lightColorScheme(
     primary = PrimaryPurple,
     onPrimary = OnPrimaryPurple,
-    surface = SurfaceBlush,
+    surface = SurfaceContainerLowest,
     onSurface = OnSurfaceBlush,
     background = SurfaceBlush,
     onBackground = OnSurfaceBlush,

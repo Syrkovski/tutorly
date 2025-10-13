@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tutorly.ui.theme.SuccessGreen
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
@@ -494,11 +495,12 @@ private fun AllMarkedMessage() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val successColor = SuccessGreen
             Surface(
                 modifier = Modifier.size(64.dp),
                 shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                contentColor = MaterialTheme.colorScheme.tertiary
+                color = successColor.copy(alpha = 0.12f),
+                contentColor = successColor
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(

@@ -19,12 +19,17 @@ val TertiaryPeachContainer = Color(0xFFFFDCD3)
 val OnTertiaryPeachContainer = Color(0xFF55180B)
 
 // Neutral surfaces and content
-val SurfaceBlush = Color(0xFFFAF6F9)
+val SurfaceBlush = Color(0xFFFCFAFC)
 val OnSurfaceBlush = Color(0xFF2E2A35)
 val SurfaceVariantSoft = Color(0xFFF0E5F1)
 val OnSurfaceVariantSoft = Color(0xFF7A6D80)
 val OutlineLavender = Color(0xFFC5B6C9)
 val OutlineVariantLavender = Color(0xFFE5DAE6)
+
+val SuccessGreen = Color(0xFF2DBE72)
+val OnSuccessGreen = Color(0xFFFFFFFF)
+val SuccessGreenContainer = Color(0xFFD9F5E6)
+val OnSuccessGreenContainer = Color(0xFF0F3E25)
 
 val SurfaceContainerLowest = Color(0xFFFFFFFF)
 val SurfaceContainerLow = Color(0xFFFEF9FF)
@@ -68,6 +73,11 @@ val DarkSurfaceContainerLow = Color(0xFF1A1420)
 val DarkSurfaceContainer = Color(0xFF221B27)
 val DarkSurfaceContainerHigh = Color(0xFF2B2430)
 val DarkSurfaceContainerHighest = Color(0xFF352E3A)
+
+val DarkSuccessGreen = Color(0xFF81E8B4)
+val DarkOnSuccessGreen = Color(0xFF003918)
+val DarkSuccessGreenContainer = Color(0xFF005227)
+val DarkOnSuccessGreenContainer = Color(0xFF9AF5CA)
 
 // Legacy references updated to new palette
 val RailAccent = PrimaryPurple  // вертикальная рейка слота

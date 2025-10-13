@@ -198,17 +198,21 @@ private fun StudentSection(
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    errorContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    errorContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
                 )
             )
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = dropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
             ) {
                 DropdownMenuItem(
                     text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },

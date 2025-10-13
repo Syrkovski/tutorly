@@ -621,7 +621,7 @@ private fun LessonBlock(
             onClick = { onLessonClick(lesson) },
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
             ),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 1.dp,

@@ -146,7 +146,7 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
@@ -177,10 +177,10 @@ fun StudentsScreen(
                 placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
                 shape = MaterialTheme.shapes.large,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    errorContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    errorContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                     focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
                     disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
