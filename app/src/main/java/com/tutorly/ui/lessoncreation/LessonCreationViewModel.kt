@@ -501,7 +501,22 @@ private fun SubjectPreset.toOption(): SubjectOption = SubjectOption(
     defaultPriceCents = defaultPriceCents
 )
 
-private fun Student.toOption(): StudentOption = StudentOption(id = id, name = name, rateCents = rateCents)
+private fun Student.toOption(): StudentOption {
+    val subjects = subject
+        ?.split(',', ';', '\n')
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?.distinct()
+        ?: emptyList()
+
+    return StudentOption(
+        id = id,
+        name = name,
+        rateCents = rateCents,
+        subjects = subjects
+    )
+}
+
 
 private fun roundToStep(start: ZonedDateTime, stepMinutes: Int): ZonedDateTime {
     val minute = start.minute
