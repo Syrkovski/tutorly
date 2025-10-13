@@ -66,6 +66,7 @@ class LessonCreationViewModel @Inject constructor(
                 val selected = state.selectedSubjectId?.takeIf { id -> options.any { it.id == id } }
                 state.copy(
                     subjects = options,
+                    availableSubjects = resolveAvailableSubjects(state.selectedStudent, state.locale, selected),
                     selectedSubjectId = selected
                 )
             }
@@ -108,6 +109,7 @@ class LessonCreationViewModel @Inject constructor(
                 students = students,
                 selectedStudent = null,
                 subjects = subjectOptions,
+                availableSubjects = subjectOptions,
                 selectedSubjectId = null,
                 date = roundedStart.toLocalDate(),
                 time = roundedStart.toLocalTime(),
@@ -201,21 +203,61 @@ class LessonCreationViewModel @Inject constructor(
         currentStudentBaseRateDuration = studentRate?.let { duration.takeIf { it > 0 } }
         val pricePresets = computePricePresets(duration)
 
+        val availableSubjectOptions = resolveAvailableSubjects(selected, state.locale, subjectId)
+        val resolvedSubjectId = when {
+            subjectId != null && availableSubjectOptions.any { it.id == subjectId } -> subjectId
+            applyDefaults && availableSubjectOptions.isNotEmpty() -> availableSubjectOptions.first().id
+            else -> subjectId
+        }
+
         _uiState.update {
             it.copy(
                 selectedStudent = selected,
                 students = mergeStudentOption(it.students, selected),
                 studentQuery = selected.name,
-                selectedSubjectId = subjectId,
+                selectedSubjectId = resolvedSubjectId,
                 durationMinutes = duration,
                 priceCents = price,
-                pricePresets = pricePresets
+                pricePresets = pricePresets,
+                availableSubjects = availableSubjectOptions
             )
         }
 
         if (applyDefaults) {
-            subjectId?.let { onSubjectSelected(it) }
+            resolvedSubjectId?.let { onSubjectSelected(it) }
         }
+    }
+
+    private fun resolveAvailableSubjects(
+        student: StudentOption?,
+        locale: Locale,
+        keepSubjectId: Long? = null
+    ): List<SubjectOption> {
+        if (cachedSubjects.isEmpty()) return emptyList()
+        val allOptions = cachedSubjects.map { it.toOption() }
+        val subjects = student?.subjects.orEmpty()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        if (subjects.isEmpty()) return includeSubjectIfNeeded(allOptions, allOptions, keepSubjectId)
+
+        val normalized = subjects.map { it.lowercase(locale) }.toSet()
+        val filtered = cachedSubjects.filter { preset ->
+            normalized.contains(preset.name.lowercase(locale))
+        }
+        val options = (if (filtered.isEmpty()) cachedSubjects else filtered).map { it.toOption() }
+        return includeSubjectIfNeeded(options, allOptions, keepSubjectId)
+    }
+
+    private fun includeSubjectIfNeeded(
+        primary: List<SubjectOption>,
+        allOptions: List<SubjectOption>,
+        keepSubjectId: Long?
+    ): List<SubjectOption> {
+        if (keepSubjectId == null || primary.any { it.id == keepSubjectId }) {
+            return primary
+        }
+        val fallback = allOptions.firstOrNull { it.id == keepSubjectId } ?: return primary
+        return primary + fallback
     }
 
     fun onSubjectSelected(subjectId: Long?) {

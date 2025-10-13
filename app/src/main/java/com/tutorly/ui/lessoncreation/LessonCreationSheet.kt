@@ -66,6 +66,7 @@ import java.util.Locale
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -195,19 +196,12 @@ private fun StudentSection(
                     }
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
-                supportingText = {
-                    state.selectedStudent?.subjects
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.joinToString(separator = ", ")
-                        ?.let { subjects ->
-                            Text(
-                                text = subjects,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2
-                            )
-                        }
-                }
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    disabledContainerColor = Color.White,
+                    errorContainerColor = Color.White
+                )
             )
             DropdownMenu(
                 expanded = expanded,
@@ -295,21 +289,39 @@ private fun StudentAvatar(
 
 @Composable
 private fun SubjectSection(state: LessonCreationUiState, onSubjectSelect: (Long?) -> Unit) {
-    if (state.subjects.isEmpty()) return
+    val availableSubjects = state.availableSubjects
+    val studentSubjects = state.selectedStudent?.subjects.orEmpty()
+    if (availableSubjects.isEmpty() && studentSubjects.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = stringResource(id = R.string.lesson_create_subject_label), fontWeight = FontWeight.Medium)
-        FlowSubjectChips(state = state, onSubjectSelect = onSubjectSelect)
+        if (availableSubjects.isNotEmpty()) {
+            FlowSubjectChips(
+                subjects = availableSubjects,
+                selectedSubjectId = state.selectedSubjectId,
+                onSubjectSelect = onSubjectSelect
+            )
+        } else {
+            Text(
+                text = studentSubjects.joinToString(separator = ", "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 @Composable
-private fun FlowSubjectChips(state: LessonCreationUiState, onSubjectSelect: (Long?) -> Unit) {
+private fun FlowSubjectChips(
+    subjects: List<SubjectOption>,
+    selectedSubjectId: Long?,
+    onSubjectSelect: (Long?) -> Unit
+) {
     androidx.compose.foundation.layout.FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        state.subjects.forEach { subject ->
-            val selected = state.selectedSubjectId == subject.id
+        subjects.forEach { subject ->
+            val selected = selectedSubjectId == subject.id
             FilterChip(
                 onClick = { onSubjectSelect(subject.id) },
                 label = { Text(text = subject.name) },
@@ -416,7 +428,6 @@ private fun DurationPriceSection(
                     customDurationInput = digits
                     onDurationChange(digits.toIntOrNull() ?: 0)
                 },
-                label = { Text(text = stringResource(id = R.string.lesson_create_duration_custom_label)) },
                 suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Schedule, contentDescription = null)
