@@ -66,6 +66,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -489,6 +490,7 @@ private fun DayTimeline(
     Box(
         Modifier
             .fillMaxSize()
+            .background(Color(0xFFFCFAFC))
             .verticalScroll(scroll)
     ) {
         // Внутренний контейнер фиксированной высоты = весь день
@@ -782,9 +784,11 @@ private fun MonthDayCell(
     modifier: Modifier = Modifier
 ) {
     val enabled = inCurrentMonth
+    val isMonday = date.dayOfWeek == DayOfWeek.MONDAY
+    val weekNumber = remember(date) { date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
     val containerColor = when {
         !enabled -> Color.Transparent
-        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
         else -> Color.Transparent
     }
     val border = if (isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
@@ -797,11 +801,17 @@ private fun MonthDayCell(
         isWeekend(date.dayOfWeek) -> NowAccent
         else -> contentColor
     }
+    val weekNumberColor = when {
+        !enabled -> contentColor.copy(alpha = 0.2f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    }
 
     Surface(
         color = containerColor,
         shape = MaterialTheme.shapes.medium,
         border = border,
+        tonalElevation = if (isToday && enabled) 2.dp else 0.dp,
+        shadowElevation = if (isToday && enabled) 4.dp else 0.dp,
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .clickable(enabled = enabled, onClick = onClick)
@@ -821,6 +831,15 @@ private fun MonthDayCell(
                     isToday = isToday,
                     color = dayNumberColor,
                     enabled = enabled
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f, fill = true))
+            if (isMonday) {
+                Text(
+                    text = weekNumber.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = weekNumberColor,
+                    modifier = Modifier.align(Alignment.Start)
                 )
             }
         }
