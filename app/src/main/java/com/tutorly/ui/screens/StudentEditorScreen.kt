@@ -199,7 +199,7 @@ fun StudentEditorDialog(
         }
     }
 
-    StudentEditorDialogContent(
+    StudentEditorSheet(
         state = formState,
         onNameChange = vm::onNameChange,
         onPhoneChange = vm::onPhoneChange,
@@ -208,8 +208,6 @@ fun StudentEditorDialog(
         onSubjectChange = vm::onSubjectChange,
         onGradeChange = vm::onGradeChange,
         onNoteChange = vm::onNoteChange,
-        onArchivedChange = vm::onArchivedChange,
-        onActiveChange = vm::onActiveChange,
         onSave = attemptSave,
         onDismiss = {
             if (!formState.isSaving) {
