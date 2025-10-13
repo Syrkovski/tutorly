@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Email
@@ -34,6 +35,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -52,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -209,7 +212,7 @@ fun StudentsScreen(
             contentColor = Color.Unspecified,
             scrimColor = Color.Black.copy(alpha = 0.32f),
         ) {
-            TutorlyBottomSheetContainer {
+            TutorlyBottomSheetContainer(dragHandle = null) {
                 StudentEditorSheet(
                     state = formState,
                     onNameChange = vm::onEditorNameChange,
@@ -221,7 +224,12 @@ fun StudentsScreen(
                     onNoteChange = vm::onEditorNoteChange,
                     onArchivedChange = vm::onEditorArchivedChange,
                     onActiveChange = vm::onEditorActiveChange,
-                    onSave = handleSave
+                    onSave = handleSave,
+                    onDismiss = {
+                        if (!formState.isSaving) {
+                            closeEditor()
+                        }
+                    }
                 )
             }
         }
@@ -245,30 +253,46 @@ fun StudentEditorSheet(
     editTarget: StudentEditTarget? = null,
     initialFocus: StudentEditTarget? = StudentEditTarget.PROFILE,
     snackbarHostState: SnackbarHostState? = null,
+    onDismiss: (() -> Unit)? = null,
 ) {
     val isEditing = state.studentId != null
+    val configuration = LocalConfiguration.current
+    val minHeight = remember(configuration) { configuration.screenHeightDp.dp * 0.6f }
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = 20.dp, vertical = 16.dp)
-            .heightIn(max = 600.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = minHeight),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(
+                        id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
+                )
+
+                onDismiss?.let { dismiss ->
+                    IconButton(onClick = dismiss, enabled = !state.isSaving) {
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = null)
+                    }
+                }
+            }
+
             if (state.isSaving) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
-
-            Text(
-                text = stringResource(
-                    id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
-                ),
-                style = MaterialTheme.typography.titleLarge
-            )
 
             StudentEditorForm(
                 state = state,

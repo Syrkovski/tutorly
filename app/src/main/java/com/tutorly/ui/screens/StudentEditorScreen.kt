@@ -237,7 +237,7 @@ fun StudentEditorDialog(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
-        TutorlyBottomSheetContainer {
+        TutorlyBottomSheetContainer(dragHandle = null) {
             StudentEditorSheet(
                 state = formState,
                 onNameChange = vm::onNameChange,
@@ -253,7 +253,12 @@ fun StudentEditorDialog(
                 modifier = Modifier.fillMaxWidth(),
                 editTarget = editTarget,
                 initialFocus = editTarget,
-                snackbarHostState = snackbarHostState
+                snackbarHostState = snackbarHostState,
+                onDismiss = {
+                    if (!formState.isSaving) {
+                        closeEditor(currentOnDismiss)
+                    }
+                }
             )
         }
     }
