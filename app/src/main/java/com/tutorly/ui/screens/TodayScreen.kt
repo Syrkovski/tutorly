@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tutorly.ui.theme.SuccessGreen
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
@@ -128,7 +129,7 @@ fun TodayScreen(
         modifier = modifier,
         topBar = { TodayTopBar(state = uiState) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -485,7 +486,7 @@ private fun AllMarkedMessage() {
             .fillMaxWidth()
             .padding(bottom = 16.dp),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -494,11 +495,12 @@ private fun AllMarkedMessage() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val successColor = SuccessGreen
             Surface(
                 modifier = Modifier.size(64.dp),
                 shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                contentColor = MaterialTheme.colorScheme.tertiary
+                color = successColor.copy(alpha = 0.12f),
+                contentColor = successColor
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -750,7 +752,7 @@ private fun PaymentStatusChip(
 @Composable
 private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(50),
         modifier = modifier

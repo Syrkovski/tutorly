@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
@@ -63,7 +64,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -76,7 +76,7 @@ import androidx.compose.ui.unit.IntSize
 import java.text.NumberFormat
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonCreationSheet(
     state: LessonCreationUiState,
@@ -84,6 +84,7 @@ fun LessonCreationSheet(
     onStudentQueryChange: (String) -> Unit,
     onStudentSelect: (Long) -> Unit,
     onAddStudent: () -> Unit,
+    onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long?) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
@@ -107,7 +108,7 @@ fun LessonCreationSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        TutorlyBottomSheetContainer(color = Color.White, dragHandle = null) {
+        TutorlyBottomSheetContainer(dragHandle = null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -125,7 +126,11 @@ fun LessonCreationSheet(
                 )
                 TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
                 DurationSection(state = state, onDurationChange = onDurationChange)
-                SubjectSection(state = state, onSubjectSelect = onSubjectSelect)
+                SubjectSection(
+                    state = state,
+                    onSubjectInputChange = onSubjectInputChange,
+                    onSubjectSelect = onSubjectSelect
+                )
                 PriceSection(state = state, onPriceChange = onPriceChange)
                 NoteSection(state = state, onNoteChange = onNoteChange)
                 ActionButtons(state = state, onSubmit = onSubmit)
@@ -198,17 +203,21 @@ private fun StudentSection(
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    disabledContainerColor = Color.White,
-                    errorContainerColor = Color.White
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    errorContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
                 )
             )
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = dropdownModifier,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 DropdownMenuItem(
                     text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },
@@ -289,71 +298,101 @@ private fun StudentAvatar(
 }
 
 @Composable
-private fun SubjectSection(state: LessonCreationUiState, onSubjectSelect: (Long?) -> Unit) {
-    val availableSubjects = state.availableSubjects
-    val studentSubjects = state.selectedStudent?.subjects.orEmpty()
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(id = R.string.lesson_create_subject_label), fontWeight = FontWeight.Medium)
-        when {
-            availableSubjects.isNotEmpty() && state.selectedStudent != null -> {
-            FlowSubjectChips(
-                subjects = availableSubjects,
-                selectedSubjectId = state.selectedSubjectId,
-                onSubjectSelect = onSubjectSelect
-            )}
-            state.selectedStudent == null -> {
-                Text(
-                    text = stringResource(id = R.string.lesson_create_subject_placeholder),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            studentSubjects.isNotEmpty() -> {
-                Text(
-                    text = studentSubjects.joinToString(separator = ", "),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            else -> {
-                Text(
-                    text = stringResource(id = R.string.lesson_create_subject_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun FlowSubjectChips(
-    subjects: List<SubjectOption>,
-    selectedSubjectId: Long?,
+private fun SubjectSection(
+    state: LessonCreationUiState,
+    onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long?) -> Unit
 ) {
-    androidx.compose.foundation.layout.FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        subjects.forEach { subject ->
-            val selected = selectedSubjectId == subject.id
-            FilterChip(
-                onClick = { onSubjectSelect(subject.id) },
-                label = { Text(text = subject.name) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    selectedLabelColor = MaterialTheme.colorScheme.primary
-                ),
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(Color(subject.colorArgb), CircleShape)
-                    )
+    val availableSubjects = state.availableSubjects
+    val studentSubjectNames = state.selectedStudent?.subjects.orEmpty()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+    val additionalNames = studentSubjectNames.filter { name ->
+        availableSubjects.none { option -> option.name.equals(name, ignoreCase = true) }
+    }
+    val hasSuggestions = availableSubjects.isNotEmpty() || additionalNames.isNotEmpty()
+    var expanded by remember(state.selectedStudent, availableSubjects, additionalNames) { mutableStateOf(false) }
+    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
+    val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
+    val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = stringResource(id = R.string.lesson_create_subject_label), fontWeight = FontWeight.Medium)
+        Box {
+            OutlinedTextField(
+                value = state.subjectInput,
+                onValueChange = {
+                    onSubjectInputChange(it)
+                    expanded = hasSuggestions
                 },
-                selected = selected
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { textFieldSize = it.size },
+                placeholder = {
+                    Text(text = stringResource(id = R.string.lesson_create_subject_placeholder))
+                },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+                },
+                trailingIcon = {
+                    if (hasSuggestions) {
+                        IconButton(onClick = { expanded = !expanded }) {
+                            Icon(
+                                imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    errorContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
+                )
             )
+            DropdownMenu(
+                expanded = expanded && hasSuggestions,
+                onDismissRequest = { expanded = false },
+                modifier = dropdownModifier,
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                availableSubjects.forEach { subject ->
+                    DropdownMenuItem(
+                        text = { Text(text = subject.name) },
+                        leadingIcon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(Color(subject.colorArgb), CircleShape)
+                            )
+                        },
+                        trailingIcon = {
+                            if (state.selectedSubjectId == subject.id) {
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            }
+                        },
+                        onClick = {
+                            expanded = false
+                            onSubjectSelect(subject.id)
+                        }
+                    )
+                }
+                additionalNames.forEach { subjectName ->
+                    DropdownMenuItem(
+                        text = { Text(text = subjectName) },
+                        onClick = {
+                            expanded = false
+                            onSubjectInputChange(subjectName)
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -443,7 +482,17 @@ private fun DurationSection(
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
-            isError = state.errors.containsKey(LessonCreationField.DURATION)
+            isError = state.errors.containsKey(LessonCreationField.DURATION),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -504,7 +553,17 @@ private fun PriceSection(
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
-            isError = state.errors.containsKey(LessonCreationField.PRICE)
+            isError = state.errors.containsKey(LessonCreationField.PRICE),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
         )
         if (state.pricePresets.isNotEmpty()) {
             Row(
@@ -552,7 +611,17 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
             .heightIn(min = 80.dp),
         leadingIcon = {
             Icon(imageVector = Icons.Filled.Description, contentDescription = null)
-        }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            disabledContainerColor = MaterialTheme.colorScheme.surface,
+            errorContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+            disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+            errorBorderColor = MaterialTheme.colorScheme.error
+        )
     )
 }
 

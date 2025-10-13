@@ -209,6 +209,13 @@ class LessonCreationViewModel @Inject constructor(
             applyDefaults && availableSubjectOptions.isNotEmpty() -> availableSubjectOptions.first().id
             else -> subjectId
         }
+        val firstStudentSubject = selected.subjects
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() }
+            .orEmpty()
+        val resolvedSubjectName = resolvedSubjectId?.let { id ->
+            availableSubjectOptions.firstOrNull { it.id == id }?.name
+        } ?: firstStudentSubject
 
         _uiState.update {
             it.copy(
@@ -219,12 +226,21 @@ class LessonCreationViewModel @Inject constructor(
                 durationMinutes = duration,
                 priceCents = price,
                 pricePresets = pricePresets,
-                availableSubjects = availableSubjectOptions
+                availableSubjects = availableSubjectOptions,
+                subjectInput = if (applyDefaults || it.selectedStudent?.id != selected.id) {
+                    resolvedSubjectName
+                } else {
+                    it.subjectInput.ifBlank { resolvedSubjectName }
+                }
             )
         }
 
         if (applyDefaults) {
-            resolvedSubjectId?.let { onSubjectSelected(it) }
+            if (resolvedSubjectId != null) {
+                onSubjectSelected(resolvedSubjectId)
+            } else if (resolvedSubjectName.isNotBlank()) {
+                onSubjectInputChanged(resolvedSubjectName)
+            }
         }
     }
 
@@ -262,16 +278,46 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onSubjectSelected(subjectId: Long?) {
         val state = _uiState.value
+        if (subjectId == null) {
+            _uiState.update { it.copy(selectedSubjectId = null) }
+            return
+        }
         val subject = state.subjects.firstOrNull { it.id == subjectId }
         if (subject == null) {
             _uiState.update { it.copy(selectedSubjectId = null) }
             return
         }
-        val newDuration = if (durationEdited) state.durationMinutes else subject.durationMinutes
-        val newPrice = if (priceEdited) state.priceCents else subject.defaultPriceCents
+        applySubjectOption(subject, state)
+    }
+
+    fun onSubjectInputChanged(value: String) {
+        val state = _uiState.value
+        val normalized = value.trim()
+        if (normalized.isEmpty()) {
+            _uiState.update { it.copy(subjectInput = value, selectedSubjectId = null) }
+            return
+        }
+        val match = state.availableSubjects.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
+            ?: state.subjects.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
+        if (match != null) {
+            applySubjectOption(match, state)
+        } else {
+            _uiState.update {
+                it.copy(
+                    subjectInput = value,
+                    selectedSubjectId = null
+                )
+            }
+        }
+    }
+
+    private fun applySubjectOption(option: SubjectOption, state: LessonCreationUiState) {
+        val newDuration = if (durationEdited) state.durationMinutes else option.durationMinutes
+        val newPrice = if (priceEdited) state.priceCents else option.defaultPriceCents
         _uiState.update {
             it.copy(
-                selectedSubjectId = subjectId,
+                selectedSubjectId = option.id,
+                subjectInput = option.name,
                 durationMinutes = newDuration,
                 priceCents = newPrice,
                 pricePresets = computePricePresets(newDuration)
@@ -352,10 +398,16 @@ class LessonCreationViewModel @Inject constructor(
             return
         }
 
+        val normalizedSubjectInput = state.subjectInput.trim()
+        val selectedSubjectName = state.subjects.firstOrNull { it.id == state.selectedSubjectId }?.name
+        val title = normalizedSubjectInput.takeUnless {
+            it.isEmpty() || (selectedSubjectName != null && selectedSubjectName.equals(it, ignoreCase = true))
+        }
+
         val request = LessonCreateRequest(
             studentId = student!!.id,
             subjectId = state.selectedSubjectId,
-            title = null,
+            title = title,
             startAt = start.toInstant(),
             endAt = end.toInstant(),
             priceCents = state.priceCents,

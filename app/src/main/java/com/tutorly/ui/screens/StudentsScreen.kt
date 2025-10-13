@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -145,7 +146,7 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
@@ -176,10 +177,10 @@ fun StudentsScreen(
                 placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
                 shape = MaterialTheme.shapes.large,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    disabledContainerColor = Color.White,
-                    errorContainerColor = Color.White,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    errorContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                     focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
                     disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
@@ -262,7 +263,7 @@ fun StudentEditorSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        TutorlyBottomSheetContainer(color = Color.White, dragHandle = null) {
+        TutorlyBottomSheetContainer(dragHandle = null) {
             Column(
                 modifier = modifier
                     .fillMaxWidth()
@@ -365,7 +366,9 @@ private fun StudentCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
         elevation = TutorlyCardDefaults.elevation()
     ) {
         Row(
@@ -398,7 +401,7 @@ private fun StudentCard(
                 }
                 note?.let {
                     Surface(
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
                         contentColor = MaterialTheme.colorScheme.onSurface,
                         shape = MaterialTheme.shapes.small,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
@@ -425,7 +428,7 @@ private fun StudentCard(
                     }
                 }
                 Surface(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     contentColor = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.small,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))

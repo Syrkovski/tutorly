@@ -2,80 +2,90 @@ package com.tutorly.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Brand palette
+val PrimaryPurple = Color(0xFF5C2C65)
+val OnPrimaryPurple = Color(0xFFFFFFFF)
+val PrimaryPurpleContainer = Color(0xFFEADDF0)
+val OnPrimaryPurpleContainer = Color(0xFF22102A)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val SecondaryCoral = Color(0xFFC1477F)
+val OnSecondaryCoral = Color(0xFFFFFFFF)
+val SecondaryCoralContainer = Color(0xFFFFD1E2)
+val OnSecondaryCoralContainer = Color(0xFF47132E)
 
-// App specific palette tuned for Material 3 tonal hierarchy
-val PrimaryBlue = Color(0xFF3D50F4)
-val OnPrimaryBlue = Color(0xFFFFFFFF)
-val PrimaryBlueContainer = Color(0xFFE0E5FF)
-val OnPrimaryBlueContainer = Color(0xFF001169)
+val TertiaryPeach = Color(0xFFFF7A66)
+val OnTertiaryPeach = Color(0xFFFFFFFF)
+val TertiaryPeachContainer = Color(0xFFFFDCD3)
+val OnTertiaryPeachContainer = Color(0xFF55180B)
 
-val SecondaryIndigo = Color(0xFF585FE0)
-val OnSecondaryIndigo = Color(0xFFFFFFFF)
-val SecondaryIndigoContainer = Color(0xFFE1E1FF)
-val OnSecondaryIndigoContainer = Color(0xFF121366)
+// Neutral surfaces and content
+val SurfaceBlush = Color(0xFFFCFAFC)
+val OnSurfaceBlush = Color(0xFF2E2A35)
+val SurfaceVariantSoft = Color(0xFFF0E5F1)
+val OnSurfaceVariantSoft = Color(0xFF7A6D80)
+val OutlineLavender = Color(0xFFC5B6C9)
+val OutlineVariantLavender = Color(0xFFE5DAE6)
 
-val TertiaryTeal = Color(0xFF006A63)
-val OnTertiaryTeal = Color(0xFFFFFFFF)
-val TertiaryTealContainer = Color(0xFF71F7E7)
-val OnTertiaryTealContainer = Color(0xFF00201D)
-
-val NeutralBackground = Color(0xFFFBFCFF)
-val NeutralOnBackground = Color(0xFF10131F)
-val NeutralSurfaceVariant = Color(0xFFE0E2F1)
-val NeutralOnSurfaceVariant = Color(0xFF45495C)
-val NeutralOutline = Color(0xFF74788C)
-val NeutralOutlineVariant = Color(0xFFC4C6D7)
+val SuccessGreen = Color(0xFF2DBE72)
+val OnSuccessGreen = Color(0xFFFFFFFF)
+val SuccessGreenContainer = Color(0xFFD9F5E6)
+val OnSuccessGreenContainer = Color(0xFF0F3E25)
 
 val SurfaceContainerLowest = Color(0xFFFFFFFF)
-val SurfaceContainerLow = Color(0xFFF4F5FF)
-val SurfaceContainer = Color(0xFFE8EAFF)
-val SurfaceContainerHigh = Color(0xFFDBDDF4)
-val SurfaceContainerHighest = Color(0xFFCFD2EE)
+val SurfaceContainerLow = Color(0xFFFEF9FF)
+val SurfaceContainer = Color(0xFFF6ECF6)
+val SurfaceContainerHigh = Color(0xFFEDE1EF)
+val SurfaceContainerHighest = Color(0xFFE4D6E6)
 
+// Semantic
 val ErrorRed = Color(0xFFBA1A1A)
 val OnErrorRed = Color(0xFFFFFFFF)
 val ErrorRedContainer = Color(0xFFFFDAD6)
 val OnErrorRedContainer = Color(0xFF410002)
 
-val DarkPrimaryContainer = Color(0xFF1D2CB5)
-val DarkOnPrimaryContainer = Color(0xFFE0E5FF)
-val DarkSecondaryContainer = Color(0xFF21236F)
-val DarkOnSecondaryContainer = Color(0xFFE1E1FF)
-val DarkTertiaryContainer = Color(0xFF005049)
-val DarkOnTertiaryContainer = Color(0xFF71F7E7)
+// Dark theme counterparts
+val DarkPrimaryPurple = Color(0xFFD6BBE0)
+val DarkOnPrimaryPurple = Color(0xFF341139)
+val DarkPrimaryPurpleContainer = Color(0xFF45204E)
+val DarkOnPrimaryPurpleContainer = Color(0xFFF3D7FF)
 
-val DarkBackground = Color(0xFF0F111B)
-val DarkOnBackground = Color(0xFFE0E2FF)
-val DarkSurface = Color(0xFF0F111B)
-val DarkOnSurface = Color(0xFFE0E2FF)
-val DarkSurfaceVariant = Color(0xFF44495C)
-val DarkOnSurfaceVariant = Color(0xFFC4C7DA)
-val DarkOutline = Color(0xFF8E91A6)
-val DarkOutlineVariant = Color(0xFF44495C)
+val DarkSecondaryCoral = Color(0xFFFFAACF)
+val DarkOnSecondaryCoral = Color(0xFF4A122D)
+val DarkSecondaryCoralContainer = Color(0xFF641D41)
+val DarkOnSecondaryCoralContainer = Color(0xFFFFD7E8)
 
-val DarkSurfaceContainerLowest = Color(0xFF090B14)
-val DarkSurfaceContainerLow = Color(0xFF121421)
-val DarkSurfaceContainer = Color(0xFF1A1D2C)
-val DarkSurfaceContainerHigh = Color(0xFF23273A)
-val DarkSurfaceContainerHighest = Color(0xFF2E3145)
+val DarkTertiaryPeach = Color(0xFFFFB5A6)
+val DarkOnTertiaryPeach = Color(0xFF571F11)
+val DarkTertiaryPeachContainer = Color(0xFF772F21)
+val DarkOnTertiaryPeachContainer = Color(0xFFFFDACF)
 
-val RoyalBlue = Color(0xFF0A2463) // legacy references
-val OnRoyal = Color.White
+val DarkBackground = Color(0xFF201924)
+val DarkOnBackground = Color(0xFFECE0F0)
+val DarkSurface = Color(0xFF201924)
+val DarkOnSurface = Color(0xFFECE0F0)
+val DarkSurfaceVariant = Color(0xFF3B3141)
+val DarkOnSurfaceVariant = Color(0xFFCFC1D3)
+val DarkOutline = Color(0xFF9A8FA2)
+val DarkOutlineVariant = Color(0xFF372C3A)
 
-val RailBlue = Color(0xFF2D7FF9)  // вертикальная рейка слота
-val NowRed   = Color(0xFFE53935)  // линия текущего времени
-val CardBg   = Color(0xFFF3F6FF)  // фон карточек
-val GridLine = Color(0x11000000)  // тонкие линии сетки
+val DarkSurfaceContainerLowest = Color(0xFF140F18)
+val DarkSurfaceContainerLow = Color(0xFF1A1420)
+val DarkSurfaceContainer = Color(0xFF221B27)
+val DarkSurfaceContainerHigh = Color(0xFF2B2430)
+val DarkSurfaceContainerHighest = Color(0xFF352E3A)
 
+val DarkSuccessGreen = Color(0xFF81E8B4)
+val DarkOnSuccessGreen = Color(0xFF003918)
+val DarkSuccessGreenContainer = Color(0xFF005227)
+val DarkOnSuccessGreenContainer = Color(0xFF9AF5CA)
 
-val AppBg     = Color(0xFFF6F7FB)
-val PaidBg    = Color(0xFFECF3FF)
-val UnpaidBg  = Color.White
-val MutedText = Color(0xFF6B7280)
+// Legacy references updated to new palette
+val RailAccent = PrimaryPurple  // вертикальная рейка слота
+val NowAccent = SecondaryCoral  // линия текущего времени
+val CardBg = SurfaceVariantSoft // фон карточек
+val GridLine = Color(0x142E2A35)  // тонкие линии сетки
+
+val AppBg = SurfaceBlush
+val PaidBg = TertiaryPeach
+val UnpaidBg = SurfaceVariantSoft
+val MutedText = OnSurfaceVariantSoft

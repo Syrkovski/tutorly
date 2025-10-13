@@ -29,8 +29,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +55,21 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import java.util.Locale
+
+@Composable
+private fun editorFieldColors(): TextFieldColors {
+    val colorScheme = MaterialTheme.colorScheme
+    return OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = colorScheme.surfaceContainerLowest,
+        unfocusedContainerColor = colorScheme.surfaceContainerLowest,
+        disabledContainerColor = colorScheme.surfaceContainerLowest,
+        errorContainerColor = colorScheme.surfaceContainerLowest,
+        focusedBorderColor = colorScheme.outline.copy(alpha = 0.24f),
+        unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.16f),
+        disabledBorderColor = colorScheme.outline.copy(alpha = 0.12f),
+        errorBorderColor = colorScheme.error
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,6 +141,8 @@ fun StudentEditorForm(
     } else {
         modifier
     }
+
+    val textFieldColors = editorFieldColors()
 
     Column(
         modifier = columnModifier,
@@ -288,7 +307,8 @@ private fun ProfileSection(
                     tint = iconTint
                 )
             },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            colors = textFieldColors
         )
         if (state.nameError) {
             Text(
@@ -336,13 +356,15 @@ private fun ProfileSection(
                 },
                 supportingText = {
                     Text(text = stringResource(id = R.string.student_editor_subject_support))
-                }
+                },
+                colors = textFieldColors
             )
 
             DropdownMenu(
                 expanded = isSubjectDropdownExpanded,
                 onDismissRequest = { isSubjectDropdownExpanded = false },
-                modifier = subjectDropdownModifier
+                modifier = subjectDropdownModifier,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
             ) {
                 popularSubjects.forEach { option ->
                     val isSelected = selectedSubjects.contains(option)
@@ -422,7 +444,8 @@ private fun ProfileSection(
                     KeyboardActions(onDone = { onSubmit?.invoke() })
                 } else {
                     KeyboardActions.Default
-                }
+                },
+                colors = textFieldColors
             )
         }
 
@@ -473,13 +496,15 @@ private fun ProfileSection(
                     KeyboardActions(onDone = { onSubmit?.invoke() })
                 } else {
                     KeyboardActions.Default
-                }
+                },
+                colors = textFieldColors
             )
 
             DropdownMenu(
                 expanded = isGradeDropdownExpanded,
                 onDismissRequest = { onGradeDropdownExpandedChange(false) },
-                modifier = gradeDropdownModifier
+                modifier = gradeDropdownModifier,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
             ) {
                 gradeOptions.forEach { option ->
                     DropdownMenuItem(
@@ -516,6 +541,7 @@ private fun RateSection(
     val rateDropdownWidth = with(LocalDensity.current) { rateFieldSize.width.toDp() }
     val rateDropdownModifier = if (rateDropdownWidth > 0.dp) Modifier.width(rateDropdownWidth) else Modifier
     val rateOptions = remember { listOf(1500, 2000, 2500, 3000) }
+    val textFieldColors = editorFieldColors()
 
     Box {
         OutlinedTextField(
@@ -558,13 +584,15 @@ private fun RateSection(
                 KeyboardActions(onDone = { onSubmit?.invoke() })
             } else {
                 KeyboardActions.Default
-            }
+            },
+            colors = textFieldColors
         )
 
         DropdownMenu(
             expanded = isRateDropdownExpanded,
             onDismissRequest = { isRateDropdownExpanded = false },
-            modifier = rateDropdownModifier
+            modifier = rateDropdownModifier,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ) {
             rateOptions.forEach { option ->
                 DropdownMenuItem(
@@ -628,6 +656,7 @@ private fun PhoneSection(
     onSubmit: (() -> Unit)?,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val textFieldColors = editorFieldColors()
     OutlinedTextField(
         value = phone,
         onValueChange = onPhoneChange,
@@ -651,7 +680,8 @@ private fun PhoneSection(
             KeyboardActions(onDone = { onSubmit?.invoke() })
         } else {
             KeyboardActions.Default
-        }
+        },
+        colors = textFieldColors
     )
 }
 
@@ -669,6 +699,7 @@ private fun MessengerSection(
     var customLabel by remember { mutableStateOf("") }
     var identifier by remember { mutableStateOf("") }
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val textFieldColors = editorFieldColors()
 
     LaunchedEffect(messenger) {
         val parsed = messenger.parseMessengerValue()
@@ -713,12 +744,14 @@ private fun MessengerSection(
                             tint = iconTint
                         )
                     }
-                }
+                },
+                colors = textFieldColors
             )
 
             DropdownMenu(
                 expanded = isDropdownExpanded,
-                onDismissRequest = { isDropdownExpanded = false }
+                onDismissRequest = { isDropdownExpanded = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
             ) {
                 messengerOptions.forEach { option ->
                     DropdownMenuItem(
@@ -763,7 +796,8 @@ private fun MessengerSection(
                 KeyboardActions(onDone = { onSubmit?.invoke() })
             } else {
                 KeyboardActions.Default
-            }
+            },
+            colors = textFieldColors
         )
     }
 }
@@ -777,6 +811,7 @@ private fun NotesSection(
     onSubmit: (() -> Unit)?
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val textFieldColors = editorFieldColors()
     OutlinedTextField(
         value = note,
         onValueChange = onNoteChange,
@@ -796,7 +831,8 @@ private fun NotesSection(
         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = {
             onSubmit?.invoke()
-        })
+        }),
+        colors = textFieldColors
     )
 }
 
