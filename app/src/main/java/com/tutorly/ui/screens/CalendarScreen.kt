@@ -489,6 +489,7 @@ private fun DayTimeline(
     Box(
         Modifier
             .fillMaxSize()
+            .background(Color(0xFFFCFAFC))
             .verticalScroll(scroll)
     ) {
         // Внутренний контейнер фиксированной высоты = весь день

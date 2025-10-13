@@ -381,7 +381,7 @@ private fun TodayStatsTile(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(),
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
         elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
@@ -629,7 +629,7 @@ private fun LessonCard(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(),
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
         elevation = TutorlyCardDefaults.elevation()
     ) {
         Column(
