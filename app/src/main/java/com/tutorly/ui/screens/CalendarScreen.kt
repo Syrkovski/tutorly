@@ -49,7 +49,7 @@ import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
-import com.tutorly.ui.theme.NowRed
+import com.tutorly.ui.theme.NowAccent
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
@@ -539,7 +539,7 @@ private fun DayTimeline(
                 nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
                     val y = minutes * rowH / MinutesPerHour
                     drawLine(
-                        color = NowRed,
+                        color = NowAccent,
                         start = androidx.compose.ui.geometry.Offset(0f, y),
                         end = androidx.compose.ui.geometry.Offset(size.width, y),
                         strokeWidth = 2.dp.toPx()
@@ -621,7 +621,7 @@ private fun LessonBlock(
             onClick = { onLessonClick(lesson) },
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 1.dp,
@@ -726,7 +726,7 @@ private fun MonthCalendar(
                     val label = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
                         .replaceFirstChar { it.titlecase(Locale("ru")) }
                     val labelColor = when {
-                        isWeekend(dayOfWeek) -> NowRed
+                        isWeekend(dayOfWeek) -> NowAccent
                         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     }
                     Box(
@@ -793,7 +793,7 @@ private fun MonthDayCell(
     }
     val dayNumberColor = when {
         !enabled -> contentColor.copy(alpha = 0.3f)
-        isWeekend(date.dayOfWeek) -> NowRed
+        isWeekend(date.dayOfWeek) -> NowAccent
         else -> contentColor
     }
 

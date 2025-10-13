@@ -1,12 +1,13 @@
 package com.tutorly.ui.components
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,16 +25,21 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TutorlyBottomSheetContainer(
     modifier: Modifier = Modifier,
-    color: Color = Color.White,
+    color: Color = Color.Unspecified,
     tonalElevation: Dp = 0.dp,
     shape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
     content: @Composable () -> Unit,
 ) {
+    val containerColor = if (color == Color.Unspecified) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        color
+    }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
-        color = color,
+        color = containerColor,
         tonalElevation = tonalElevation,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

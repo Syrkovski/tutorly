@@ -188,7 +188,7 @@ internal fun LessonCardSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
-        TutorlyBottomSheetContainer(color = Color.White) {
+        TutorlyBottomSheetContainer {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

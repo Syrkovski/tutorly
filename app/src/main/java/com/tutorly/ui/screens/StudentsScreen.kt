@@ -176,10 +176,10 @@ fun StudentsScreen(
                 placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
                 shape = MaterialTheme.shapes.large,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    disabledContainerColor = Color.White,
-                    errorContainerColor = Color.White,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    errorContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
                     disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
@@ -262,7 +262,7 @@ fun StudentEditorSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        TutorlyBottomSheetContainer(color = Color.White, dragHandle = null) {
+        TutorlyBottomSheetContainer(dragHandle = null) {
             Column(
                 modifier = modifier
                     .fillMaxWidth()
@@ -397,12 +397,12 @@ private fun StudentCard(
                     )
                 }
                 note?.let {
-                    Surface(
-                        color = Color.White,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                        shape = MaterialTheme.shapes.small,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                    ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -425,7 +425,7 @@ private fun StudentCard(
                     }
                 }
                 Surface(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.small,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))

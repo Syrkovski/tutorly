@@ -107,7 +107,7 @@ fun LessonCreationSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        TutorlyBottomSheetContainer(color = Color.White, dragHandle = null) {
+        TutorlyBottomSheetContainer(dragHandle = null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -198,17 +198,17 @@ private fun StudentSection(
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    disabledContainerColor = Color.White,
-                    errorContainerColor = Color.White
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    errorContainerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = dropdownModifier,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 DropdownMenuItem(
                     text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },

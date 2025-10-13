@@ -1,6 +1,5 @@
 package com.tutorly.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -13,23 +12,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryBlue,
-    onPrimary = OnPrimaryBlue,
-    primaryContainer = DarkPrimaryContainer,
-    onPrimaryContainer = DarkOnPrimaryContainer,
-    secondary = SecondaryIndigo,
-    onSecondary = OnSecondaryIndigo,
-    secondaryContainer = DarkSecondaryContainer,
-    onSecondaryContainer = DarkOnSecondaryContainer,
-    tertiary = TertiaryTeal,
-    onTertiary = OnTertiaryTeal,
-    tertiaryContainer = DarkTertiaryContainer,
-    onTertiaryContainer = DarkOnTertiaryContainer,
+    primary = DarkPrimaryPurple,
+    onPrimary = DarkOnPrimaryPurple,
+    primaryContainer = DarkPrimaryPurpleContainer,
+    onPrimaryContainer = DarkOnPrimaryPurpleContainer,
+    secondary = DarkSecondaryCoral,
+    onSecondary = DarkOnSecondaryCoral,
+    secondaryContainer = DarkSecondaryCoralContainer,
+    onSecondaryContainer = DarkOnSecondaryCoralContainer,
+    tertiary = DarkTertiaryPeach,
+    onTertiary = DarkOnTertiaryPeach,
+    tertiaryContainer = DarkTertiaryPeachContainer,
+    onTertiaryContainer = DarkOnTertiaryPeachContainer,
     background = DarkBackground,
     onBackground = DarkOnBackground,
     surface = DarkSurface,
     onSurface = DarkOnSurface,
-    surfaceTint = PrimaryBlue,
+    surfaceTint = DarkPrimaryPurple,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
     outline = DarkOutline,
@@ -43,33 +42,33 @@ private val DarkColorScheme = darkColorScheme(
     onError = OnErrorRed,
     errorContainer = ErrorRedContainer,
     onErrorContainer = OnErrorRedContainer,
-    inverseSurface = Color(0xFFE0E2FF),
-    inverseOnSurface = Color(0xFF1B1E2B),
-    inversePrimary = PrimaryBlue
+    inverseSurface = Color(0xFFECE6FF),
+    inverseOnSurface = Color(0xFF211835),
+    inversePrimary = PrimaryPurple
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
-    onPrimary = OnPrimaryBlue,
-    primaryContainer = PrimaryBlueContainer,
-    onPrimaryContainer = OnPrimaryBlueContainer,
-    secondary = SecondaryIndigo,
-    onSecondary = OnSecondaryIndigo,
-    secondaryContainer = SecondaryIndigoContainer,
-    onSecondaryContainer = OnSecondaryIndigoContainer,
-    tertiary = TertiaryTeal,
-    onTertiary = OnTertiaryTeal,
-    tertiaryContainer = TertiaryTealContainer,
-    onTertiaryContainer = OnTertiaryTealContainer,
-    background = SurfaceContainer,
-    onBackground = NeutralOnBackground,
-    surface = SurfaceContainer,
-    onSurface = NeutralOnBackground,
-    surfaceTint = PrimaryBlue,
-    surfaceVariant = NeutralSurfaceVariant,
-    onSurfaceVariant = NeutralOnSurfaceVariant,
-    outline = NeutralOutline,
-    outlineVariant = NeutralOutlineVariant,
+    primary = PrimaryPurple,
+    onPrimary = OnPrimaryPurple,
+    primaryContainer = PrimaryPurpleContainer,
+    onPrimaryContainer = OnPrimaryPurpleContainer,
+    secondary = SecondaryCoral,
+    onSecondary = OnSecondaryCoral,
+    secondaryContainer = SecondaryCoralContainer,
+    onSecondaryContainer = OnSecondaryCoralContainer,
+    tertiary = TertiaryPeach,
+    onTertiary = OnTertiaryPeach,
+    tertiaryContainer = TertiaryPeachContainer,
+    onTertiaryContainer = OnTertiaryPeachContainer,
+    background = SurfaceBlush,
+    onBackground = OnSurfaceBlush,
+    surface = SurfaceBlush,
+    onSurface = OnSurfaceBlush,
+    surfaceTint = PrimaryPurple,
+    surfaceVariant = SurfaceVariantSoft,
+    onSurfaceVariant = OnSurfaceVariantSoft,
+    outline = OutlineLavender,
+    outlineVariant = OutlineVariantLavender,
     surfaceContainerLowest = SurfaceContainerLowest,
     surfaceContainerLow = SurfaceContainerLow,
     surfaceContainer = SurfaceContainer,
@@ -79,9 +78,9 @@ private val LightColorScheme = lightColorScheme(
     onError = OnErrorRed,
     errorContainer = ErrorRedContainer,
     onErrorContainer = OnErrorRedContainer,
-    inverseSurface = Color(0xFF2F3144),
-    inverseOnSurface = Color(0xFFF1F1FF),
-    inversePrimary = PrimaryBlue
+    inverseSurface = Color(0xFF2F2546),
+    inverseOnSurface = Color(0xFFF5F1FF),
+    inversePrimary = PrimaryPurple
 )
 
 @Composable
@@ -109,13 +108,13 @@ fun TutorlyTheme(
 }
 
 private val LightColors = lightColorScheme(
-    primary = RoyalBlue,
-    onPrimary = OnRoyal,
-    surface = SurfaceContainer,
-    onSurface = Color(0xFF111827),
-    background = SurfaceContainer,
-    onBackground = Color(0xFF111827),
-    secondary = Color(0xFF5B7CFA)
+    primary = PrimaryPurple,
+    onPrimary = OnPrimaryPurple,
+    surface = SurfaceBlush,
+    onSurface = OnSurfaceBlush,
+    background = SurfaceBlush,
+    onBackground = OnSurfaceBlush,
+    secondary = SecondaryCoral
 )
 
 @Composable
