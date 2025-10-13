@@ -300,7 +300,7 @@ private fun SubjectSection(state: LessonCreationUiState, onSubjectSelect: (Long?
                 subjects = availableSubjects,
                 selectedSubjectId = state.selectedSubjectId,
                 onSubjectSelect = onSubjectSelect
-            )
+            )}
             state.selectedStudent == null -> {
                 Text(
                     text = stringResource(id = R.string.lesson_create_subject_placeholder),

@@ -24,7 +24,7 @@ fun TutorlyDialog(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
-    content: @Composable ColumnScopeContent,
+    content: ColumnScopeContent,
 ) {
     BasicAlertDialog(
         onDismissRequest = onDismissRequest,

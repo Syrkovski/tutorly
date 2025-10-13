@@ -13,7 +13,7 @@ import javax.inject.Singleton
 internal const val PREPAYMENT_METHOD = "prepayment"
 
 @Singleton
-internal class StudentPrepaymentAllocator @Inject constructor(
+class StudentPrepaymentAllocator @Inject constructor(
     private val lessonDao: LessonDao,
     private val paymentDao: PaymentDao
 ) {

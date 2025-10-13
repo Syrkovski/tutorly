@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
  * Wraps bottom-sheet content into a surface with rounded top corners so we can keep
  * the sheet background while allowing the modal container itself to stay transparent.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TutorlyBottomSheetContainer(
     modifier: Modifier = Modifier,

@@ -815,7 +815,6 @@ private suspend fun FocusRequester.safeRequestFocus() {
 private fun FocusRequester.tryRequestFocus(): Boolean =
     runCatching { requestFocus() }.isSuccess
 
-@Composable
 private data class MessengerValue(
     val type: StudentMessengerType,
     val customLabel: String,
