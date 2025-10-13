@@ -66,6 +66,7 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import java.text.NumberFormat
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Currency
@@ -209,6 +210,11 @@ private fun TodayContent(
                     addTopSpacing = index > 0 || state.isAllMarked
                 )
             }
+            if (section.pending.isNotEmpty()) {
+                item(key = "pending_header_${section.date}") {
+                    PastSectionHeader()
+                }
+            }
             items(section.pending, key = { it.id }) { lesson ->
                 TodayLessonRow(
                     lesson = lesson,
@@ -279,47 +285,92 @@ private fun DaySectionHeader(section: TodayLessonSection, addTopSpacing: Boolean
 }
 
 @Composable
-private fun TodayStatsRow(stats: TodayStats) {
-    val currencyFormatter = rememberCurrencyFormatter()
-    val totalAmount = remember(stats.totalAmountCents, currencyFormatter) {
-        formatCurrency(stats.totalAmountCents, currencyFormatter)
-    }
-    val paidAmount = remember(stats.paidAmountCents, currencyFormatter) {
-        formatCurrency(stats.paidAmountCents, currencyFormatter)
-    }
-    val paidLessons = remember(stats.paidLessons) { stats.paidLessons.toString() }
-    val totalLessons = remember(stats.totalLessons) { stats.totalLessons.toString() }
-    val fromLabel = stringResource(R.string.today_stats_from)
+private fun PastSectionHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        TodayStatsCard(
-            label = stringResource(R.string.today_stats_income_label),
-            primaryValue = paidAmount,
-            secondaryValue = totalAmount,
-            fromLabel = fromLabel,
-            modifier = Modifier.weight(1f)
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
         )
-        TodayStatsCard(
-            label = stringResource(R.string.today_stats_lessons_label),
-            primaryValue = paidLessons,
-            secondaryValue = totalLessons,
-            fromLabel = fromLabel,
-            modifier = Modifier.weight(1f)
+        Text(
+            text = stringResource(R.string.today_section_past),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
         )
     }
 }
 
 @Composable
-private fun TodayStatsCard(
+private fun TodayStatsRow(stats: TodayStats) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    val passedLessons = remember(stats.passedLessons) { stats.passedLessons.toString() }
+    val remainingLessons = remember(stats.remainingLessons) { stats.remainingLessons.toString() }
+    val paidAmount = remember(stats.paidAmountCents, currencyFormatter) {
+        formatCurrency(stats.paidAmountCents, currencyFormatter)
+    }
+    val dueAmount = remember(stats.dueAmountCents, currencyFormatter) {
+        formatCurrency(stats.dueAmountCents, currencyFormatter)
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TodayStatsTile(
+                label = stringResource(R.string.today_stats_passed_label),
+                value = passedLessons,
+                modifier = Modifier.weight(1f)
+            )
+            TodayStatsTile(
+                label = stringResource(R.string.today_stats_paid_label),
+                value = paidAmount,
+                valueColor = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TodayStatsTile(
+                label = stringResource(R.string.today_stats_remaining_label),
+                value = remainingLessons,
+                modifier = Modifier.weight(1f)
+            )
+            TodayStatsTile(
+                label = stringResource(R.string.today_stats_due_label),
+                value = dueAmount,
+                valueColor = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodayStatsTile(
     label: String,
-    primaryValue: String,
-    secondaryValue: String,
-    fromLabel: String,
-    modifier: Modifier = Modifier
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Card(
         modifier = modifier,
@@ -331,40 +382,20 @@ private fun TodayStatsCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = primaryValue,
-                    style = MaterialTheme.typography.headlineMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = fromLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = secondaryValue,
-                    style = MaterialTheme.typography.headlineMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                color = valueColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -461,8 +492,8 @@ private fun AllMarkedMessage() {
             Surface(
                 modifier = Modifier.size(64.dp),
                 shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                contentColor = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                contentColor = MaterialTheme.colorScheme.tertiary
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -586,6 +617,7 @@ private fun LessonCard(
     val grade = lesson.studentGrade?.takeIf { it.isNotBlank() }?.trim()
     val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
     val durationLabel = stringResource(R.string.today_duration_format, durationMinutes)
+    val isFutureLesson = remember(lesson.startAt) { lesson.startAt.isAfter(Instant.now()) }
 
     Card(
         modifier = modifier,
@@ -593,14 +625,21 @@ private fun LessonCard(
         colors = TutorlyCardDefaults.colors(),
         elevation = TutorlyCardDefaults.elevation()
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
                         text = lesson.studentName,
                         style = MaterialTheme.typography.titleMedium,
@@ -617,72 +656,76 @@ private fun LessonCard(
                         )
                     }
                 }
-                FlowRow(
+                PaymentStatusChip(
+                    status = lesson.paymentStatus,
+                    isFutureLesson = isFutureLesson
+                )
+            }
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LessonMetaPill(text = timeText)
+                LessonMetaPill(text = durationLabel)
+                LessonMetaPill(text = amount)
+            }
+            val note = lesson.note?.takeIf { it.isNotBlank() }
+            if (note != null) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    LessonMetaPill(text = timeText)
-                    LessonMetaPill(text = durationLabel)
-                    LessonMetaPill(text = amount)
-                }
-                val note = lesson.note?.takeIf { it.isNotBlank() }
-                if (note != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.StickyNote2,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = note,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.StickyNote2,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
-            PaymentStatusChip(
-                status = lesson.paymentStatus,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 12.dp, end = 12.dp)
-            )
         }
     }
 }
 
 @Composable
-private fun PaymentStatusChip(status: PaymentStatus, modifier: Modifier = Modifier) {
+private fun PaymentStatusChip(
+    status: PaymentStatus,
+    isFutureLesson: Boolean,
+    modifier: Modifier = Modifier
+) {
     if (status == PaymentStatus.UNPAID) return
-    val (label, container, content) = when (status) {
-        PaymentStatus.PAID -> Triple(
-            stringResource(R.string.lesson_status_paid),
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer
+    val label = when (status) {
+        PaymentStatus.PAID -> stringResource(
+            if (isFutureLesson) R.string.lesson_card_status_prepaid else R.string.lesson_status_paid
         )
-        PaymentStatus.DUE -> Triple(
-            stringResource(R.string.lesson_status_due),
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.onErrorContainer
-        )
-        PaymentStatus.CANCELLED -> Triple(
-            stringResource(R.string.lesson_status_cancelled),
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        else -> Triple(
-            stringResource(R.string.lesson_status_unpaid),
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        PaymentStatus.DUE -> stringResource(R.string.lesson_status_due)
+        PaymentStatus.CANCELLED -> stringResource(R.string.lesson_status_cancelled)
+        PaymentStatus.UNPAID -> return
+    }
+    val container: Color
+    val content: Color
+    when (status) {
+        PaymentStatus.PAID -> {
+            container = MaterialTheme.colorScheme.tertiaryContainer
+            content = MaterialTheme.colorScheme.onTertiaryContainer
+        }
+        PaymentStatus.DUE -> {
+            container = MaterialTheme.colorScheme.errorContainer
+            content = MaterialTheme.colorScheme.onErrorContainer
+        }
+        else -> {
+            container = MaterialTheme.colorScheme.surfaceVariant
+            content = MaterialTheme.colorScheme.onSurfaceVariant
+        }
     }
     Surface(
         color = container,
