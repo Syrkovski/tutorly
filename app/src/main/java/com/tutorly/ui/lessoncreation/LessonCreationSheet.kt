@@ -194,12 +194,26 @@ private fun StudentSection(
                         )
                     }
                 },
-                isError = state.errors.containsKey(LessonCreationField.STUDENT)
+                isError = state.errors.containsKey(LessonCreationField.STUDENT),
+                supportingText = {
+                    state.selectedStudent?.subjects
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.joinToString(separator = ", ")
+                        ?.let { subjects ->
+                            Text(
+                                text = subjects,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2
+                            )
+                        }
+                }
             )
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = dropdownModifier
+                modifier = dropdownModifier,
+                containerColor = Color.White
             ) {
                 DropdownMenuItem(
                     text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },
@@ -211,11 +225,21 @@ private fun StudentSection(
                 state.students.forEach { option ->
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                text = option.name,
-                                style = LocalTextStyle.current,
-                                maxLines = 1
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = option.name,
+                                    style = LocalTextStyle.current,
+                                    maxLines = 1
+                                )
+                                if (option.subjects.isNotEmpty()) {
+                                    Text(
+                                        text = option.subjects.joinToString(separator = ", "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2
+                                    )
+                                }
+                            }
                         },
                         leadingIcon = {
                             StudentAvatar(name = option.name, size = 32.dp)
@@ -385,7 +409,6 @@ private fun DurationPriceSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = stringResource(id = R.string.lesson_create_duration_label), fontWeight = FontWeight.Medium)
             OutlinedTextField(
                 value = customDurationInput,
                 onValueChange = { value ->

@@ -64,7 +64,8 @@ data class SubjectOption(
 data class StudentOption(
     val id: Long,
     val name: String,
-    val rateCents: Int?
+    val rateCents: Int?,
+    val subjects: List<String> = emptyList()
 )
 
 data class ConflictInfo(
