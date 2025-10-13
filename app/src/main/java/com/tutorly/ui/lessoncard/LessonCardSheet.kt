@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -81,6 +83,7 @@ internal fun LessonCardSheet(
     state: LessonCardUiState,
     onDismissRequest: () -> Unit,
     onStudentSelect: (Long) -> Unit,
+    onAddStudent: () -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationSelect: (Int) -> Unit,
@@ -111,11 +114,18 @@ internal fun LessonCardSheet(
         runCatching {
             NumberFormat.getCurrencyInstance(locale).apply {
                 currency = java.util.Currency.getInstance(state.currencyCode)
+                maximumFractionDigits = 0
+                minimumFractionDigits = 0
             }
-        }.getOrElse { NumberFormat.getCurrencyInstance(locale) }
+        }.getOrElse {
+            NumberFormat.getCurrencyInstance(locale).apply {
+                maximumFractionDigits = 0
+                minimumFractionDigits = 0
+            }
+        }
     }
     val priceText = remember(state.priceCents, currencyFormatter) {
-        currencyFormatter.format(state.priceCents / 100.0)
+        currencyFormatter.format(state.priceCents / 100)
     }
     val formattedDate = remember(state.date, locale) {
         dateFormatter.format(state.date).replaceFirstChar { char ->
@@ -141,11 +151,7 @@ internal fun LessonCardSheet(
         }
     }
 
-    val onStudentClick: () -> Unit = {
-        if (state.studentOptions.isNotEmpty()) {
-            showStudentPicker = true
-        }
-    }
+    val onStudentClick: () -> Unit = { showStudentPicker = true }
     val onDateClick: () -> Unit = {
         DatePickerDialog(
             context,
@@ -182,7 +188,7 @@ internal fun LessonCardSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f),
     ) {
-        TutorlyBottomSheetContainer {
+        TutorlyBottomSheetContainer(color = Color.White) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -289,6 +295,10 @@ internal fun LessonCardSheet(
             onSelect = {
                 onStudentSelect(it)
                 showStudentPicker = false
+            },
+            onAddStudent = {
+                showStudentPicker = false
+                onAddStudent()
             },
             onDismiss = { showStudentPicker = false }
         )
@@ -541,12 +551,13 @@ private fun PriceRow(
             )
         }
         Box {
-            Surface(
+            Card(
+                onClick = onStatusClick,
+                enabled = !isStatusBusy,
                 shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .clickable(onClick = onStatusClick)
-                    .padding(vertical = 4.dp)
+                colors = TutorlyCardDefaults.colors(),
+                elevation = TutorlyCardDefaults.elevation(),
+                modifier = Modifier.padding(vertical = 4.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -631,39 +642,62 @@ private fun NoteRow(
 private fun StudentPickerDialog(
     options: List<LessonStudentOption>,
     onSelect: (Long) -> Unit,
+    onAddStudent: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.lesson_card_student_picker_title)) },
         text = {
-            if (options.isEmpty()) {
-                Text(text = stringResource(id = R.string.lesson_card_student_picker_empty))
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(options, key = { it.id }) { option ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(option.id) }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = option.name,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            val subtitle = listOfNotNull(option.grade, option.subject)
-                                .filter { it.isNotBlank() }
-                                .joinToString(" • ")
-                            if (subtitle.isNotBlank()) {
-                                Text(
-                                    text = subtitle,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (options.isEmpty()) {
+                    Text(text = stringResource(id = R.string.lesson_card_student_picker_empty))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(options, key = { it.id }) { option ->
+                            Card(
+                                onClick = { onSelect(option.id) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = TutorlyCardDefaults.colors(),
+                                elevation = TutorlyCardDefaults.elevation()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = option.name,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    val subtitle = listOfNotNull(option.grade, option.subject)
+                                        .filter { it.isNotBlank() }
+                                        .joinToString(" • ")
+                                    if (subtitle.isNotBlank()) {
+                                        Text(
+                                            text = subtitle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
+                }
+
+                Button(
+                    onClick = onAddStudent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = stringResource(id = R.string.add_student))
                 }
             }
         },
@@ -685,12 +719,22 @@ private fun DurationDialog(
     var customInput by remember(currentMinutes) {
         mutableStateOf(currentMinutes.takeIf { it > 0 }?.toString().orEmpty())
     }
-    val presets = listOf(25, 60, 90, 120)
+    val presets = listOf(45, 60, 90, 120)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.lesson_card_duration_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = customInput,
+                    onValueChange = { value ->
+                        customInput = value.filter { it.isDigit() }
+                    },
+                    label = { Text(text = stringResource(id = R.string.lesson_card_duration_hint)) },
+                    suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -705,16 +749,6 @@ private fun DurationDialog(
                         )
                     }
                 }
-                OutlinedTextField(
-                    value = customInput,
-                    onValueChange = { value ->
-                        customInput = value.filter { it.isDigit() }
-                    },
-                    label = { Text(text = stringResource(id = R.string.lesson_card_duration_hint)) },
-                    suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
-                )
             }
         },
         confirmButton = {

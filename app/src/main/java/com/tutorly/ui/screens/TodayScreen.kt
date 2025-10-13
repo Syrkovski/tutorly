@@ -76,6 +76,7 @@ import java.util.Locale
 @Composable
 fun TodayScreen(
     modifier: Modifier = Modifier,
+    onAddStudent: () -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -89,6 +90,10 @@ fun TodayScreen(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
         onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onAddStudent = {
+            lessonCardViewModel.dismiss()
+            onAddStudent()
+        },
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,

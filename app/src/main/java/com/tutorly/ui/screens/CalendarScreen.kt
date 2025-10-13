@@ -94,6 +94,10 @@ fun CalendarScreen(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
         onStudentSelect = lessonCardViewModel::onStudentSelected,
+        onAddStudent = {
+            lessonCardViewModel.dismiss()
+            onAddStudent()
+        },
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,

@@ -107,7 +107,7 @@ fun LessonCreationSheet(
         contentColor = Color.Unspecified,
         scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
-        TutorlyBottomSheetContainer(dragHandle = null) {
+        TutorlyBottomSheetContainer(color = Color.White, dragHandle = null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
