@@ -58,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -167,7 +168,9 @@ fun StudentsScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = vm::onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, MaterialTheme.shapes.large, clip = false),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
@@ -176,7 +179,11 @@ fun StudentsScreen(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
                     disabledContainerColor = Color.White,
-                    errorContainerColor = Color.White
+                    errorContainerColor = Color.White,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
                 )
             )
 
@@ -394,7 +401,7 @@ private fun StudentCard(
                         color = Color.White,
                         contentColor = MaterialTheme.colorScheme.onSurface,
                         shape = MaterialTheme.shapes.small,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -421,7 +428,7 @@ private fun StudentCard(
                     color = Color.White,
                     contentColor = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.small,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                 ) {
                     Row(
                         modifier = Modifier
