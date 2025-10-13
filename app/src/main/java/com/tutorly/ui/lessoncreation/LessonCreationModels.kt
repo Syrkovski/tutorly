@@ -16,6 +16,7 @@ data class LessonCreationUiState(
     val subjects: List<SubjectOption> = emptyList(),
     val availableSubjects: List<SubjectOption> = emptyList(),
     val selectedSubjectId: Long? = null,
+    val subjectInput: String = "",
     val date: LocalDate = LocalDate.now(),
     val time: LocalTime = LocalTime.now(),
     val durationMinutes: Int = 60,

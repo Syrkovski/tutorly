@@ -707,7 +707,7 @@ private fun StudentPickerDialog(
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -764,7 +764,7 @@ private fun DurationDialog(
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -804,7 +804,7 @@ private fun PriceDialog(
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -838,7 +838,7 @@ private fun NoteDialog(
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -866,7 +866,7 @@ private fun DeleteLessonDialog(
                 Text(text = stringResource(id = R.string.lesson_create_cancel))
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 

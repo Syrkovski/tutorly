@@ -73,7 +73,7 @@ private fun FinanceLoading(modifier: Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
@@ -119,16 +119,11 @@ private fun FinanceContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.finance_statistics_title),
-            style = MaterialTheme.typography.titleLarge
-        )
-
         FinancePeriodSelector(
             selected = selectedPeriod,
             onSelect = onSelectPeriod

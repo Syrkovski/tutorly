@@ -129,7 +129,7 @@ fun TodayScreen(
         modifier = modifier,
         topBar = { TodayTopBar(state = uiState) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -486,7 +486,7 @@ private fun AllMarkedMessage() {
             .fillMaxWidth()
             .padding(bottom = 16.dp),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -752,7 +752,7 @@ private fun PaymentStatusChip(
 @Composable
 private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(50),
         modifier = modifier

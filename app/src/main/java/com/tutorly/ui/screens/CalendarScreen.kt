@@ -142,6 +142,7 @@ fun CalendarScreen(
             creationViewModel.dismiss()
             onAddStudent()
         },
+        onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onDateSelect = creationViewModel::onDateSelected,
         onTimeSelect = creationViewModel::onTimeSelected,

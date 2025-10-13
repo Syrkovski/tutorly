@@ -129,6 +129,7 @@ fun StudentDetailsScreen(
             creationViewModel.dismiss()
             onAddStudentFromCreation()
         },
+        onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onDateSelect = creationViewModel::onDateSelected,
         onTimeSelect = creationViewModel::onTimeSelected,
@@ -196,7 +197,7 @@ fun StudentDetailsScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         when (val currentState = state) {
             StudentProfileUiState.Hidden, StudentProfileUiState.Loading -> {

@@ -32,7 +32,7 @@ fun TutorlyBottomSheetContainer(
     content: @Composable () -> Unit,
 ) {
     val containerColor = if (color == Color.Unspecified) {
-        MaterialTheme.colorScheme.surfaceContainerLowest
+        MaterialTheme.colorScheme.surface
     } else {
         color
     }
