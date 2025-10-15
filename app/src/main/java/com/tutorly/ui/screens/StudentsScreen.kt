@@ -147,7 +147,7 @@ fun StudentsScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },

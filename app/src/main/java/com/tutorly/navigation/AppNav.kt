@@ -1,9 +1,13 @@
 package com.tutorly.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +34,8 @@ import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.screens.*
 import java.time.LocalDate
 import java.time.ZonedDateTime
+import com.tutorly.ui.theme.ScreenGradientEnd
+import com.tutorly.ui.theme.ScreenGradientStart
 
 const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
@@ -65,8 +71,17 @@ fun AppNavRoot() {
         else -> false                   // calendar/today рисуют верх сами
     }
 
-    Scaffold(
-        topBar = {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(ScreenGradientStart, ScreenGradientEnd)
+                )
+            )
+    ) {
+        Scaffold(
+            topBar = {
             if (showGlobalTopBar) {
                 AppTopBar(
                     title = when (route) {
@@ -77,8 +92,8 @@ fun AppNavRoot() {
                     onAddClick = null
                 )
             }
-        },
-        bottomBar = {
+            },
+            bottomBar = {
             AppBottomBar(
                 currentRoute = route,
                 onSelect = { dest ->
@@ -95,10 +110,10 @@ fun AppNavRoot() {
                 }
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        // чтобы контент корректно учитывал статус/навигационные панели
-        contentWindowInsets = WindowInsets.systemBars
-    ) { innerPadding ->
+            containerColor = Color.Transparent,
+            // чтобы контент корректно учитывал статус/навигационные панели
+            contentWindowInsets = WindowInsets.systemBars
+        ) { innerPadding ->
         NavHost(
             navController = nav,
             startDestination = ROUTE_CALENDAR_PATTERN,
