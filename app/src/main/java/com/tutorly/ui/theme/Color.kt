@@ -3,10 +3,12 @@ package com.tutorly.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Brand palette
-val PrimaryPurple = Color(0xFF5C2C65)
+val TopBarGradientStart = Color(0xFF3B7D72)
+val TopBarGradientEnd = Color(0xFF4E998C)
+val PrimaryPurple = TopBarGradientStart
 val OnPrimaryPurple = Color(0xFFFFFFFF)
-val PrimaryPurpleContainer = Color(0xFFEADDF0)
-val OnPrimaryPurpleContainer = Color(0xFF22102A)
+val PrimaryPurpleContainer = TopBarGradientEnd
+val OnPrimaryPurpleContainer = Color(0xFF0F2C26)
 
 val SecondaryCoral = Color(0xFFC1477F)
 val OnSecondaryCoral = Color(0xFFFFFFFF)
@@ -19,12 +21,17 @@ val TertiaryPeachContainer = Color(0xFFFFDCD3)
 val OnTertiaryPeachContainer = Color(0xFF55180B)
 
 // Neutral surfaces and content
-val SurfaceBlush = Color(0xFFFCFAFC)
-val OnSurfaceBlush = Color(0xFF2E2A35)
-val SurfaceVariantSoft = Color(0xFFF0E5F1)
-val OnSurfaceVariantSoft = Color(0xFF7A6D80)
-val OutlineLavender = Color(0xFFC5B6C9)
-val OutlineVariantLavender = Color(0xFFE5DAE6)
+val ScreenGradientStart = Color(0xFFF3F8F6)
+val ScreenGradientEnd = Color(0xFFF1F6F6)
+val PrimaryTextColor = Color(0xFF2C2C33)
+val SecondaryTextColor = Color(0xFF49484E)
+val AvatarFill = Color(0xFFDDE9E5)
+val SurfaceBlush = ScreenGradientStart
+val OnSurfaceBlush = PrimaryTextColor
+val SurfaceVariantSoft = AvatarFill
+val OnSurfaceVariantSoft = SecondaryTextColor
+val OutlineLavender = Color(0xFFB9C9C4)
+val OutlineVariantLavender = Color(0xFFE3ECE8)
 
 val SuccessGreen = Color(0xFF2DBE72)
 val OnSuccessGreen = Color(0xFFFFFFFF)
@@ -32,10 +39,10 @@ val SuccessGreenContainer = Color(0xFFD9F5E6)
 val OnSuccessGreenContainer = Color(0xFF0F3E25)
 
 val SurfaceContainerLowest = Color(0xFFFFFFFF)
-val SurfaceContainerLow = Color(0xFFFEF9FF)
-val SurfaceContainer = Color(0xFFF6ECF6)
-val SurfaceContainerHigh = Color(0xFFEDE1EF)
-val SurfaceContainerHighest = Color(0xFFE4D6E6)
+val SurfaceContainerLow = Color(0xFFF8FCFB)
+val SurfaceContainer = Color(0xFFF1F6F5)
+val SurfaceContainerHigh = Color(0xFFE8F0EE)
+val SurfaceContainerHighest = Color(0xFFDDE9E5)
 
 // Semantic
 val ErrorRed = Color(0xFFBA1A1A)
