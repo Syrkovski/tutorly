@@ -1,5 +1,6 @@
 package com.tutorly.navigation
 
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
@@ -60,7 +61,10 @@ private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null)
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(
+    ExperimentalSharedTransitionApi::class,
+    ExperimentalAnimationApi::class
+)
 @Composable
 fun AppNavRoot() {
     val nav = rememberNavController()
