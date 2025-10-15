@@ -59,6 +59,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.layout.WindowInsets
+import com.tutorly.ui.components.GradientTopBarContainer
+import com.tutorly.ui.theme.PrimaryTextColor
 import com.tutorly.ui.theme.SuccessGreen
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.R
@@ -129,7 +132,7 @@ fun TodayScreen(
         modifier = modifier,
         topBar = { TodayTopBar(state = uiState) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -768,27 +771,39 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayTopBar(state: TodayUiState) {
-    TopAppBar(
-        title = { Text(text = stringResource(R.string.today_title)) },
-        actions = {
-            if (state is TodayUiState.Content && !state.isAllMarked) {
-                AssistChip(
-                    onClick = {},
-                    label = {
-                        Text(text = stringResource(R.string.today_remaining_count, state.pendingCount))
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+    GradientTopBarContainer {
+        TopAppBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp),
+            title = {
+                Text(
+                    text = stringResource(R.string.today_title),
+                    color = PrimaryTextColor
                 )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            },
+            actions = {
+                if (state is TodayUiState.Content && !state.isAllMarked) {
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(text = stringResource(R.string.today_remaining_count, state.pendingCount))
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
+                titleContentColor = PrimaryTextColor
+            ),
+            windowInsets = WindowInsets(0, 0, 0, 0)
         )
-    )
+    }
 }
 
 @Composable

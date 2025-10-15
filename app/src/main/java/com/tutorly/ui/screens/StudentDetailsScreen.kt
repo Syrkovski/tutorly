@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -69,6 +71,7 @@ import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.lessoncard.LessonCardSheet
@@ -77,6 +80,7 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
+import com.tutorly.ui.theme.PrimaryTextColor
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.time.Instant
@@ -236,7 +240,7 @@ fun StudentDetailsScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent
     ) { innerPadding ->
         when (val currentState = state) {
             StudentProfileUiState.Hidden, StudentProfileUiState.Loading -> {
@@ -340,47 +344,57 @@ private fun StudentProfileTopBar(
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
 ) {
-    TopAppBar(
-        title = {
-            Text(
-                text = title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = stringResource(id = R.string.student_details_back)
+    GradientTopBarContainer {
+        TopAppBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp),
+            title = {
+                Text(
+                    text = title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = PrimaryTextColor
                 )
-            }
-        },
-        actions = {
-            if (onArchiveClick != null && isArchived != null) {
-                IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
-                    val (icon, description) = if (isArchived) {
-                        Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
-                    } else {
-                        Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
-                    }
-                    Icon(imageVector = icon, contentDescription = description)
-                }
-            }
-            if (onDeleteClick != null) {
-                IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = stringResource(id = R.string.student_details_delete)
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = stringResource(id = R.string.student_details_back)
                     )
                 }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            },
+            actions = {
+                if (onArchiveClick != null && isArchived != null) {
+                    IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
+                        val (icon, description) = if (isArchived) {
+                            Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                        } else {
+                            Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                        }
+                        Icon(imageVector = icon, contentDescription = description)
+                    }
+                }
+                if (onDeleteClick != null) {
+                    IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = stringResource(id = R.string.student_details_delete)
+                        )
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
+                titleContentColor = PrimaryTextColor,
+                navigationIconContentColor = PrimaryTextColor,
+                actionIconContentColor = PrimaryTextColor
+            ),
+            windowInsets = WindowInsets(0, 0, 0, 0)
         )
-    )
+    }
 }
 
 @Composable

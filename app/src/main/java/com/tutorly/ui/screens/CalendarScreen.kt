@@ -226,7 +226,7 @@ fun CalendarScreen(
                 )
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        containerColor = Color.Transparent
     ) { padding ->
         Column(
             Modifier
