@@ -1,5 +1,12 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.rememberSharedContentState
+import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -93,7 +100,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun StudentDetailsScreen(
     onBack: () -> Unit,
@@ -102,6 +109,8 @@ fun StudentDetailsScreen(
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
     creationViewModel: LessonCreationViewModel,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val state by vm.uiState.collectAsState()
     val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
@@ -278,7 +287,9 @@ fun StudentDetailsScreen(
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .padding(innerPadding),
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope
                 )
     }
 }
@@ -404,7 +415,9 @@ private fun StudentProfileContent(
     onAddLesson: (Long) -> Unit,
     onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val locale = remember { Locale("ru", "RU") }
     val numberFormatter = remember(locale) {
@@ -438,6 +451,8 @@ private fun StudentProfileContent(
 
     val listState = rememberLazyListState()
 
+    val sharedElementKey = "student-card-${profile.student.id}"
+
     LazyColumn(
         state = listState,
         modifier = modifier,
@@ -447,7 +462,10 @@ private fun StudentProfileContent(
         item {
             StudentProfileHeader(
                 profile = profile,
-                onEdit = { target -> onEdit(profile.student.id, target) }
+                onEdit = { target -> onEdit(profile.student.id, target) },
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope,
+                sharedContentKey = sharedElementKey
             )
         }
 
@@ -520,15 +538,37 @@ private fun StudentProfileContent(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun StudentProfileHeader(
     profile: StudentProfile,
     onEdit: (StudentEditTarget) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    sharedContentKey: String? = null,
 ) {
+    val sharedState = sharedContentKey?.let { rememberSharedContentState(key = it) }
+    val sharedModifier = if (
+        sharedTransitionScope != null &&
+        animatedVisibilityScope != null &&
+        sharedState != null
+    ) {
+        with(sharedTransitionScope) {
+            Modifier.sharedBounds(
+                sharedContentState = sharedState,
+                animatedVisibilityScope = animatedVisibilityScope,
+                boundsTransform = { _, _ -> tween(durationMillis = 450, easing = FastOutSlowInEasing) }
+            )
+        }
+    } else {
+        Modifier
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .then(sharedModifier)
             .clickable { onEdit(StudentEditTarget.PROFILE) },
         shape = MaterialTheme.shapes.extraLarge,
         colors = TutorlyCardDefaults.colors(),

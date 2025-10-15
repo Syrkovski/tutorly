@@ -1,5 +1,12 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.rememberSharedContentState
+import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,23 +22,23 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -85,6 +92,8 @@ fun StudentsScreen(
     initialEditorOrigin: StudentEditorOrigin = StudentEditorOrigin.NONE,
     modifier: Modifier = Modifier,
     vm: StudentsViewModel = hiltViewModel(),
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val query by vm.query.collectAsState()
     val students by vm.students.collectAsState()
@@ -203,9 +212,13 @@ fun StudentsScreen(
                         items = students,
                         key = { it.student.id }
                     ) { item ->
+                        val sharedKey = "student-card-${item.student.id}"
                         StudentCard(
                             item = item,
-                            onClick = { onStudentOpen(item.student.id) }
+                            onClick = { onStudentOpen(item.student.id) },
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            sharedContentKey = sharedKey
                         )
                     }
                 }
@@ -350,10 +363,14 @@ private fun EmptyStudentsState(modifier: Modifier = Modifier) {
 }
 
 @Composable
+@OptIn(ExperimentalSharedTransitionApi::class)
 private fun StudentCard(
     item: StudentsViewModel.StudentListItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    sharedContentKey: String? = null,
 ) {
     val subject = item.profile.subject?.takeIf { it.isNotBlank() }?.trim()
     val grade = item.profile.grade?.takeIf { it.isNotBlank() }?.trim()
@@ -366,9 +383,28 @@ private fun StudentCard(
     val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
     val showTrailingRow = phone != null || email != null || item.hasDebt
 
+    val sharedState = sharedContentKey?.let { rememberSharedContentState(key = it) }
+    val sharedModifier = if (
+        sharedTransitionScope != null &&
+        animatedVisibilityScope != null &&
+        sharedState != null
+    ) {
+        with(sharedTransitionScope) {
+            Modifier.sharedBounds(
+                sharedContentState = sharedState,
+                animatedVisibilityScope = animatedVisibilityScope,
+                boundsTransform = { _, _ -> tween(durationMillis = 450, easing = FastOutSlowInEasing) }
+            )
+        }
+    } else {
+        Modifier
+    }
+
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(sharedModifier),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
