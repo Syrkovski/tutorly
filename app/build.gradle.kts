@@ -68,6 +68,7 @@ dependencies {
 
 // Навигация (Compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.accompanist.navigation.animation)
 
 // Коррутины
     implementation(libs.kotlinx.coroutines.android)

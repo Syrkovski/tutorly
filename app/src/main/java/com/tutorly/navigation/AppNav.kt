@@ -17,15 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.DialogProperties
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.AnimatedNavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.dialog
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import com.google.accompanist.navigation.animation.dialog
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.tutorly.ui.CalendarMode
 import com.tutorly.ui.CalendarScreen
 import com.tutorly.ui.CalendarViewModel
@@ -67,7 +67,7 @@ private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null)
 )
 @Composable
 fun AppNavRoot() {
-    val nav = rememberNavController()
+    val nav = rememberAnimatedNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
