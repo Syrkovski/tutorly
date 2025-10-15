@@ -82,178 +82,184 @@ fun AppNavRoot() {
     ) {
         Scaffold(
             topBar = {
-            if (showGlobalTopBar) {
-                AppTopBar(
-                    title = when (route) {
-                        ROUTE_STUDENTS -> "Ученики"
-                        ROUTE_FINANCE -> "Финансы"
-                        else -> ""
-                    },
-                    onAddClick = null
-                )
-            }
+                if (showGlobalTopBar) {
+                    AppTopBar(
+                        title = when (route) {
+                            ROUTE_STUDENTS -> "Ученики"
+                            ROUTE_FINANCE -> "Финансы"
+                            else -> ""
+                        },
+                        onAddClick = null
+                    )
+                }
             },
             bottomBar = {
-            AppBottomBar(
-                currentRoute = route,
-                onSelect = { dest ->
-                    val target = if (dest == ROUTE_CALENDAR) {
-                        calendarRoute(nav)
-                    } else {
-                        dest
+                AppBottomBar(
+                    currentRoute = route,
+                    onSelect = { dest ->
+                        val target = if (dest == ROUTE_CALENDAR) {
+                            calendarRoute(nav)
+                        } else {
+                            dest
+                        }
+                        nav.navigate(target) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(nav.graph.startDestinationId) { saveState = true }
+                        }
                     }
-                    nav.navigate(target) {
-                        launchSingleTop = true
-                        restoreState = true
-                        popUpTo(nav.graph.startDestinationId) { saveState = true }
-                    }
-                }
-            )
-        },
+                )
+            },
             containerColor = Color.Transparent,
             // чтобы контент корректно учитывал статус/навигационные панели
             contentWindowInsets = WindowInsets.systemBars
         ) { innerPadding ->
-        NavHost(
-            navController = nav,
-            startDestination = ROUTE_CALENDAR_PATTERN,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(
-                route = ROUTE_CALENDAR_PATTERN,
-                arguments = listOf(
-                    navArgument(CalendarViewModel.ARG_ANCHOR_DATE) {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    },
-                    navArgument(CalendarViewModel.ARG_CALENDAR_MODE) {
-                        type = NavType.StringType
-                        defaultValue = CalendarMode.DAY.name
-                    }
-                )
-            ) { entry ->
-                val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
-                CalendarScreen(
-                    onAddStudent = {
-                        nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
-                            launchSingleTop = true
-                        }
-                    },
-                    creationViewModel = creationViewModel
-                )
-            }
-            composable(ROUTE_TODAY) {
-                TodayScreen(
-                    onAddStudent = {
-                        nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
-                            launchSingleTop = true
-                        }
-                    }
-                )
-            }      // сам рисует свой верх (заголовок + счетчики)
-            composable(
-                route = ROUTE_STUDENTS_PATTERN,
-                arguments = listOf(
-                    navArgument(ARG_STUDENT_EDITOR_ORIGIN) {
-                        type = NavType.StringType
-                        defaultValue = StudentEditorOrigin.NONE.name
-                    }
-                )
-            ) { entry ->
-                val calendarEntry = remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
-                val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
-                val originName = entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
-                val origin = runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(StudentEditorOrigin.NONE)
-                StudentsScreen(
-                    onStudentEdit = { id ->
-                        nav.navigate(studentEditRoute(id)) {
-                            launchSingleTop = true
-                        }
-                    },
-                    onAddLesson = { studentId ->
-                        creationViewModel.start(
-                            LessonCreationConfig(
-                                studentId = studentId,
-                                zoneId = ZonedDateTime.now().zone,
-                                origin = LessonCreationOrigin.STUDENT
-                            )
-                        )
-                        nav.navigate(calendarRoute(nav)) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onStudentOpen = { id ->
-                        nav.navigate(studentDetailsRoute(id)) {
-                            launchSingleTop = true
-                        }
-                    },
-                    onStudentCreatedFromLesson = { newId ->
-                        val reopened = creationViewModel.onStudentCreated(newId)
-                        nav.navigate(calendarRoute(nav)) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                        if (!reopened) {
-                            creationViewModel.dismiss()
-                        }
-                    },
-                    initialEditorOrigin = origin
-                )
-            }
-            composable(
-                route = ROUTE_STUDENT_DETAILS,
-                arguments = listOf(navArgument("studentId") { type = NavType.LongType })
-            ) { entry ->
-                val studentId = entry.arguments?.getLong("studentId") ?: return@composable
-                val calendarEntry = remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
-                val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
-                StudentDetailsScreen(
-                    onBack = { nav.popBackStack() },
-                    onEdit = { id, target ->
-                        nav.navigate(studentEditRoute(id, target)) {
-                            launchSingleTop = true
-                        }
-                    },
-                    onAddStudentFromCreation = {
-                        nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
-                            launchSingleTop = true
-                        }
-                    },
-                    creationViewModel = creationViewModel
-                )
-            }
-            dialog(
-                route = ROUTE_STUDENT_EDIT,
-                arguments = listOf(
-                    navArgument("studentId") { type = NavType.LongType },
-                    navArgument(ARG_STUDENT_EDIT_TARGET) {
-                        type = NavType.StringType
-                        defaultValue = StudentEditTarget.PROFILE.name
-                    }
-                ),
-                dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+            NavHost(
+                navController = nav,
+                startDestination = ROUTE_CALENDAR_PATTERN,
+                modifier = Modifier.padding(innerPadding)
             ) {
-                StudentEditorDialog(
-                    onDismiss = { nav.popBackStack() },
-                    onSaved = {
-                        nav.popBackStack()
-                    }
-                )
+                composable(
+                    route = ROUTE_CALENDAR_PATTERN,
+                    arguments = listOf(
+                        navArgument(CalendarViewModel.ARG_ANCHOR_DATE) {
+                            type = NavType.StringType
+                            defaultValue = ""
+                        },
+                        navArgument(CalendarViewModel.ARG_CALENDAR_MODE) {
+                            type = NavType.StringType
+                            defaultValue = CalendarMode.DAY.name
+                        }
+                    )
+                ) { entry ->
+                    val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
+                    CalendarScreen(
+                        onAddStudent = {
+                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        creationViewModel = creationViewModel
+                    )
+                }
+                composable(ROUTE_TODAY) {
+                    TodayScreen(
+                        onAddStudent = {
+                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }      // сам рисует свой верх (заголовок + счетчики)
+                composable(
+                    route = ROUTE_STUDENTS_PATTERN,
+                    arguments = listOf(
+                        navArgument(ARG_STUDENT_EDITOR_ORIGIN) {
+                            type = NavType.StringType
+                            defaultValue = StudentEditorOrigin.NONE.name
+                        }
+                    )
+                ) { entry ->
+                    val calendarEntry =
+                        remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
+                    val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
+                    val originName = entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
+                    val origin =
+                        runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(
+                            StudentEditorOrigin.NONE
+                        )
+                    StudentsScreen(
+                        onStudentEdit = { id ->
+                            nav.navigate(studentEditRoute(id)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onAddLesson = { studentId ->
+                            creationViewModel.start(
+                                LessonCreationConfig(
+                                    studentId = studentId,
+                                    zoneId = ZonedDateTime.now().zone,
+                                    origin = LessonCreationOrigin.STUDENT
+                                )
+                            )
+                            nav.navigate(calendarRoute(nav)) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onStudentOpen = { id ->
+                            nav.navigate(studentDetailsRoute(id)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onStudentCreatedFromLesson = { newId ->
+                            val reopened = creationViewModel.onStudentCreated(newId)
+                            nav.navigate(calendarRoute(nav)) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            if (!reopened) {
+                                creationViewModel.dismiss()
+                            }
+                        },
+                        initialEditorOrigin = origin
+                    )
+                }
+                composable(
+                    route = ROUTE_STUDENT_DETAILS,
+                    arguments = listOf(navArgument("studentId") { type = NavType.LongType })
+                ) { entry ->
+                    val studentId = entry.arguments?.getLong("studentId") ?: return@composable
+                    val calendarEntry =
+                        remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
+                    val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
+                    StudentDetailsScreen(
+                        onBack = { nav.popBackStack() },
+                        onEdit = { id, target ->
+                            nav.navigate(studentEditRoute(id, target)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onAddStudentFromCreation = {
+                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        creationViewModel = creationViewModel
+                    )
+                }
+                dialog(
+                    route = ROUTE_STUDENT_EDIT,
+                    arguments = listOf(
+                        navArgument("studentId") { type = NavType.LongType },
+                        navArgument(ARG_STUDENT_EDIT_TARGET) {
+                            type = NavType.StringType
+                            defaultValue = StudentEditTarget.PROFILE.name
+                        }
+                    ),
+                    dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    StudentEditorDialog(
+                        onDismiss = { nav.popBackStack() },
+                        onSaved = {
+                            nav.popBackStack()
+                        }
+                    )
+                }
+                composable(ROUTE_FINANCE) { FinanceScreen() }
             }
-            composable(ROUTE_FINANCE)  { FinanceScreen() }
         }
     }
 }
 
-private fun calendarRoute(nav: NavHostController): String {
+fun calendarRoute(nav: NavHostController): String {
     val entry = runCatching { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }.getOrNull()
     val savedDate = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_ANCHOR_DATE)
     val savedMode = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_CALENDAR_MODE)
     return buildCalendarRoute(savedDate, savedMode)
 }
 
-private fun buildCalendarRoute(date: String?, mode: String?): String {
+fun buildCalendarRoute(date: String?, mode: String?): String {
     val anchor = date?.takeIf { it.isNotBlank() } ?: LocalDate.now().toString()
     val tab = mode?.takeIf { it.isNotBlank() } ?: CalendarMode.DAY.name
     return "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}=$anchor&${CalendarViewModel.ARG_CALENDAR_MODE}=$tab"
