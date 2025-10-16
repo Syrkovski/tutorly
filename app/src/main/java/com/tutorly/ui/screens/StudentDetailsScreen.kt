@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 //import androidx.compose.animation.sharedBounds
@@ -68,9 +69,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -127,16 +130,21 @@ fun StudentDetailsScreen(
     val density = LocalDensity.current
     val listState = rememberLazyListState()
     val overlapPx = remember(density) { with(density) { StudentProfileTopBarOverlap.roundToPx() } }
-    val showGradientTopBar by remember(listState, overlapPx) {
+    val topBarAppearanceProgress by remember(listState, overlapPx) {
         derivedStateOf {
             val firstVisibleIndex = listState.firstVisibleItemIndex
             if (firstVisibleIndex > 0) {
-                true
+                1f
             } else {
-                listState.firstVisibleItemScrollOffset >= overlapPx
+                (listState.firstVisibleItemScrollOffset / overlapPx.toFloat()).coerceIn(0f, 1f)
             }
         }
     }
+    val animatedTopBarProgress by animateFloatAsState(
+        targetValue = topBarAppearanceProgress,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "studentTopBarAppearance"
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPrepaymentDialog by rememberSaveable { mutableStateOf(false) }
@@ -253,7 +261,7 @@ fun StudentDetailsScreen(
                 onDeleteClick = contentState?.let { { showDeleteDialog = true } },
                 archiveEnabled = !isArchiving,
                 deleteEnabled = !isDeleting,
-                showGradientBackground = showGradientTopBar
+                appearanceProgress = animatedTopBarProgress
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -377,14 +385,20 @@ private fun StudentProfileTopBar(
     onDeleteClick: (() -> Unit)? = null,
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
-    showGradientBackground: Boolean,
+    appearanceProgress: Float,
 ) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (showGradientBackground) Color.Transparent else MaterialTheme.colorScheme.surface,
-        label = "studentTopBarBackground"
+    val surfaceOverlayAlpha by animateFloatAsState(
+        targetValue = 1f - appearanceProgress,
+        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        label = "studentTopBarSurfaceOverlay"
+    )
+    val targetContentColor = lerp(
+        start = MaterialTheme.colorScheme.onSurface,
+        stop = Color.White,
+        fraction = appearanceProgress
     )
     val contentColor by animateColorAsState(
-        targetValue = if (showGradientBackground) Color.White else MaterialTheme.colorScheme.onSurface,
+        targetValue = targetContentColor,
         label = "studentTopBarContent"
     )
 
@@ -394,17 +408,19 @@ private fun StudentProfileTopBar(
                 .fillMaxWidth()
                 .height(135.dp)
         ) {
-            if (!showGradientBackground) {
+            if (surfaceOverlayAlpha > 0f) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(color = backgroundColor)
+                        .graphicsLayer { alpha = surfaceOverlayAlpha }
+                        .background(color = MaterialTheme.colorScheme.surface)
                 )
             }
             TopAppBar(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(135.dp),
+                    .height(135.dp)
+                    .graphicsLayer { alpha = appearanceProgress },
                 title = {
                     Box(
                         modifier = Modifier
