@@ -76,6 +76,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
@@ -308,7 +309,7 @@ fun StudentDetailsScreen(
                     modifier = modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(top = -StudentProfileTopBarOverlap),
+                        .offset { IntOffset(x = 0, y = -overlapPx) },
                     listState = listState,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope
