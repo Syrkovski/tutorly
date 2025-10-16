@@ -3,6 +3,7 @@ package com.tutorly.ui.screens
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 //import androidx.compose.animation.sharedBounds
@@ -19,10 +20,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -57,6 +60,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +73,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,6 +105,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
+private val StudentProfileTopBarOverlap = 72.dp
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun StudentDetailsScreen(
@@ -117,6 +124,19 @@ fun StudentDetailsScreen(
     val lessonCardState by lessonCardViewModel.uiState.collectAsState()
     val creationState by creationViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val listState = rememberLazyListState()
+    val overlapPx = remember(density) { with(density) { StudentProfileTopBarOverlap.roundToPx() } }
+    val showGradientTopBar by remember(listState, overlapPx) {
+        derivedStateOf {
+            val firstVisibleIndex = listState.firstVisibleItemIndex
+            if (firstVisibleIndex > 0) {
+                true
+            } else {
+                listState.firstVisibleItemScrollOffset >= overlapPx
+            }
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPrepaymentDialog by rememberSaveable { mutableStateOf(false) }
@@ -232,7 +252,8 @@ fun StudentDetailsScreen(
                 },
                 onDeleteClick = contentState?.let { { showDeleteDialog = true } },
                 archiveEnabled = !isArchiving,
-                deleteEnabled = !isDeleting
+                deleteEnabled = !isDeleting,
+                showGradientBackground = showGradientTopBar
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -287,7 +308,9 @@ fun StudentDetailsScreen(
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .padding(top = -StudentProfileTopBarOverlap),
+                    listState = listState,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope
                 )
@@ -354,65 +377,88 @@ private fun StudentProfileTopBar(
     onDeleteClick: (() -> Unit)? = null,
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
+    showGradientBackground: Boolean,
 ) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (showGradientBackground) Color.Transparent else MaterialTheme.colorScheme.surface,
+        label = "studentTopBarBackground"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (showGradientBackground) Color.White else MaterialTheme.colorScheme.onSurface,
+        label = "studentTopBarContent"
+    )
+
     GradientTopBarContainer {
-        TopAppBar(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp),
-            title = {
+                .height(135.dp)
+        ) {
+            if (!showGradientBackground) {
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .padding(start = 30.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = Color.White
-                    )
-                }
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBack,
-                        contentDescription = stringResource(id = R.string.student_details_back)
-                    )
-                }
-            },
-            actions = {
-                if (onArchiveClick != null && isArchived != null) {
-                    IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
-                        val (icon, description) = if (isArchived) {
-                            Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
-                        } else {
-                            Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
-                        }
-                        Icon(imageVector = icon, contentDescription = description)
-                    }
-                }
-                if (onDeleteClick != null) {
-                    IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = stringResource(id = R.string.student_details_delete)
+                        .matchParentSize()
+                        .background(color = backgroundColor)
+                )
+            }
+            TopAppBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(135.dp),
+                title = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth()
+                            .padding(start = 30.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = contentColor
                         )
                     }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White,
-                actionIconContentColor = Color.White
-            ),
-            windowInsets = WindowInsets(0, 0, 0, 0)
-        )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = stringResource(id = R.string.student_details_back)
+                        )
+                    }
+                },
+                actions = {
+                    if (onArchiveClick != null && isArchived != null) {
+                        IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
+                            val (icon, description) = if (isArchived) {
+                                Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                            } else {
+                                Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                            }
+                            Icon(imageVector = icon, contentDescription = description)
+                        }
+                    }
+                    if (onDeleteClick != null) {
+                        IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(id = R.string.student_details_delete)
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
+                    titleContentColor = contentColor,
+                    navigationIconContentColor = contentColor,
+                    actionIconContentColor = contentColor
+                ),
+                windowInsets = WindowInsets(0, 0, 0, 0)
+            )
+        }
     }
 }
 
@@ -425,6 +471,7 @@ private fun StudentProfileContent(
     onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
@@ -457,9 +504,6 @@ private fun StudentProfileContent(
         }
         groups.map { it.key to it.value.toList() }
     }
-
-    val listState = rememberLazyListState()
-
     val sharedElementKey = "student-card-${profile.student.id}"
 
     LazyColumn(
