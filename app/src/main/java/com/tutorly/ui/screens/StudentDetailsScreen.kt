@@ -954,12 +954,10 @@ private fun StudentProfileLessonCard(
     val start = remember(lesson.startAt, zoneId) { lesson.startAt.atZone(zoneId) }
     val end = remember(lesson.endAt, zoneId) { lesson.endAt.atZone(zoneId) }
     val dateText = remember(start) { dateFormatter.format(start) }
-    val timeText = stringResource(
-        id = R.string.student_details_history_time_range,
-        timeFormatter.format(start),
-        timeFormatter.format(end),
-        lesson.durationMinutes
-    )
+    val minutesSuffix = stringResource(id = R.string.lesson_create_minutes_suffix)
+    val timeText = remember(start, end, lesson.durationMinutes, minutesSuffix) {
+        "${timeFormatter.format(start)} — ${timeFormatter.format(end)} · ${lesson.durationMinutes} $minutesSuffix"
+    }
     val fallbackSubjectText = fallbackSubject?.takeIf { it.isNotBlank() }?.trim()
     val title = lesson.title?.takeIf { it.isNotBlank() }?.trim()
         ?: lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()

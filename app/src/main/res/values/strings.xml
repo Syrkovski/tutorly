@@ -106,7 +106,6 @@
     <string name="student_details_history_title">История занятий</string>
     <string name="student_card_progress">Оплачено %1$d/%2$d</string>
     <string name="student_details_history_empty">Пока нет занятий</string>
-    <string name="student_details_history_time_range">%1$s — %2$s · %3$d мин</string>
     <string name="student_details_create_lesson">Создать занятие</string>
     <string name="student_details_open_profile">Открыть профиль</string>
     <string name="lesson_status_paid">Оплачено</string>
