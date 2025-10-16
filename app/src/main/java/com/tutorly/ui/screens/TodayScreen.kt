@@ -775,12 +775,20 @@ private fun TodayTopBar(state: TodayUiState) {
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(90.dp),
+                .height(135.dp),
             title = {
-                Text(
-                    text = stringResource(R.string.today_title),
-                    color = PrimaryTextColor
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .padding(start = 30.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = stringResource(R.string.today_title),
+                        color = Color.White
+                    )
+                }
             },
             actions = {
                 if (state is TodayUiState.Content && !state.isAllMarked) {
@@ -799,7 +807,7 @@ private fun TodayTopBar(state: TodayUiState) {
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = PrimaryTextColor
+                titleContentColor = Color.White
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )

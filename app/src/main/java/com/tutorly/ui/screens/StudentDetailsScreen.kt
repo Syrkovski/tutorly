@@ -358,14 +358,22 @@ private fun StudentProfileTopBar(
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(90.dp),
+                .height(135.dp),
             title = {
-                Text(
-                    text = title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = PrimaryTextColor
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .padding(start = 30.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.White
+                    )
+                }
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
@@ -398,9 +406,9 @@ private fun StudentProfileTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = PrimaryTextColor,
-                navigationIconContentColor = PrimaryTextColor,
-                actionIconContentColor = PrimaryTextColor
+                titleContentColor = Color.White,
+                navigationIconContentColor = Color.White,
+                actionIconContentColor = Color.White
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
