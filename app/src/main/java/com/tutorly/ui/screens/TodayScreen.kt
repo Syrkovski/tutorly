@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.theme.PrimaryTextColor
 import com.tutorly.ui.theme.SuccessGreen
