@@ -776,7 +776,7 @@ private fun TodayTopBar(state: TodayUiState) {
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp),
+                .height(80.dp),
             title = {
                 Box(
                     modifier = Modifier
