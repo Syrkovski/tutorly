@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -82,7 +83,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
@@ -135,12 +135,9 @@ fun StudentDetailsScreen(
     val overlapPx = remember(density) { with(density) { StudentProfileTopBarOverlap.roundToPx() } }
     val topBarAppearanceProgress by remember(listState, overlapPx) {
         derivedStateOf {
-            val firstVisibleIndex = listState.firstVisibleItemIndex
-            if (firstVisibleIndex > 0) {
-                1f
-            } else {
-                (listState.firstVisibleItemScrollOffset / overlapPx.toFloat()).coerceIn(0f, 1f)
-            }
+            val scrollFraction = (listState.firstVisibleItemScrollOffset / overlapPx.toFloat())
+                .coerceIn(0f, 1f)
+            if (listState.firstVisibleItemIndex > 0) 1f else scrollFraction
         }
     }
     val animatedTopBarProgress by animateFloatAsState(
@@ -240,10 +237,13 @@ fun StudentDetailsScreen(
         )
     }
 
+    val sharedContentKey = contentState?.profile?.student?.id?.let { "student-card-$it" }
+
     Scaffold(
         topBar = {
             StudentProfileTopBar(
                 title = title,
+                profile = contentState?.profile,
                 isArchived = contentState?.profile?.student?.isArchived,
                 onBack = onBack,
                 onArchiveClick = contentState?.let {
@@ -264,7 +264,13 @@ fun StudentDetailsScreen(
                 onDeleteClick = contentState?.let { { showDeleteDialog = true } },
                 archiveEnabled = !isArchiving,
                 deleteEnabled = !isDeleting,
-                appearanceProgress = animatedTopBarProgress
+                appearanceProgress = animatedTopBarProgress,
+                onEditProfile = contentState?.let { content ->
+                    { target -> onEdit(content.profile.student.id, target) }
+                },
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope,
+                sharedContentKey = sharedContentKey
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -273,9 +279,7 @@ fun StudentDetailsScreen(
                 val profile = current.profile
                 FloatingActionButton(
                     onClick = { openLessonCreation(profile.student.id) },
-                    modifier = Modifier.navigationBarsPadding(),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    modifier = Modifier.navigationBarsPadding()
                 ) {
                     Icon(imageVector = Icons.Outlined.CalendarToday, contentDescription = null)
                 }
@@ -319,12 +323,8 @@ fun StudentDetailsScreen(
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .offset { IntOffset(x = 0, y = -overlapPx) },
-                    listState = listState,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    topBarAppearanceProgress = animatedTopBarProgress
+                        .padding(innerPadding),
+                    listState = listState
                 )
     }
 }
@@ -383,6 +383,7 @@ fun StudentDetailsScreen(
 @Composable
 private fun StudentProfileTopBar(
     title: String,
+    profile: StudentProfile?,
     isArchived: Boolean?,
     onBack: () -> Unit,
     onArchiveClick: (() -> Unit)? = null,
@@ -390,6 +391,10 @@ private fun StudentProfileTopBar(
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
     appearanceProgress: Float,
+    onEditProfile: ((StudentEditTarget) -> Unit)? = null,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    sharedContentKey: String? = null,
 ) {
     val surfaceOverlayAlpha by animateFloatAsState(
         targetValue = 1f - appearanceProgress,
@@ -407,87 +412,113 @@ private fun StudentProfileTopBar(
         targetValue = targetContentColor,
         label = "studentTopBarContent"
     )
+    val headerTargetOffset = -StudentProfileTopBarOverlap
+    val headerOffset by animateDpAsState(
+        targetValue = headerTargetOffset,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "studentTopBarHeaderOffset"
+    )
+    val headerModifier = Modifier
+        .padding(horizontal = 16.dp)
+        .offset(y = headerOffset)
 
     GradientTopBarContainer {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp)
+                .padding(bottom = 24.dp)
         ) {
-            if (surfaceOverlayAlpha > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = surfaceOverlayAlpha }
-                        .background(color = MaterialTheme.colorScheme.surface)
-                )
-            }
-            TopAppBar(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(135.dp)
-                    .graphicsLayer {
-                        alpha = appearanceProgress
-                        translationY = (1f - appearanceProgress) * emergenceTranslationPx
-                    },
-                title = {
+            ) {
+                if (surfaceOverlayAlpha > 0f) {
                     Box(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth()
-                            .padding(start = 30.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = contentColor
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.student_details_back)
-                        )
-                    }
-                },
-                actions = {
-                    if (onArchiveClick != null && isArchived != null) {
-                        IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
-                            val (icon, description) = if (isArchived) {
-                                Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
-                            } else {
-                                Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
-                            }
-                            Icon(imageVector = icon, contentDescription = description)
-                        }
-                    }
-                    if (onDeleteClick != null) {
-                        IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = stringResource(id = R.string.student_details_delete)
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = surfaceOverlayAlpha }
+                            .background(color = MaterialTheme.colorScheme.surface)
+                    )
+                }
+                TopAppBar(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(135.dp)
+                        .graphicsLayer {
+                            alpha = appearanceProgress
+                            translationY = (1f - appearanceProgress) * emergenceTranslationPx
+                        },
+                    title = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth()
+                                .padding(start = 30.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Text(
+                                text = title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = contentColor
                             )
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent,
-                    titleContentColor = contentColor,
-                    navigationIconContentColor = contentColor,
-                    actionIconContentColor = contentColor
-                ),
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowBack,
+                                contentDescription = stringResource(id = R.string.student_details_back)
+                            )
+                        }
+                    },
+                    actions = {
+                        if (onArchiveClick != null && isArchived != null) {
+                            IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
+                                val (icon, description) = if (isArchived) {
+                                    Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                                } else {
+                                    Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                                }
+                                Icon(imageVector = icon, contentDescription = description)
+                            }
+                        }
+                        if (onDeleteClick != null) {
+                            IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = stringResource(id = R.string.student_details_delete)
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
+                        titleContentColor = contentColor,
+                        navigationIconContentColor = contentColor,
+                        actionIconContentColor = contentColor
+                    ),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
+                )
+            }
+
+            profile?.let { currentProfile ->
+                StudentProfileHeader(
+                    profile = currentProfile,
+                    onEdit = { target -> onEditProfile?.invoke(target) },
+                    modifier = headerModifier,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    sharedContentKey = sharedContentKey,
+                    collapseProgress = appearanceProgress
+                )
+            }
         }
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun StudentProfileContent(
     profile: StudentProfile,
@@ -496,10 +527,7 @@ private fun StudentProfileContent(
     onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    listState: LazyListState,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null,
-    topBarAppearanceProgress: Float
+    listState: LazyListState
 ) {
     val locale = remember { Locale("ru", "RU") }
     val numberFormatter = remember(locale) {
@@ -530,25 +558,12 @@ private fun StudentProfileContent(
         }
         groups.map { it.key to it.value.toList() }
     }
-    val sharedElementKey = "student-card-${profile.student.id}"
-
     LazyColumn(
         state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item {
-            StudentProfileHeader(
-                profile = profile,
-                onEdit = { target -> onEdit(profile.student.id, target) },
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-                sharedContentKey = sharedElementKey,
-                collapseProgress = topBarAppearanceProgress
-            )
-        }
-
         item {
             StudentProfileMetricsSection(
                 profile = profile,
