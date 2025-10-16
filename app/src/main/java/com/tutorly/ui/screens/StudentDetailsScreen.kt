@@ -359,7 +359,7 @@ private fun StudentProfileTopBar(
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp),
+                .height(40.dp),
             title = {
                 Box(
                     modifier = Modifier
