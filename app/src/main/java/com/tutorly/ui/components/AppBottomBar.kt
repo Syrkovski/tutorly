@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,8 +74,8 @@ fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
                     Spacer(modifier = Modifier.height(3.dp))
                     Box(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .height(3.dp)
-                            .width(30.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(if (selected) primaryColor else Color.Transparent)
                     )
