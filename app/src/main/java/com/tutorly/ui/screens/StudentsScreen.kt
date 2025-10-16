@@ -5,7 +5,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSharedContentState
 import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -383,13 +382,13 @@ private fun StudentCard(
     val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
     val showTrailingRow = phone != null || email != null || item.hasDebt
 
-    val sharedState = sharedContentKey?.let { rememberSharedContentState(key = it) }
     val sharedModifier = if (
         sharedTransitionScope != null &&
         animatedVisibilityScope != null &&
-        sharedState != null
+        sharedContentKey != null
     ) {
         with(sharedTransitionScope) {
+            val sharedState = rememberSharedContentState(key = sharedContentKey)
             Modifier.sharedBounds(
                 sharedContentState = sharedState,
                 animatedVisibilityScope = animatedVisibilityScope,

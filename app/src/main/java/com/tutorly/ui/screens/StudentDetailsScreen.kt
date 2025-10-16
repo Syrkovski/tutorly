@@ -5,7 +5,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSharedContentState
 import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -548,13 +547,13 @@ private fun StudentProfileHeader(
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedContentKey: String? = null,
 ) {
-    val sharedState = sharedContentKey?.let { rememberSharedContentState(key = it) }
     val sharedModifier = if (
         sharedTransitionScope != null &&
         animatedVisibilityScope != null &&
-        sharedState != null
+        sharedContentKey != null
     ) {
         with(sharedTransitionScope) {
+            val sharedState = rememberSharedContentState(key = sharedContentKey)
             Modifier.sharedBounds(
                 sharedContentState = sharedState,
                 animatedVisibilityScope = animatedVisibilityScope,
