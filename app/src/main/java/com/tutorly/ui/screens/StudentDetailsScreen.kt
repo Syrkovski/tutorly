@@ -4,9 +4,10 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 //import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
@@ -43,6 +45,7 @@ import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -320,7 +323,8 @@ fun StudentDetailsScreen(
                         .offset { IntOffset(x = 0, y = -overlapPx) },
                     listState = listState,
                     sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    topBarAppearanceProgress = animatedTopBarProgress
                 )
     }
 }
@@ -392,6 +396,8 @@ private fun StudentProfileTopBar(
         animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
         label = "studentTopBarSurfaceOverlay"
     )
+    val density = LocalDensity.current
+    val emergenceTranslationPx = remember(density) { with(density) { 20.dp.toPx() } }
     val targetContentColor = lerp(
         start = MaterialTheme.colorScheme.onSurface,
         stop = Color.White,
@@ -420,7 +426,10 @@ private fun StudentProfileTopBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(135.dp)
-                    .graphicsLayer { alpha = appearanceProgress },
+                    .graphicsLayer {
+                        alpha = appearanceProgress
+                        translationY = (1f - appearanceProgress) * emergenceTranslationPx
+                    },
                 title = {
                     Box(
                         modifier = Modifier
@@ -489,7 +498,8 @@ private fun StudentProfileContent(
     modifier: Modifier = Modifier,
     listState: LazyListState,
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    topBarAppearanceProgress: Float
 ) {
     val locale = remember { Locale("ru", "RU") }
     val numberFormatter = remember(locale) {
@@ -534,7 +544,8 @@ private fun StudentProfileContent(
                 onEdit = { target -> onEdit(profile.student.id, target) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
-                sharedContentKey = sharedElementKey
+                sharedContentKey = sharedElementKey,
+                collapseProgress = topBarAppearanceProgress
             )
         }
 
@@ -616,7 +627,28 @@ private fun StudentProfileHeader(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedContentKey: String? = null,
+    collapseProgress: Float,
 ) {
+    val collapseFraction = collapseProgress.coerceIn(0f, 1f)
+    val baseCorner = 28.dp
+    val topCornerTarget = baseCorner * (1f - collapseFraction)
+    val animatedTopCorners by animateDpAsState(
+        targetValue = topCornerTarget,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "studentProfileHeaderTopCorners"
+    )
+    val animatedElevation by animateDpAsState(
+        targetValue = if (collapseFraction >= 1f) 0.dp else 6.dp,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "studentProfileHeaderElevation"
+    )
+    val headerShape = RoundedCornerShape(
+        topStart = animatedTopCorners,
+        topEnd = animatedTopCorners,
+        bottomStart = baseCorner,
+        bottomEnd = baseCorner
+    )
+
     val sharedModifier = if (
         sharedTransitionScope != null &&
         animatedVisibilityScope != null &&
@@ -639,9 +671,16 @@ private fun StudentProfileHeader(
             .fillMaxWidth()
             .then(sharedModifier)
             .clickable { onEdit(StudentEditTarget.PROFILE) },
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = headerShape,
         colors = TutorlyCardDefaults.colors(),
-        elevation = TutorlyCardDefaults.elevation()
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = animatedElevation,
+            pressedElevation = animatedElevation,
+            focusedElevation = animatedElevation,
+            hoveredElevation = animatedElevation,
+            draggedElevation = animatedElevation,
+            disabledElevation = 0.dp
+        )
     ) {
         Row(
             modifier = Modifier
