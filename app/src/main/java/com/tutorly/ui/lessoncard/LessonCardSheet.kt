@@ -21,11 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -66,6 +61,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
+import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.icons.AppIcons
+import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.models.PaymentStatus
 import java.text.NumberFormat
 import java.time.LocalDate
@@ -74,8 +72,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
-import com.tutorly.ui.components.TutorlyBottomSheetContainer
-import com.tutorly.ui.theme.TutorlyCardDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -399,7 +395,7 @@ private fun LessonHeader(
             }
         }
         Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
+            imageVector = AppIcons.ArrowDown,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -426,7 +422,7 @@ private fun DateRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = Icons.Outlined.CalendarMonth,
+                imageVector = AppIcons.Calendar,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -461,14 +457,14 @@ private fun TimeDurationRow(
         TimeCard(
             label = timeLabel,
             value = timeText,
-            icon = Icons.Outlined.Schedule,
+            icon = AppIcons.Clock,
             onClick = onTimeClick,
             modifier = Modifier.weight(1f)
         )
         TimeCard(
             label = durationLabel,
             value = durationText,
-            icon = Icons.Outlined.Timelapse,
+            icon = AppIcons.Timer,
             onClick = onDurationClick,
             modifier = Modifier.weight(1f)
         )

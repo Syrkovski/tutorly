@@ -1,7 +1,5 @@
 package com.tutorly.ui.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,13 +30,14 @@ import com.tutorly.navigation.ROUTE_CALENDAR
 import com.tutorly.navigation.ROUTE_FINANCE
 import com.tutorly.navigation.ROUTE_STUDENTS
 import com.tutorly.navigation.ROUTE_TODAY
+import com.tutorly.ui.icons.AppIcons
 import com.tutorly.ui.theme.SecondaryTextColor
 
 enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui.graphics.vector.ImageVector){
-    Calendar(ROUTE_CALENDAR, "Расписание", Icons.Outlined.CalendarMonth),
-    Today(ROUTE_TODAY, "Сегодня", Icons.Outlined.AssignmentTurnedIn),
-    Students(ROUTE_STUDENTS, "Ученики", Icons.Outlined.People),
-    Finance(ROUTE_FINANCE, "Финансы", Icons.Outlined.AttachMoney),
+    Calendar(ROUTE_CALENDAR, "Расписание", AppIcons.Calendar),
+    Today(ROUTE_TODAY, "Сегодня", AppIcons.ClipboardTick),
+    Students(ROUTE_STUDENTS, "Ученики", AppIcons.People),
+    Finance(ROUTE_FINANCE, "Финансы", AppIcons.MoneySend),
 }
 
 @Composable

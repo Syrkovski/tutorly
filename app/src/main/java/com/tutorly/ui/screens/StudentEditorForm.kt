@@ -10,17 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AlternateEmail
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.outlined.CurrencyRuble
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,6 +45,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.tutorly.R
+import com.tutorly.ui.icons.AppIcons
 import java.util.Locale
 
 @Composable
@@ -305,7 +295,7 @@ private fun ProfileSection(
             isError = state.nameError,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Filled.Person,
+                    imageVector = AppIcons.Person,
                     contentDescription = null,
                     tint = iconTint
                 )
@@ -340,7 +330,7 @@ private fun ProfileSection(
                 readOnly = true,
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Filled.Book,
+                        imageVector = AppIcons.Book,
                         contentDescription = null,
                         tint = iconTint
                     )
@@ -351,7 +341,7 @@ private fun ProfileSection(
                         enabled = enabled
                     ) {
                         Icon(
-                            imageVector = if (isSubjectDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            imageVector = if (isSubjectDropdownExpanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
                             contentDescription = null,
                             tint = iconTint
                         )
@@ -437,7 +427,7 @@ private fun ProfileSection(
                 enabled = enabled,
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Filled.Description,
+                        imageVector = AppIcons.Document,
                         contentDescription = null,
                         tint = iconTint
                     )
@@ -475,7 +465,7 @@ private fun ProfileSection(
                 enabled = enabled,
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Filled.School,
+                        imageVector = AppIcons.Building,
                         contentDescription = null,
                         tint = iconTint
                     )
@@ -486,7 +476,7 @@ private fun ProfileSection(
                         enabled = enabled
                     ) {
                         Icon(
-                            imageVector = if (isGradeDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            imageVector = if (isGradeDropdownExpanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
                             contentDescription = null,
                             tint = iconTint
                         )
@@ -559,7 +549,7 @@ private fun RateSection(
             enabled = enabled,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.CurrencyRuble,
+                    imageVector = AppIcons.Money,
                     contentDescription = null,
                     tint = iconTint
                 )
@@ -570,7 +560,7 @@ private fun RateSection(
                     enabled = enabled
                 ) {
                     Icon(
-                        imageVector = if (isRateDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                        imageVector = if (isRateDropdownExpanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
                         contentDescription = null,
                         tint = iconTint
                     )
@@ -643,7 +633,7 @@ private fun AdditionalDataToggle(
         Text(text = title)
         Spacer(modifier = Modifier.width(8.dp))
         Icon(
-            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+            imageVector = if (expanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
             contentDescription = description
         )
     }
@@ -671,7 +661,7 @@ private fun PhoneSection(
         enabled = enabled,
         leadingIcon = {
             Icon(
-                imageVector = Icons.Filled.Phone,
+                imageVector = AppIcons.Phone,
                 contentDescription = null,
                 tint = iconTint
             )
@@ -734,7 +724,7 @@ private fun MessengerSection(
                 readOnly = selectedType != StudentMessengerType.OTHER,
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Filled.Message,
+                        imageVector = AppIcons.Message,
                         contentDescription = null,
                         tint = iconTint
                     )
@@ -742,7 +732,7 @@ private fun MessengerSection(
                 trailingIcon = {
                     IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }, enabled = enabled) {
                         Icon(
-                            imageVector = if (isDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            imageVector = if (isDropdownExpanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
                             contentDescription = null,
                             tint = iconTint
                         )
@@ -787,7 +777,7 @@ private fun MessengerSection(
             enabled = enabled,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Filled.AlternateEmail,
+                    imageVector = AppIcons.Direct,
                     contentDescription = null,
                     tint = iconTint
                 )
@@ -826,7 +816,7 @@ private fun NotesSection(
         enabled = enabled,
         leadingIcon = {
             Icon(
-                imageVector = Icons.Filled.Description,
+                imageVector = AppIcons.Document,
                 contentDescription = null,
                 tint = iconTint
             )

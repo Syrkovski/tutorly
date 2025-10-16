@@ -14,11 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.TrendingDown
-import androidx.compose.material.icons.outlined.TrendingFlat
-import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
@@ -43,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
+import com.tutorly.ui.icons.AppIcons
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.util.Currency
@@ -197,7 +193,7 @@ private fun FinancePeriodSelector(
                 leadingIcon = if (isSelected) {
                     {
                         Icon(
-                            imageVector = Icons.Outlined.Check,
+                            imageVector = AppIcons.CheckCircle,
                             contentDescription = null
                         )
                     }
@@ -417,19 +413,19 @@ private fun FinanceChange.toDisplay(
     }
 
     val (icon, color) = when {
-        percent > 0 -> Icons.Outlined.TrendingUp to if (increaseIsGood) {
+        percent > 0 -> AppIcons.TrendUp to if (increaseIsGood) {
             MaterialTheme.colorScheme.primary
         } else {
             MaterialTheme.colorScheme.error
         }
 
-        percent < 0 -> Icons.Outlined.TrendingDown to if (increaseIsGood) {
+        percent < 0 -> AppIcons.TrendDown to if (increaseIsGood) {
             MaterialTheme.colorScheme.error
         } else {
             MaterialTheme.colorScheme.primary
         }
 
-        else -> Icons.Outlined.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> AppIcons.Activity to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     return ChangeDisplay(icon = icon, tint = color, text = text)

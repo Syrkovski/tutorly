@@ -1,7 +1,5 @@
 package com.tutorly.ui.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
+import com.tutorly.ui.icons.AppIcons
 import com.tutorly.ui.theme.TopBarGradientEnd
 import com.tutorly.ui.theme.TopBarGradientStart
 
@@ -73,7 +72,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.add_student))
+                        Icon(AppIcons.PersonAdd, contentDescription = stringResource(id = R.string.add_student))
                     }
                 }
             }

@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
 //                                restoreState = true
 //                            }
 //                        },
-//                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
+//                        icon = { Icon(AppIcons.Home, contentDescription = null) },
 //                        label = { Text(screen.title) }
 //                    )
 //                }

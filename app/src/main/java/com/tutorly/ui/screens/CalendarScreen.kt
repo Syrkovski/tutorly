@@ -21,8 +21,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -49,6 +47,7 @@ import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
+import com.tutorly.ui.icons.AppIcons
 import com.tutorly.ui.theme.NowAccent
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
@@ -221,7 +220,7 @@ fun CalendarScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.DateRange,
+                    imageVector = AppIcons.Calendar,
                     contentDescription = stringResource(id = R.string.lesson_create_title)
                 )
             }

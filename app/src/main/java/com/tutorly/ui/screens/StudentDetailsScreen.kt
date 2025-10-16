@@ -25,18 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Phone
-import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -78,6 +66,7 @@ import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.icons.AppIcons
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
@@ -245,7 +234,7 @@ fun StudentDetailsScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(imageVector = Icons.Outlined.CalendarToday, contentDescription = null)
+                    Icon(imageVector = AppIcons.Calendar, contentDescription = null)
                 }
             }
         },
@@ -379,7 +368,7 @@ private fun StudentProfileTopBar(
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.Filled.ArrowBack,
+                        imageVector = AppIcons.ArrowBack,
                         contentDescription = stringResource(id = R.string.student_details_back)
                     )
                 }
@@ -388,9 +377,9 @@ private fun StudentProfileTopBar(
                 if (onArchiveClick != null && isArchived != null) {
                     IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
                         val (icon, description) = if (isArchived) {
-                            Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                            AppIcons.ArchiveTick to stringResource(id = R.string.student_details_unarchive)
                         } else {
-                            Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                            AppIcons.Archive to stringResource(id = R.string.student_details_archive)
                         }
                         Icon(imageVector = icon, contentDescription = description)
                     }
@@ -398,7 +387,7 @@ private fun StudentProfileTopBar(
                 if (onDeleteClick != null) {
                     IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
                         Icon(
-                            imageVector = Icons.Outlined.Delete,
+                            imageVector = AppIcons.Trash,
                             contentDescription = stringResource(id = R.string.student_details_delete)
                         )
                     }
@@ -496,7 +485,7 @@ private fun StudentProfileContent(
                     onMessengerClick = { onEdit(profile.student.id, StudentEditTarget.MESSENGER) }
                 )
                 ProfileInfoCard(
-                    icon = Icons.Outlined.StickyNote2,
+                    icon = AppIcons.StickyNote,
                     label = stringResource(id = R.string.student_details_notes_title),
                     value = profile.student.note,
                     onClick = { onEdit(profile.student.id, StudentEditTarget.NOTES) },
@@ -699,12 +688,12 @@ private fun StudentProfileMetricsSection(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ProfileMetricTile(
-                    icon = Icons.Outlined.CalendarToday,
+                    icon = AppIcons.Calendar,
                     value = lessonsCount,
                     label = stringResource(id = R.string.student_profile_metrics_lessons_label)
                 )
                 ProfileMetricTile(
-                    icon = Icons.Outlined.Schedule,
+                    icon = AppIcons.Clock,
                     value = rateValue,
                     label = stringResource(id = R.string.student_profile_metrics_rate_label),
                     onClick = onRateClick
@@ -715,12 +704,12 @@ private fun StudentProfileMetricsSection(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ProfileMetricTile(
-                    icon = Icons.Outlined.CreditCard,
+                    icon = AppIcons.Card,
                     value = earnedValue,
                     label = stringResource(id = R.string.student_profile_metrics_earned_label)
                 )
                 ProfileMetricTile(
-                    icon = Icons.Outlined.Savings,
+                    icon = AppIcons.WalletMoney,
                     value = prepaymentValue,
                     label = stringResource(id = R.string.student_profile_metrics_prepayment_label),
                     onClick = onPrepaymentClick
@@ -805,7 +794,7 @@ private fun ProfileContactsCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             ProfileContactRow(
-                icon = Icons.Outlined.Phone,
+                icon = AppIcons.Phone,
                 label = stringResource(id = R.string.student_details_phone_label),
                 value = phone,
                 placeholder = stringResource(id = R.string.student_profile_contact_placeholder),
@@ -813,7 +802,7 @@ private fun ProfileContactsCard(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ProfileContactRow(
-                icon = Icons.Outlined.Email,
+                icon = AppIcons.Direct,
                 label = stringResource(id = R.string.student_details_messenger_label),
                 value = messenger,
                 placeholder = stringResource(id = R.string.student_profile_contact_placeholder),

@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
@@ -32,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyDialog
+import com.tutorly.ui.icons.AppIcons
 import kotlinx.coroutines.launch
 
 @Composable
@@ -102,7 +101,7 @@ fun StudentPrepaymentDialog(
                 .focusRequester(amountFocusRequester),
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.CurrencyRuble,
+                    imageVector = AppIcons.Money,
                     contentDescription = null,
                     tint = iconTint
                 )

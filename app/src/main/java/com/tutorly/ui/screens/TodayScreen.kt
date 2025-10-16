@@ -19,12 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -70,6 +64,7 @@ import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
+import com.tutorly.ui.icons.AppIcons
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -171,7 +166,7 @@ private fun EmptyState() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Icon(
-            imageVector = Icons.Outlined.CalendarMonth,
+            imageVector = AppIcons.Calendar,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -508,7 +503,7 @@ private fun AllMarkedMessage() {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Outlined.CheckCircle,
+                        imageVector = AppIcons.CheckCircle,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp)
                     )
@@ -583,12 +578,12 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
     val alignment: Alignment
     if (target == SwipeToDismissBoxValue.StartToEnd) {
         color = MaterialTheme.colorScheme.tertiaryContainer
-        icon = Icons.Filled.Check
+        icon = AppIcons.CheckCircleBold
         tint = MaterialTheme.colorScheme.onTertiaryContainer
         alignment = Alignment.CenterStart
     } else {
         color = MaterialTheme.colorScheme.errorContainer
-        icon = Icons.Outlined.WarningAmber
+        icon = AppIcons.Warning
         tint = MaterialTheme.colorScheme.onErrorContainer
         alignment = Alignment.CenterEnd
     }
@@ -689,7 +684,7 @@ private fun LessonCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.StickyNote2,
+                        imageVector = AppIcons.StickyNote,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)

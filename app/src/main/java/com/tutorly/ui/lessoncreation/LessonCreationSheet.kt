@@ -47,18 +47,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.outlined.CurrencyRuble
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Schedule
 import com.tutorly.R
 import java.time.LocalDate
 import java.time.LocalTime
@@ -75,6 +63,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import java.text.NumberFormat
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.icons.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,7 +145,7 @@ private fun SheetHeader(onDismiss: () -> Unit) {
             modifier = Modifier.weight(1f)
         )
         IconButton(onClick = onDismiss) {
-            Icon(imageVector = Icons.Filled.Close, contentDescription = null)
+            Icon(imageVector = AppIcons.Close, contentDescription = null)
         }
     }
 }
@@ -191,12 +180,12 @@ private fun StudentSection(
                     .onFocusChanged { focusState -> expanded = focusState.isFocused },
                 singleLine = true,
                 leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+                    Icon(imageVector = AppIcons.Person, contentDescription = null)
                 },
                 trailingIcon = {
                     IconButton(onClick = { expanded = !expanded }) {
                         Icon(
-                            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                            imageVector = if (expanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
                             contentDescription = null
                         )
                     }
@@ -250,7 +239,7 @@ private fun StudentSection(
                         },
                         trailingIcon = {
                             if (state.selectedStudent?.id == option.id) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                                Icon(imageVector = AppIcons.CheckCircle, contentDescription = null)
                             }
                         },
                         onClick = {
@@ -333,13 +322,13 @@ private fun SubjectSection(
                 },
                 singleLine = true,
                 leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+                    Icon(imageVector = AppIcons.Book, contentDescription = null)
                 },
                 trailingIcon = {
                     if (hasSuggestions) {
                         IconButton(onClick = { expanded = !expanded }) {
                             Icon(
-                                imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                                imageVector = if (expanded) AppIcons.ArrowUp else AppIcons.ArrowDown,
                                 contentDescription = null
                             )
                         }
@@ -374,7 +363,7 @@ private fun SubjectSection(
                         },
                         trailingIcon = {
                             if (state.selectedSubjectId == subject.id) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                                Icon(imageVector = AppIcons.CheckCircle, contentDescription = null)
                             }
                         },
                         onClick = {
@@ -428,7 +417,7 @@ private fun TimeSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
+                Icon(imageVector = AppIcons.Calendar, contentDescription = null)
                 Text(text = state.date.format(dateFormatter), textAlign = TextAlign.Center)
             }
         }
@@ -449,7 +438,7 @@ private fun TimeSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(imageVector = Icons.Outlined.Schedule, contentDescription = null)
+                Icon(imageVector = AppIcons.Clock, contentDescription = null)
                 Text(text = state.time.format(timeFormatter), textAlign = TextAlign.Center)
             }
         }
@@ -478,7 +467,7 @@ private fun DurationSection(
             label = { Text(text = stringResource(id = R.string.lesson_create_duration_label)) },
             suffix = { Text(text = stringResource(id = R.string.lesson_create_minutes_suffix)) },
             leadingIcon = {
-                Icon(imageVector = Icons.Filled.Schedule, contentDescription = null)
+                Icon(imageVector = AppIcons.ClockBold, contentDescription = null)
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
@@ -549,7 +538,7 @@ private fun PriceSection(
             },
             label = { Text(text = stringResource(id = R.string.lesson_create_price_label)) },
             leadingIcon = {
-                Icon(imageVector = Icons.Outlined.CurrencyRuble, contentDescription = null)
+                Icon(imageVector = AppIcons.Money, contentDescription = null)
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
@@ -610,7 +599,7 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
             .fillMaxWidth()
             .heightIn(min = 80.dp),
         leadingIcon = {
-            Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+            Icon(imageVector = AppIcons.Document, contentDescription = null)
         },
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,

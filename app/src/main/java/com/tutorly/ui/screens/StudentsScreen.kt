@@ -26,14 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.CurrencyRuble
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Phone
-import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -78,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
+import com.tutorly.ui.icons.AppIcons
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
@@ -164,7 +157,7 @@ fun StudentsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Default.PersonAdd,
+                    imageVector = AppIcons.PersonAdd,
                     contentDescription = stringResource(id = R.string.add_student)
                 )
             }
@@ -183,7 +176,7 @@ fun StudentsScreen(
                     .fillMaxWidth()
                     .shadow(4.dp, MaterialTheme.shapes.large, clip = false),
                 singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                leadingIcon = { Icon(AppIcons.Search, contentDescription = null) },
                 placeholder = { Text(text = stringResource(id = R.string.search_students_hint)) },
                 shape = MaterialTheme.shapes.large,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -298,7 +291,7 @@ fun StudentEditorSheet(
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onDismiss, enabled = !state.isSaving) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(id = R.string.student_editor_close))
+                        Icon(imageVector = AppIcons.Close, contentDescription = stringResource(id = R.string.student_editor_close))
                     }
                 }
 
@@ -454,7 +447,7 @@ private fun StudentCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.StickyNote2,
+                                imageVector = AppIcons.StickyNote,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -481,7 +474,7 @@ private fun StudentCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.CurrencyRuble,
+                            imageVector = AppIcons.Money,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -508,7 +501,7 @@ private fun StudentCard(
                     ) {
                         if (phone != null) {
                             Icon(
-                                imageVector = Icons.Outlined.Phone,
+                                imageVector = AppIcons.Phone,
                                 contentDescription = phone,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
@@ -519,7 +512,7 @@ private fun StudentCard(
                                 Spacer(Modifier.width(12.dp))
                             }
                             Icon(
-                                imageVector = Icons.Outlined.Email,
+                                imageVector = AppIcons.Direct,
                                 contentDescription = email,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)

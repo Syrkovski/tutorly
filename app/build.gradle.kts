@@ -82,13 +82,13 @@ dependencies {
 
 // (Опц.) Иконки Material
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.iconsax.compose)
 
 // (Опц.) SplashScreen API
     implementation(libs.androidx.core.splashscreen)
 
 // (Опц.) десугаринг Java time
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(libs.androidx.compose.material.icons.extended)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
