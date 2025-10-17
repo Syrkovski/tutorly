@@ -25,7 +25,7 @@ val ScreenGradientStart = Color(0xFFF3F8F6)
 val ScreenGradientEnd = Color(0xFFF1F6F6)
 val PrimaryTextColor = Color(0xFF2C2C33)
 val SecondaryTextColor = Color(0xFF49484E)
-val AvatarFill = Color(0xFFDDE9E5)
+val AvatarFill = Color(0xFFE7EFEA)
 val SurfaceBlush = ScreenGradientStart
 val OnSurfaceBlush = PrimaryTextColor
 val SurfaceVariantSoft = AvatarFill
@@ -33,10 +33,10 @@ val OnSurfaceVariantSoft = SecondaryTextColor
 val OutlineLavender = Color(0xFFB9C9C4)
 val OutlineVariantLavender = Color(0xFFE3ECE8)
 
-val PaidChipContent = Color(0xFF4E998C)
-val PaidChipFill = Color(0xFFFFFFFF)
-val DebtChipContent = Color(0xFFD05E6E)
-val DebtChipFill = Color(0xFFFFFFFF)
+val PaidChipContent = Color(0xFFFFFFFF)
+val PaidChipFill = Color(0xFF4E998C)
+val DebtChipContent = Color(0xFFFFFFFF)
+val DebtChipFill = Color(0xFFD05E6E)
 
 val SurfaceContainerLowest = Color(0xFFFFFFFF)
 val SurfaceContainerLow = Color(0xFFF8FCFB)

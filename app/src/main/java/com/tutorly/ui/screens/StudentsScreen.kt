@@ -32,8 +32,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CurrencyRuble
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -80,6 +78,7 @@ import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.theme.AvatarFill
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
 
@@ -267,6 +266,15 @@ fun StudentEditorSheet(
     snackbarHostState: SnackbarHostState? = null,
 ) {
     val isEditing = state.studentId != null
+    val titleRes = when {
+        !isEditing -> R.string.add_student
+        editTarget == StudentEditTarget.RATE -> R.string.student_editor_title_rate
+        editTarget == StudentEditTarget.PHONE -> R.string.student_editor_title_phone
+        editTarget == StudentEditTarget.MESSENGER -> R.string.student_editor_title_messenger
+        editTarget == StudentEditTarget.NOTES -> R.string.student_editor_title_note
+        else -> R.string.student_editor_title
+    }
+    val title = stringResource(id = titleRes)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val configuration = LocalConfiguration.current
     val minHeight = remember(configuration) { configuration.screenHeightDp.dp * 0.5f }
@@ -293,9 +301,7 @@ fun StudentEditorSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(
-                            id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
-                        ),
+                        text = title,
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f)
                     )
@@ -340,12 +346,11 @@ fun StudentEditorSheet(
                     enabled = !state.isSaving && state.name.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                        disabledContainerColor = Color.White,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        containerColor = Color(0xFF4E998C),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFF4E998C).copy(alpha = 0.3f),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                    )
                 ) {
                     Text(text = stringResource(id = R.string.student_editor_save))
                 }
@@ -383,7 +388,7 @@ private fun StudentCard(
     val phone = item.student.phone?.takeIf { it.isNotBlank() }?.trim()
     val email = item.student.messenger?.takeIf { it.isNotBlank() }?.trim()
     val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
-    val showTrailingRow = phone != null || email != null || item.hasDebt
+    val showTrailingRow = phone != null || email != null
 
     val sharedModifier = if (
         sharedTransitionScope != null &&
@@ -395,7 +400,12 @@ private fun StudentCard(
             Modifier.sharedBounds(
                 sharedContentState = sharedState,
                 animatedVisibilityScope = animatedVisibilityScope,
-                boundsTransform = { _, _ -> tween(durationMillis = 450, easing = FastOutSlowInEasing) }
+                boundsTransform = { _, _ ->
+                    tween(
+                        durationMillis = 450,
+                        easing = FastOutSlowInEasing
+                    )
+                }
             )
         }
     } else {
@@ -413,49 +423,88 @@ private fun StudentCard(
         ),
         elevation = TutorlyCardDefaults.elevation()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            StudentAvatar(name = item.student.name, size = 48.dp)
-            Spacer(Modifier.width(12.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = if (item.hasDebt) 84.dp else 0.dp),
-                        verticalAlignment = Alignment.CenterVertically
+        Box(Modifier.fillMaxWidth()) {
+            if (item.hasDebt) {
+                PaymentBadge(
+                    status = PaymentBadgeStatus.DEBT,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 16.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                StudentAvatar(name = item.student.name, size = 48.dp)
+                Spacer(Modifier.width(12.dp))
+                Box(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            text = item.student.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                    }
-                    subtitle?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    note?.let {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = if (item.hasDebt) 80.dp else 0.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item.student.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                        }
+                        subtitle?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        note?.let {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.StickyNote2,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            contentColor = MaterialTheme.colorScheme.primary,
                             shape = MaterialTheme.shapes.small,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+                            )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -465,84 +514,55 @@ private fun StudentCard(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.StickyNote2,
+                                    imageVector = Icons.Outlined.CurrencyRuble,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = it,
+                                    text = stringResource(
+                                        id = R.string.student_card_progress,
+                                        item.progress.paidLessons,
+                                        item.progress.completedLessons
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
-                    }
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                        shape = MaterialTheme.shapes.small,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CurrencyRuble,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = stringResource(
-                                    id = R.string.student_card_progress,
-                                    item.progress.paidLessons,
-                                    item.progress.completedLessons
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    if (showTrailingRow) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (phone != null) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Phone,
-                                    contentDescription = phone,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                        }
-                        if (email != null) {
-                            if (phone != null) {
-                                Spacer(Modifier.width(12.dp))
+                        if (showTrailingRow) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (phone != null) {
+                                    Text(
+                                        text = phone,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                if (email != null) {
+                                    if (phone != null) {
+                                        Spacer(Modifier.width(12.dp))
+                                    }
+                                    Text(
+                                        text = email,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
-                            Icon(
-                                imageVector = Icons.Outlined.Email,
-                                contentDescription = email,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
                         }
                     }
-                }
-                if (item.hasDebt) {
-                    PaymentBadge(
-                        status = PaymentBadgeStatus.DEBT,
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    )
                 }
             }
         }
@@ -551,7 +571,7 @@ private fun StudentCard(
 
 
 @Composable
-private fun StudentAvatar(
+fun StudentAvatar(
     name: String,
     size: Dp = 48.dp,
 ) {
@@ -568,7 +588,7 @@ private fun StudentAvatar(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(AvatarFill),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -578,3 +598,4 @@ private fun StudentAvatar(
         )
     }
 }
+

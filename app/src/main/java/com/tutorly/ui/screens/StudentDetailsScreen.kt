@@ -8,18 +8,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
@@ -35,6 +33,7 @@ import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,14 +41,14 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -76,6 +75,7 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
+import com.tutorly.ui.components.TutorlyDialog
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
@@ -92,6 +92,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -117,14 +118,14 @@ fun StudentDetailsScreen(
     var isArchiving by remember { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
-    var showEditorSheet by rememberSaveable { mutableStateOf(false) }
+    var showEditorDialog by rememberSaveable { mutableStateOf(false) }
     var pendingEditTarget by remember { mutableStateOf<StudentEditTarget?>(null) }
 
     val editorFormState = editorViewModel.formState
 
     val closeEditor: () -> Unit = {
         if (!editorFormState.isSaving) {
-            showEditorSheet = false
+            showEditorDialog = false
             pendingEditTarget = null
             editorViewModel.updateEditTarget(null)
         }
@@ -153,7 +154,7 @@ fun StudentDetailsScreen(
         editorSnackbarHostState.currentSnackbarData?.dismiss()
         editorViewModel.resetFormToLoadedStudent()
         editorViewModel.updateEditTarget(target)
-        showEditorSheet = true
+        showEditorDialog = true
     }
     LessonCardSheet(
         state = lessonCardState,
@@ -237,15 +238,6 @@ fun StudentDetailsScreen(
             .takeIf { it.isNotBlank() }
     }
 
-    val badgeStatus = contentState?.profile?.let { profile ->
-        when {
-            profile.hasDebt -> PaymentBadgeStatus.DEBT
-            profile.metrics.prepaymentCents > 0L -> PaymentBadgeStatus.PREPAID
-            profile.metrics.totalPaidCents > 0L || profile.metrics.paidLessons > 0 -> PaymentBadgeStatus.PAID
-            else -> null
-        }
-    }
-
     val openLessonCreation: (Long) -> Unit = { id ->
         creationViewModel.start(
             LessonCreationConfig(
@@ -261,12 +253,10 @@ fun StudentDetailsScreen(
             StudentProfileTopBar(
                 title = title,
                 subtitle = subtitle,
-                badgeStatus = badgeStatus,
                 onEditProfileClick = contentState?.let {
                     { openEditor(StudentEditTarget.PROFILE) }
                 },
                 isArchived = contentState?.profile?.student?.isArchived,
-                onBack = onBack,
                 onArchiveClick = contentState?.let {
                     {
                         if (!isArchiving) {
@@ -393,9 +383,9 @@ fun StudentDetailsScreen(
         )
     }
 
-    if (showEditorSheet) {
+    if (showEditorDialog) {
         val focusTarget = pendingEditTarget ?: StudentEditTarget.PROFILE
-        StudentEditorSheet(
+        StudentEditorDialogContent(
             state = editorFormState,
             onNameChange = editorViewModel::onNameChange,
             onPhoneChange = editorViewModel::onPhoneChange,
@@ -412,109 +402,205 @@ fun StudentDetailsScreen(
         )
     }
 }
-}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StudentProfileTopBar(
     title: String,
     subtitle: String?,
-    badgeStatus: PaymentBadgeStatus?,
     onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
-    onBack: () -> Unit,
     onArchiveClick: (() -> Unit)? = null,
     onDeleteClick: (() -> Unit)? = null,
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
 ) {
     GradientTopBarContainer {
-        TopAppBar(
+        val actionCount = listOfNotNull(
+            onEditProfileClick,
+            if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
+            onDeleteClick
+        ).size
+        val titlePaddingEnd = if (actionCount > 0) {
+            val buttonWidth = 48.dp
+            val buttonSpacing = 4.dp
+            val spacingBetweenTitleAndButtons = 12.dp
+            (buttonWidth * actionCount) + (buttonSpacing * max(0, actionCount - 1)) + spacingBetweenTitleAndButtons
+        } else {
+            0.dp
+        }
+
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
-            title = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .padding(start = 30.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        if (badgeStatus != null) {
-                            Spacer(modifier = Modifier.width(12.dp))
-                            PaymentBadge(status = badgeStatus)
-                        }
-                    }
-                    if (!subtitle.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = subtitle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = Color.White.copy(alpha = 0.75f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBack,
-                        contentDescription = stringResource(id = R.string.student_details_back)
+                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = titlePaddingEnd)
+            ) {
+                Text(
+                    text = title,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.White.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-            },
-            actions = {
-                if (onEditProfileClick != null) {
-                    IconButton(onClick = onEditProfileClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = stringResource(id = R.string.student_details_edit)
-                        )
-                    }
-                }
-                if (onArchiveClick != null && isArchived != null) {
-                    IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
-                        val (icon, description) = if (isArchived) {
-                            Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
-                        } else {
-                            Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+            }
+
+            if (actionCount > 0) {
+                val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    if (onEditProfileClick != null) {
+                        IconButton(onClick = onEditProfileClick, colors = buttonColors) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = stringResource(id = R.string.student_details_edit)
+                            )
                         }
-                        Icon(imageVector = icon, contentDescription = description)
+                    }
+                    if (onArchiveClick != null && isArchived != null) {
+                        IconButton(
+                            onClick = onArchiveClick,
+                            enabled = archiveEnabled,
+                            colors = buttonColors
+                        ) {
+                            val (icon, description) = if (isArchived) {
+                                Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                            } else {
+                                Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                            }
+                            Icon(imageVector = icon, contentDescription = description)
+                        }
+                    }
+                    if (onDeleteClick != null) {
+                        IconButton(
+                            onClick = onDeleteClick,
+                            enabled = deleteEnabled,
+                            colors = buttonColors
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(id = R.string.student_details_delete)
+                            )
+                        }
                     }
                 }
-                if (onDeleteClick != null) {
-                    IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = stringResource(id = R.string.student_details_delete)
-                        )
-                    }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White,
-                actionIconContentColor = Color.White
-            ),
-            windowInsets = WindowInsets(0, 0, 0, 0)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudentEditorDialogContent(
+    state: StudentEditorFormState,
+    onNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onMessengerChange: (String) -> Unit,
+    onRateChange: (String) -> Unit,
+    onSubjectChange: (String) -> Unit,
+    onGradeChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
+    editTarget: StudentEditTarget?,
+    initialFocus: StudentEditTarget?,
+    snackbarHostState: SnackbarHostState,
+) {
+    val titleRes = when {
+        state.studentId == null -> R.string.add_student
+        editTarget == StudentEditTarget.RATE -> R.string.student_editor_title_rate
+        editTarget == StudentEditTarget.PHONE -> R.string.student_editor_title_phone
+        editTarget == StudentEditTarget.MESSENGER -> R.string.student_editor_title_messenger
+        editTarget == StudentEditTarget.NOTES -> R.string.student_editor_title_note
+        else -> R.string.student_editor_title
+    }
+    val title = stringResource(id = titleRes)
+
+    TutorlyDialog(
+        onDismissRequest = {
+            if (!state.isSaving) {
+                onDismiss()
+            }
+        },
+        modifier = Modifier.imePadding()
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        if (state.isSaving) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+
+        StudentEditorForm(
+            state = state,
+            onNameChange = onNameChange,
+            onPhoneChange = onPhoneChange,
+            onMessengerChange = onMessengerChange,
+            onRateChange = onRateChange,
+            onSubjectChange = onSubjectChange,
+            onGradeChange = onGradeChange,
+            onNoteChange = onNoteChange,
+            modifier = Modifier.fillMaxWidth(),
+            editTarget = editTarget,
+            initialFocus = initialFocus,
+            enableScrolling = true,
+            enabled = !state.isSaving,
+            onSubmit = onSave
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val actionColors = ButtonDefaults.textButtonColors(
+                contentColor = Color(0xFF4E998C),
+                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
+            )
+            TextButton(
+                onClick = onDismiss,
+                enabled = !state.isSaving,
+                colors = actionColors
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_cancel))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(
+                onClick = onSave,
+                enabled = !state.isSaving && state.name.isNotBlank(),
+                colors = actionColors
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_save))
+            }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -899,8 +985,7 @@ private fun ProfileContactsCard(
                 label = stringResource(id = R.string.student_details_messenger_label),
                 value = messenger,
                 placeholder = stringResource(id = R.string.student_profile_contact_placeholder),
-                onClick = onMessengerClick,
-                modifier = Modifier.padding(bottom = 16.dp)
+                onClick = onMessengerClick
             )
         }
     }
@@ -1022,34 +1107,41 @@ private fun StudentProfileLessonCard(
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = dateText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = dateText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                PaymentBadge(status = badgeStatus)
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Text(
+                    text = timeText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
                 Text(
                     text = amount,
                     style = MaterialTheme.typography.titleMedium
                 )
-                PaymentBadge(status = badgeStatus)
             }
         }
     }
