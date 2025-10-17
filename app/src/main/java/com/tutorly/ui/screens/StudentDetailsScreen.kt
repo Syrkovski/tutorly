@@ -90,6 +90,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -414,82 +415,90 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     GradientTopBarContainer {
-        Column(
+        val actionCount = listOfNotNull(
+            onEditProfileClick,
+            if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
+            onDeleteClick
+        ).size
+        val titlePaddingEnd = if (actionCount > 0) {
+            val buttonWidth = 48.dp
+            val buttonSpacing = 4.dp
+            val spacingBetweenTitleAndButtons = 12.dp
+            (buttonWidth * actionCount) + (buttonSpacing * max(0, actionCount - 1)) + spacingBetweenTitleAndButtons
+        } else {
+            0.dp
+        }
+
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
         ) {
-            val hasActions = onEditProfileClick != null ||
-                (onArchiveClick != null && isArchived != null) ||
-                onDeleteClick != null
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = titlePaddingEnd)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                if (!subtitle.isNullOrBlank()) {
                     Text(
-                        text = title,
-                        maxLines = 2,
+                        text = subtitle,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge
+                        color = Color.White.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
-
-                    if (!subtitle.isNullOrBlank()) {
-                        Text(
-                            text = subtitle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = Color.White.copy(alpha = 0.75f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
                 }
+            }
 
-                if (hasActions) {
-                    Spacer(modifier = Modifier.width(12.dp))
+            if (actionCount > 0) {
+                val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-
-                        if (onEditProfileClick != null) {
-                            IconButton(onClick = onEditProfileClick, colors = buttonColors) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Edit,
-                                    contentDescription = stringResource(id = R.string.student_details_edit)
-                                )
-                            }
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    if (onEditProfileClick != null) {
+                        IconButton(onClick = onEditProfileClick, colors = buttonColors) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = stringResource(id = R.string.student_details_edit)
+                            )
                         }
-                        if (onArchiveClick != null && isArchived != null) {
-                            IconButton(
-                                onClick = onArchiveClick,
-                                enabled = archiveEnabled,
-                                colors = buttonColors
-                            ) {
-                                val (icon, description) = if (isArchived) {
-                                    Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
-                                } else {
-                                    Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
-                                }
-                                Icon(imageVector = icon, contentDescription = description)
+                    }
+                    if (onArchiveClick != null && isArchived != null) {
+                        IconButton(
+                            onClick = onArchiveClick,
+                            enabled = archiveEnabled,
+                            colors = buttonColors
+                        ) {
+                            val (icon, description) = if (isArchived) {
+                                Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                            } else {
+                                Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
                             }
+                            Icon(imageVector = icon, contentDescription = description)
                         }
-                        if (onDeleteClick != null) {
-                            IconButton(
-                                onClick = onDeleteClick,
-                                enabled = deleteEnabled,
-                                colors = buttonColors
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Delete,
-                                    contentDescription = stringResource(id = R.string.student_details_delete)
-                                )
-                            }
+                    }
+                    if (onDeleteClick != null) {
+                        IconButton(
+                            onClick = onDeleteClick,
+                            enabled = deleteEnabled,
+                            colors = buttonColors
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(id = R.string.student_details_delete)
+                            )
                         }
                     }
                 }
