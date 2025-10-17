@@ -27,7 +27,7 @@ import java.time.format.TextStyle
 import java.time.ZoneId
 import java.util.Locale
 
-private val DayTileMinHeight = 132.dp
+private val DayTileMinHeight = 56.dp
 
 /* =====================  WEEK MOSAIC (single column list)  ===================== */
 
