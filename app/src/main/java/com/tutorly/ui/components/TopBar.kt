@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +37,11 @@ import com.tutorly.ui.theme.TopBarGradientStart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
+fun AppTopBar(
+    title: String,
+    onAddClick: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
     GradientTopBarContainer {
         TopAppBar(
             modifier = Modifier
@@ -65,6 +70,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
             ),
             windowInsets = WindowInsets(0, 0, 0, 0),
             actions = {
+                actions()
                 onAddClick?.let {
                     FilledTonalIconButton(
                         onClick = it,

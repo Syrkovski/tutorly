@@ -98,6 +98,7 @@ fun StudentsScreen(
     val query by vm.query.collectAsState()
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
+    val isArchiveMode by vm.isArchiveMode.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -202,7 +203,10 @@ fun StudentsScreen(
             Spacer(Modifier.height(16.dp))
 
             if (students.isEmpty()) {
-                EmptyStudentsState(Modifier.fillMaxSize())
+                EmptyStudentsState(
+                    isArchiveMode = isArchiveMode,
+                    modifier = Modifier.fillMaxSize()
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -360,10 +364,16 @@ fun StudentEditorSheet(
 }
 
 @Composable
-private fun EmptyStudentsState(modifier: Modifier = Modifier) {
+private fun EmptyStudentsState(isArchiveMode: Boolean, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Text(
-            text = stringResource(id = R.string.students_empty_state),
+            text = stringResource(
+                id = if (isArchiveMode) {
+                    R.string.students_archive_empty_state
+                } else {
+                    R.string.students_empty_state
+                }
+            ),
             style = MaterialTheme.typography.bodyMedium
         )
     }

@@ -41,6 +41,9 @@ class StudentsViewModel @Inject constructor(
     private val _editorFormState = MutableStateFlow(StudentEditorFormState())
     val editorFormState: StateFlow<StudentEditorFormState> = _editorFormState.asStateFlow()
 
+    private val _isArchiveMode = MutableStateFlow(false)
+    val isArchiveMode: StateFlow<Boolean> = _isArchiveMode.asStateFlow()
+
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
     private val lessonObservers = mutableMapOf<Long, Job>()
@@ -48,10 +51,19 @@ class StudentsViewModel @Inject constructor(
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
     private var editingStudent: Student? = null
 
-    private val studentsStream = _query
-        .map { it.trim() }
+    private val studentsStream = combine(
+        _query.map { it.trim() },
+        _isArchiveMode
+    ) { query, archiveMode -> query to archiveMode }
         .distinctUntilChanged()
-        .flatMapLatest { repo.observeStudents(it) }
+        .flatMapLatest { (query, archiveMode) ->
+            val source = if (archiveMode) {
+                repo.observeArchivedStudents(query)
+            } else {
+                repo.observeStudents(query)
+            }
+            source
+        }
         .onEach {
             syncDebtObservers(it)
             syncLessonObservers(it)
@@ -76,6 +88,10 @@ class StudentsViewModel @Inject constructor(
 
     fun onQueryChange(value: String) {
         _query.value = value
+    }
+
+    fun toggleArchiveMode() {
+        _isArchiveMode.update { !it }
     }
 
     fun startStudentCreation(

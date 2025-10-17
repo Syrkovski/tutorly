@@ -37,6 +37,9 @@ class RoomStudentsRepository @Inject constructor(
     override fun observeStudents(query: String): Flow<List<Student>> =
         studentDao.observeStudents(query)
 
+    override fun observeArchivedStudents(query: String): Flow<List<Student>> =
+        studentDao.observeArchivedStudents(query)
+
     override fun observeStudent(id: Long): Flow<Student?> =
         studentDao.observeStudent(id)
 
