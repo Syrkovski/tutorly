@@ -27,6 +27,8 @@ import java.time.format.TextStyle
 import java.time.ZoneId
 import java.util.Locale
 
+private val DayTileMinHeight = 132.dp
+
 /* =====================  WEEK MOSAIC (single column list)  ===================== */
 
 @Composable
@@ -105,6 +107,7 @@ private fun DayTile(
         Column(
             Modifier
                 .fillMaxWidth()
+                .heightIn(min = DayTileMinHeight)
                 .padding(8.dp), // компакт
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
