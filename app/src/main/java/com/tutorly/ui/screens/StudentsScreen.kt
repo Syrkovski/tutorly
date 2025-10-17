@@ -80,6 +80,7 @@ import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.theme.AvatarFill
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
 
@@ -577,7 +578,7 @@ private fun StudentAvatar(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(AvatarFill),
         contentAlignment = Alignment.Center
     ) {
         Text(
