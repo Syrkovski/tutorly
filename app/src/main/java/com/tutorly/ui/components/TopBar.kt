@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -41,7 +41,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp),
+                .height(80.dp),
             title = {
                 Box(
                     modifier = Modifier
@@ -83,7 +83,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
 
 @Composable
 fun GradientTopBarContainer(content: @Composable () -> Unit) {
-    val shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+    val shape = RectangleShape
     Surface(
         modifier = Modifier
             .fillMaxWidth()
