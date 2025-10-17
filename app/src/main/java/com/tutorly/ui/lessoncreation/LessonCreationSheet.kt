@@ -62,7 +62,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -170,7 +169,6 @@ private fun StudentSection(
     onAddStudent: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(id = R.string.lesson_create_student_label), fontWeight = FontWeight.Medium)
         val selectedName = state.selectedStudent?.name ?: state.studentQuery
         var query by remember(selectedName) { mutableStateOf(selectedName) }
         var expanded by remember { mutableStateOf(false) }
@@ -185,6 +183,7 @@ private fun StudentSection(
                     expanded = true
                     onQueryChange(it)
                 },
+                label = { Text(text = stringResource(id = R.string.lesson_create_student_label)) },
                 placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -287,7 +286,7 @@ private fun StudentAvatar(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(AvatarFill),
         contentAlignment = Alignment.Center
     ) {
         Text(
