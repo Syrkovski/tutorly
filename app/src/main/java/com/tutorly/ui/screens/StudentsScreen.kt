@@ -383,7 +383,7 @@ private fun StudentCard(
     val phone = item.student.phone?.takeIf { it.isNotBlank() }?.trim()
     val email = item.student.messenger?.takeIf { it.isNotBlank() }?.trim()
     val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
-    val showTrailingRow = phone != null || email != null || item.hasDebt
+    val showTrailingRow = phone != null || email != null
 
     val sharedModifier = if (
         sharedTransitionScope != null &&
@@ -427,9 +427,7 @@ private fun StudentCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = if (item.hasDebt) 84.dp else 0.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -440,6 +438,10 @@ private fun StudentCard(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
+                        if (item.hasDebt) {
+                            Spacer(Modifier.width(8.dp))
+                            PaymentBadge(status = PaymentBadgeStatus.DEBT)
+                        }
                     }
                     subtitle?.let {
                         Text(
@@ -537,12 +539,6 @@ private fun StudentCard(
                             )
                         }
                     }
-                }
-                if (item.hasDebt) {
-                    PaymentBadge(
-                        status = PaymentBadgeStatus.DEBT,
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    )
                 }
             }
         }
