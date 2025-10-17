@@ -1,5 +1,6 @@
 package com.tutorly.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,7 +28,7 @@ import java.time.format.TextStyle
 import java.time.ZoneId
 import java.util.Locale
 
-private val DayTileMinHeight = 56.dp
+private val DayTileMinHeight = 112.dp
 
 /* =====================  WEEK MOSAIC (single column list)  ===================== */
 
@@ -170,11 +171,17 @@ private fun LessonRowCompact(
     currentDateTime: ZonedDateTime,
     onClick: () -> Unit
 ) {
-    val (bg, fg) = when (tone) {
-        LessonTone.Default -> MaterialTheme.colorScheme.surface.copy(alpha = 0.6f) to
-                MaterialTheme.colorScheme.onSurface
-        LessonTone.Ongoing -> MaterialTheme.colorScheme.primaryContainer to
-                MaterialTheme.colorScheme.onPrimaryContainer
+    val (bg, fg, border) = when (tone) {
+        LessonTone.Default -> Triple(
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+            MaterialTheme.colorScheme.onSurface,
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        )
+        LessonTone.Ongoing -> Triple(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer,
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+        )
     }
 
     val shape = RoundedCornerShape(8.dp)
@@ -182,6 +189,7 @@ private fun LessonRowCompact(
         color = bg,
         contentColor = fg,
         shape = shape,
+        border = border,
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 40.dp)
