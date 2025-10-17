@@ -8,11 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -49,8 +46,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -418,32 +414,27 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     GradientTopBarContainer {
-        TopAppBar(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
-            title = {
+                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .padding(start = 30.dp, end = 16.dp),
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    Text(
+                        text = title,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
                     if (!subtitle.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -455,44 +446,58 @@ private fun StudentProfileTopBar(
                         )
                     }
                 }
-            },
-            actions = {
-                if (onEditProfileClick != null) {
-                    IconButton(onClick = onEditProfileClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = stringResource(id = R.string.student_details_edit)
-                        )
-                    }
-                }
-                if (onArchiveClick != null && isArchived != null) {
-                    IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
-                        val (icon, description) = if (isArchived) {
-                            Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
-                        } else {
-                            Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+
+                val hasActions = onEditProfileClick != null ||
+                    (onArchiveClick != null && isArchived != null) ||
+                    onDeleteClick != null
+
+                if (hasActions) {
+                    Row(
+                        modifier = Modifier
+                            .padding(start = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+
+                        if (onEditProfileClick != null) {
+                            IconButton(onClick = onEditProfileClick, colors = buttonColors) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Edit,
+                                    contentDescription = stringResource(id = R.string.student_details_edit)
+                                )
+                            }
                         }
-                        Icon(imageVector = icon, contentDescription = description)
+                        if (onArchiveClick != null && isArchived != null) {
+                            IconButton(
+                                onClick = onArchiveClick,
+                                enabled = archiveEnabled,
+                                colors = buttonColors
+                            ) {
+                                val (icon, description) = if (isArchived) {
+                                    Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
+                                } else {
+                                    Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
+                                }
+                                Icon(imageVector = icon, contentDescription = description)
+                            }
+                        }
+                        if (onDeleteClick != null) {
+                            IconButton(
+                                onClick = onDeleteClick,
+                                enabled = deleteEnabled,
+                                colors = buttonColors
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = stringResource(id = R.string.student_details_delete)
+                                )
+                            }
+                        }
                     }
                 }
-                if (onDeleteClick != null) {
-                    IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = stringResource(id = R.string.student_details_delete)
-                        )
-                    }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White,
-                actionIconContentColor = Color.White
-            ),
-            windowInsets = WindowInsets(0, 0, 0, 0)
-        )
+            }
+        }
     }
 }
 

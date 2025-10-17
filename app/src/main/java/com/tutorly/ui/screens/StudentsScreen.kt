@@ -32,8 +32,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CurrencyRuble
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -531,24 +529,26 @@ private fun StudentCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (phone != null) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Phone,
-                                    contentDescription = phone,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
+                                Text(
+                                    text = phone,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                        }
-                        if (email != null) {
-                            if (phone != null) {
-                                Spacer(Modifier.width(12.dp))
                             }
-                            Icon(
-                                imageVector = Icons.Outlined.Email,
-                                contentDescription = email,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                            if (email != null) {
+                                if (phone != null) {
+                                    Spacer(Modifier.width(12.dp))
+                                }
+                                Text(
+                                    text = email,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                     }
                 }
             }
