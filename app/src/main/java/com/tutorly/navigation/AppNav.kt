@@ -5,17 +5,26 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Unarchive
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -39,6 +48,7 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import com.tutorly.ui.theme.ScreenGradientEnd
 import com.tutorly.ui.theme.ScreenGradientStart
+import com.tutorly.R
 
 const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
@@ -72,12 +82,6 @@ fun AppNavRoot() {
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
 
-    // какой топбар показывать
-    val showGlobalTopBar = when (route) {
-        ROUTE_STUDENTS, ROUTE_FINANCE -> true   // тут простой заголовок уместен
-        else -> false                   // calendar/today рисуют верх сами
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -89,15 +93,9 @@ fun AppNavRoot() {
     ) {
         Scaffold(
             topBar = {
-                if (showGlobalTopBar) {
-                    AppTopBar(
-                        title = when (route) {
-                            ROUTE_STUDENTS -> "Ученики"
-                            ROUTE_FINANCE -> "Финансы"
-                            else -> ""
-                        },
-                        onAddClick = null
-                    )
+                when (route) {
+                    ROUTE_STUDENTS -> StudentsTopBar(nav)
+                    ROUTE_FINANCE -> AppTopBar(title = stringResource(id = R.string.finance_title))
                 }
             },
             bottomBar = {
@@ -279,6 +277,59 @@ fun calendarRoute(nav: NavHostController): String {
     val savedDate = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_ANCHOR_DATE)
     val savedMode = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_CALENDAR_MODE)
     return buildCalendarRoute(savedDate, savedMode)
+}
+
+@Composable
+private fun StudentsTopBar(navController: NavHostController) {
+    val backStackEntry = remember(navController) { navController.getBackStackEntry(ROUTE_STUDENTS_PATTERN) }
+    val viewModel: StudentsViewModel = hiltViewModel(backStackEntry)
+    val isArchiveMode by viewModel.isArchiveMode.collectAsState()
+
+    val titleRes = if (isArchiveMode) {
+        R.string.students_archive_title
+    } else {
+        R.string.students_title
+    }
+
+    AppTopBar(
+        title = stringResource(id = titleRes),
+        actions = {
+            StudentsArchiveAction(
+                isArchiveMode = isArchiveMode,
+                onToggle = viewModel::toggleArchiveMode
+            )
+        }
+    )
+}
+
+@Composable
+private fun RowScope.StudentsArchiveAction(
+    isArchiveMode: Boolean,
+    onToggle: () -> Unit
+) {
+    val icon = if (isArchiveMode) {
+        Icons.Outlined.Unarchive
+    } else {
+        Icons.Outlined.Archive
+    }
+    val contentDescription = stringResource(
+        id = if (isArchiveMode) {
+            R.string.students_archive_show_active
+        } else {
+            R.string.students_archive_show
+        }
+    )
+    val buttonColors = IconButtonDefaults.iconButtonColors(
+        contentColor = Color.White,
+        disabledContentColor = Color.White.copy(alpha = 0.4f)
+    )
+
+    IconButton(
+        onClick = onToggle,
+        colors = buttonColors
+    ) {
+        Icon(imageVector = icon, contentDescription = contentDescription)
+    }
 }
 
 fun buildCalendarRoute(date: String?, mode: String?): String {

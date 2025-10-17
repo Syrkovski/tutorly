@@ -12,6 +12,7 @@ interface StudentsRepository {
 
     // observable — для UI
     fun observeStudents(query: String): Flow<List<Student>>
+    fun observeArchivedStudents(query: String): Flow<List<Student>>
     fun observeStudent(id: Long): Flow<Student?>
 
     fun observeStudentProfile(studentId: Long, recentLessonsLimit: Int = 5): Flow<StudentProfile?>

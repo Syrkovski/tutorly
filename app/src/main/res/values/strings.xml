@@ -3,6 +3,11 @@
     <string name="add_student">Добавить ученика</string>
     <string name="search_students_hint">Поиск по имени или телефону</string>
     <string name="students_empty_state">Добавьте первого ученика</string>
+    <string name="students_archive_empty_state">В архиве нет учеников</string>
+    <string name="students_title">Ученики</string>
+    <string name="students_archive_title">Архив учеников</string>
+    <string name="students_archive_show">Открыть архив учеников</string>
+    <string name="students_archive_show_active">Показать активных учеников</string>
     <string name="students_subject_label">Предмет</string>
     <string name="students_subject_placeholder">Не указан</string>
     <string name="students_grade_label">Класс</string>
@@ -221,6 +226,7 @@
     <string name="lesson_details_duration_dialog_title">Длительность занятия</string>
     <string name="lesson_details_duration_custom_hint">Своя длительность</string>
     <string name="lesson_details_save">Сохранить</string>
+    <string name="finance_title">Финансы</string>
     <string name="finance_statistics_title">Статистика</string>
     <string name="finance_period_day">День</string>
     <string name="finance_period_week">Неделя</string>

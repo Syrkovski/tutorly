@@ -98,6 +98,7 @@ fun StudentsScreen(
     val query by vm.query.collectAsState()
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
+    val isArchiveMode by vm.isArchiveMode.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -202,7 +203,10 @@ fun StudentsScreen(
             Spacer(Modifier.height(16.dp))
 
             if (students.isEmpty()) {
-                EmptyStudentsState(Modifier.fillMaxSize())
+                EmptyStudentsState(
+                    isArchiveMode = isArchiveMode,
+                    modifier = Modifier.fillMaxSize()
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -360,10 +364,16 @@ fun StudentEditorSheet(
 }
 
 @Composable
-private fun EmptyStudentsState(modifier: Modifier = Modifier) {
+private fun EmptyStudentsState(isArchiveMode: Boolean, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Text(
-            text = stringResource(id = R.string.students_empty_state),
+            text = stringResource(
+                id = if (isArchiveMode) {
+                    R.string.students_archive_empty_state
+                } else {
+                    R.string.students_empty_state
+                }
+            ),
             style = MaterialTheme.typography.bodyMedium
         )
     }
@@ -385,10 +395,7 @@ private fun StudentCard(
         .joinToString(separator = " • ")
         .takeIf { it.isNotBlank() }
 
-    val phone = item.student.phone?.takeIf { it.isNotBlank() }?.trim()
-    val email = item.student.messenger?.takeIf { it.isNotBlank() }?.trim()
     val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
-    val showTrailingRow = phone != null || email != null
 
     val sharedModifier = if (
         sharedTransitionScope != null &&
@@ -529,37 +536,6 @@ private fun StudentCard(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                            }
-                        }
-                        if (showTrailingRow) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (phone != null) {
-                                    Text(
-                                        text = phone,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                if (email != null) {
-                                    if (phone != null) {
-                                        Spacer(Modifier.width(12.dp))
-                                    }
-                                    Text(
-                                        text = email,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
                             }
                         }
                     }
