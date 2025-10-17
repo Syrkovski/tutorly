@@ -252,9 +252,7 @@ fun AppNavRoot() {
                                 launchSingleTop = true
                             }
                         },
-                        creationViewModel = creationViewModel,
-                        sharedTransitionScope = sharedScope,
-                        animatedVisibilityScope = this
+                        creationViewModel = creationViewModel
                     )
                 }
                 dialog(

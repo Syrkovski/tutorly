@@ -1,11 +1,5 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-//import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,16 +15,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Savings
@@ -66,7 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -100,7 +92,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentDetailsScreen(
     onBack: () -> Unit,
@@ -109,8 +101,6 @@ fun StudentDetailsScreen(
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
     creationViewModel: LessonCreationViewModel,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val state by vm.uiState.collectAsState()
     val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
@@ -198,6 +188,12 @@ fun StudentDetailsScreen(
 
     val title = contentState?.profile?.student?.name
         ?: stringResource(id = R.string.student_details_title_placeholder)
+    val subtitle = contentState?.profile?.let { profile ->
+        val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
+        val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
+        listOfNotNull(grade, subject).joinToString(separator = " • ")
+            .takeIf { it.isNotBlank() }
+    }
 
     val openLessonCreation: (Long) -> Unit = { id ->
         creationViewModel.start(
@@ -213,6 +209,10 @@ fun StudentDetailsScreen(
         topBar = {
             StudentProfileTopBar(
                 title = title,
+                subtitle = subtitle,
+                onEditProfileClick = contentState?.let {
+                    { onEdit(it.profile.student.id, StudentEditTarget.PROFILE) }
+                },
                 isArchived = contentState?.profile?.student?.isArchived,
                 onBack = onBack,
                 onArchiveClick = contentState?.let {
@@ -287,9 +287,7 @@ fun StudentDetailsScreen(
                     onLessonClick = lessonCardViewModel::open,
                     modifier = modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope
+                        .padding(innerPadding)
                 )
     }
 }
@@ -348,6 +346,8 @@ fun StudentDetailsScreen(
 @Composable
 private fun StudentProfileTopBar(
     title: String,
+    subtitle: String?,
+    onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
     onBack: () -> Unit,
     onArchiveClick: (() -> Unit)? = null,
@@ -359,21 +359,33 @@ private fun StudentProfileTopBar(
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp),
+                .height(80.dp),
             title = {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth()
                         .padding(start = 30.dp),
-                    contentAlignment = Alignment.CenterStart
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.Start
                 ) {
                     Text(
                         text = title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = Color.White
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
                     )
+                    if (!subtitle.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = subtitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.White.copy(alpha = 0.75f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             },
             navigationIcon = {
@@ -385,6 +397,14 @@ private fun StudentProfileTopBar(
                 }
             },
             actions = {
+                if (onEditProfileClick != null) {
+                    IconButton(onClick = onEditProfileClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = stringResource(id = R.string.student_details_edit)
+                        )
+                    }
+                }
                 if (onArchiveClick != null && isArchived != null) {
                     IconButton(onClick = onArchiveClick, enabled = archiveEnabled) {
                         val (icon, description) = if (isArchived) {
@@ -416,7 +436,6 @@ private fun StudentProfileTopBar(
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun StudentProfileContent(
     profile: StudentProfile,
@@ -424,9 +443,7 @@ private fun StudentProfileContent(
     onAddLesson: (Long) -> Unit,
     onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
-    modifier: Modifier = Modifier,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru", "RU") }
     val numberFormatter = remember(locale) {
@@ -460,24 +477,12 @@ private fun StudentProfileContent(
 
     val listState = rememberLazyListState()
 
-    val sharedElementKey = "student-card-${profile.student.id}"
-
     LazyColumn(
         state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item {
-            StudentProfileHeader(
-                profile = profile,
-                onEdit = { target -> onEdit(profile.student.id, target) },
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-                sharedContentKey = sharedElementKey
-            )
-        }
-
         item {
             StudentProfileMetricsSection(
                 profile = profile,
@@ -544,71 +549,6 @@ private fun StudentProfileContent(
             }
         }
         item { Spacer(modifier = Modifier.height(60.dp)) }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-private fun StudentProfileHeader(
-    profile: StudentProfile,
-    onEdit: (StudentEditTarget) -> Unit,
-    modifier: Modifier = Modifier,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null,
-    sharedContentKey: String? = null,
-) {
-    val sharedModifier = if (
-        sharedTransitionScope != null &&
-        animatedVisibilityScope != null &&
-        sharedContentKey != null
-    ) {
-        with(sharedTransitionScope) {
-            val sharedState = rememberSharedContentState(key = sharedContentKey)
-            Modifier.sharedBounds(
-                sharedContentState = sharedState,
-                animatedVisibilityScope = animatedVisibilityScope,
-                boundsTransform = { _, _ -> tween(durationMillis = 450, easing = FastOutSlowInEasing) }
-            )
-        }
-    } else {
-        Modifier
-    }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(sharedModifier)
-            .clickable { onEdit(StudentEditTarget.PROFILE) },
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = TutorlyCardDefaults.colors(),
-        elevation = TutorlyCardDefaults.elevation()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            StudentAvatar(name = profile.student.name, size = 64.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = profile.student.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                val subject = profile.subject?.takeIf { it.isNotBlank() }?.trim()
-                val grade = profile.grade?.takeIf { it.isNotBlank() }?.trim()
-                val details = listOfNotNull(grade, subject).joinToString(separator = " • ")
-                if (details.isNotEmpty()) {
-                    Text(
-                        text = details,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -970,34 +910,5 @@ private fun StudentProfileLessonCard(
                 PaymentBadge(status = badgeStatus)
             }
         }
-    }
-}
-
-@Composable
-private fun StudentAvatar(
-    name: String,
-    size: androidx.compose.ui.unit.Dp = 48.dp,
-) {
-    val initials = remember(name) {
-        name
-            .split(" ")
-            .filter { it.isNotBlank() }
-            .take(2)
-            .joinToString(separator = "") { it.first().uppercaseChar().toString() }
-            .ifEmpty { "?" }
-    }
-
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = initials,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
