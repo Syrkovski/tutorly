@@ -395,10 +395,7 @@ private fun StudentCard(
         .joinToString(separator = " • ")
         .takeIf { it.isNotBlank() }
 
-    val phone = item.student.phone?.takeIf { it.isNotBlank() }?.trim()
-    val email = item.student.messenger?.takeIf { it.isNotBlank() }?.trim()
     val note = item.student.note?.takeIf { it.isNotBlank() }?.trim()
-    val showTrailingRow = phone != null || email != null
 
     val sharedModifier = if (
         sharedTransitionScope != null &&
@@ -539,37 +536,6 @@ private fun StudentCard(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                            }
-                        }
-                        if (showTrailingRow) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (phone != null) {
-                                    Text(
-                                        text = phone,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                if (email != null) {
-                                    if (phone != null) {
-                                        Spacer(Modifier.width(12.dp))
-                                    }
-                                    Text(
-                                        text = email,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
                             }
                         }
                     }

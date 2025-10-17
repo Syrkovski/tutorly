@@ -285,8 +285,14 @@ private fun StudentsTopBar(navController: NavHostController) {
     val viewModel: StudentsViewModel = hiltViewModel(backStackEntry)
     val isArchiveMode by viewModel.isArchiveMode.collectAsState()
 
+    val titleRes = if (isArchiveMode) {
+        R.string.students_archive_title
+    } else {
+        R.string.students_title
+    }
+
     AppTopBar(
-        title = stringResource(id = R.string.students_title),
+        title = stringResource(id = titleRes),
         actions = {
             StudentsArchiveAction(
                 isArchiveMode = isArchiveMode,
