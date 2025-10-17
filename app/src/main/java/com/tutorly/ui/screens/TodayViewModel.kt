@@ -1,5 +1,6 @@
 package com.tutorly.ui.screens
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonForToday
@@ -22,8 +23,13 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class TodayViewModel @Inject constructor(
-    private val lessonsRepository: LessonsRepository
+    private val lessonsRepository: LessonsRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    companion object {
+        private const val KEY_DAY_CLOSED = "today_day_closed"
+    }
 
     private val zoneId: ZoneId = ZoneId.systemDefault()
     private val dayBounds: Pair<Instant, Instant> = run {
@@ -37,7 +43,7 @@ class TodayViewModel @Inject constructor(
 
     private val nowState = MutableStateFlow(Instant.now())
     private val snackbarState = MutableStateFlow<TodaySnackbarMessage?>(null)
-    private val dayClosedState = MutableStateFlow(false)
+    private val dayClosedState = MutableStateFlow(savedStateHandle[KEY_DAY_CLOSED] ?: false)
 
     private val todayLessonsFlow = lessonsRepository.observeTodayLessons(
         dayStart = dayStart,
@@ -88,7 +94,7 @@ class TodayViewModel @Inject constructor(
     fun onDayCloseConfirmed() {
         val currentState = uiState.value
         if (currentState is TodayUiState.DayInProgress && currentState.showCloseDayCallout) {
-            dayClosedState.value = true
+            setDayClosed(true)
         }
     }
 
@@ -120,7 +126,7 @@ class TodayViewModel @Inject constructor(
     ): TodayUiState {
         if (todayLessons.isEmpty()) {
             if (dayClosedState.value) {
-                dayClosedState.value = false
+                setDayClosed(false)
             }
             return TodayUiState.Empty
         }
@@ -128,31 +134,36 @@ class TodayViewModel @Inject constructor(
         val todaySorted = todayLessons.sortedBy { it.startAt }
         val allMarked = todaySorted.all { it.paymentStatus != PaymentStatus.UNPAID }
 
-        if (!allMarked && isDayClosed) {
-            dayClosedState.value = false
+        var dayClosed = isDayClosed
+
+        if (!allMarked && dayClosed) {
+            setDayClosed(false)
+            dayClosed = false
         }
 
         val completedLessons = todaySorted.count { it.endAt <= now }
         val allLessonsCompleted = completedLessons == todaySorted.size && todaySorted.isNotEmpty()
 
-        if (isDayClosed && allMarked) {
+        if (dayClosed && allMarked) {
             val paidAmountCents = todaySorted
                 .filter { it.paymentStatus == PaymentStatus.PAID }
                 .sumOf { it.priceCents.toLong() }
             val dueAmountCents = todaySorted
                 .filter { it.paymentStatus == PaymentStatus.DUE }
                 .sumOf { it.priceCents.toLong() }
-            val todayDebtors = aggregateDebtors(todaySorted, setOf(PaymentStatus.DUE))
-            val pastDebtors = aggregateDebtors(outstandingLessons, PaymentStatus.outstandingStatuses.toSet())
-            val pastDebtorsPreview = pastDebtors.take(3)
-            val hasMorePastDebtors = pastDebtors.size > pastDebtorsPreview.size
+            val todayDueLessons = todaySorted.filter { it.paymentStatus == PaymentStatus.DUE }
+            val outstanding = outstandingLessons
+                .filter { it.paymentStatus in PaymentStatus.outstandingStatuses }
+                .sortedByDescending { it.priceCents }
+            val pastDueLessonsPreview = outstanding.take(3)
+            val hasMorePastLessons = outstanding.size > pastDueLessonsPreview.size
 
             return TodayUiState.DayClosed(
                 paidAmountCents = paidAmountCents,
                 todayDueAmountCents = dueAmountCents,
-                todayDebtors = todayDebtors,
-                pastDebtorsPreview = pastDebtorsPreview,
-                hasMorePastDebtors = hasMorePastDebtors,
+                todayDueLessons = todayDueLessons,
+                pastDueLessonsPreview = pastDueLessonsPreview,
+                hasMorePastDueLessons = hasMorePastLessons,
                 lessons = todaySorted
             )
         }
@@ -168,23 +179,9 @@ class TodayViewModel @Inject constructor(
         )
     }
 
-    private fun aggregateDebtors(
-        lessons: List<LessonForToday>,
-        statuses: Set<PaymentStatus>
-    ): List<TodayDebtor> {
-        if (lessons.isEmpty()) return emptyList()
-        return lessons
-            .filter { it.paymentStatus in statuses }
-            .groupBy { it.studentId }
-            .map { (studentId, items) ->
-                TodayDebtor(
-                    studentId = studentId,
-                    studentName = items.first().studentName,
-                    lessonCount = items.size,
-                    amountCents = items.sumOf { it.priceCents.toLong() }
-                )
-            }
-            .sortedByDescending { it.amountCents }
+    private fun setDayClosed(isClosed: Boolean) {
+        dayClosedState.value = isClosed
+        savedStateHandle[KEY_DAY_CLOSED] = isClosed
     }
 }
 
@@ -202,9 +199,9 @@ sealed interface TodayUiState {
     data class DayClosed(
         val paidAmountCents: Long,
         val todayDueAmountCents: Long,
-        val todayDebtors: List<TodayDebtor>,
-        val pastDebtorsPreview: List<TodayDebtor>,
-        val hasMorePastDebtors: Boolean,
+        val todayDueLessons: List<LessonForToday>,
+        val pastDueLessonsPreview: List<LessonForToday>,
+        val hasMorePastDueLessons: Boolean,
         val lessons: List<LessonForToday>
     ) : TodayUiState
 }
@@ -212,11 +209,4 @@ sealed interface TodayUiState {
 data class TodaySnackbarMessage(
     val lessonId: Long,
     val status: PaymentStatus
-)
-
-data class TodayDebtor(
-    val studentId: Long,
-    val studentName: String,
-    val lessonCount: Int,
-    val amountCents: Long
 )

@@ -3,6 +3,7 @@ package com.tutorly.ui.screens
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +35,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -75,6 +75,10 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
+import com.tutorly.ui.theme.DarkOnSuccessGreenContainer
+import com.tutorly.ui.theme.DarkSuccessGreenContainer
+import com.tutorly.ui.theme.SuccessGreenContainer
+import com.tutorly.ui.theme.OnSuccessGreenContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.time.Instant
@@ -177,6 +181,8 @@ fun TodayScreen(
                     onLessonOpen = { lessonId ->
                         lessonCardViewModel.open(lessonId)
                     },
+                    onSwipeRight = viewModel::onSwipeRight,
+                    onSwipeLeft = viewModel::onSwipeLeft,
                     onOpenStudentProfile = onOpenStudentProfile,
                     onOpenDebtors = onOpenDebtors
                 )
@@ -238,18 +244,25 @@ private fun DayInProgressContent(
     val (pendingLessons, markedLessons) = remember(state.lessons) {
         state.lessons.partition { it.paymentStatus == PaymentStatus.UNPAID }
     }
+    val allLessonsCompleted = remember(state.completedLessons, state.totalLessons) {
+        state.totalLessons > 0 && state.completedLessons == state.totalLessons
+    }
+    val showProgressSummary = !state.showCloseDayCallout
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item(key = "summary") {
-            DayProgressSummary(
-                completed = state.completedLessons,
-                total = state.totalLessons,
-                remaining = state.remainingLessons
-            )
+        if (showProgressSummary) {
+            item(key = "summary") {
+                DayProgressSummary(
+                    completed = state.completedLessons,
+                    total = state.totalLessons,
+                    remaining = state.remainingLessons,
+                    allLessonsCompleted = allLessonsCompleted
+                )
+            }
         }
         if (state.showCloseDayCallout) {
             item(key = "close_day_callout") {
@@ -298,7 +311,8 @@ private fun SectionHeader(text: String) {
 private fun DayProgressSummary(
     completed: Int,
     total: Int,
-    remaining: Int
+    remaining: Int,
+    allLessonsCompleted: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -312,20 +326,27 @@ private fun DayProgressSummary(
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val summaryText = if (allLessonsCompleted) {
+                stringResource(id = R.string.today_progress_all_done)
+            } else {
+                stringResource(R.string.today_progress_summary, completed, total)
+            }
             Text(
-                text = stringResource(R.string.today_progress_summary, completed, total),
+                text = summaryText,
                 style = MaterialTheme.typography.titleMedium
             )
-            val remainingText = pluralStringResource(
-                id = R.plurals.today_progress_remaining,
-                count = remaining,
-                remaining
-            )
-            Text(
-                text = remainingText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (!allLessonsCompleted) {
+                val remainingText = pluralStringResource(
+                    id = R.plurals.today_progress_remaining,
+                    count = remaining,
+                    remaining
+                )
+                Text(
+                    text = remainingText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -386,6 +407,8 @@ private fun ConfirmCloseDayDialog(
 private fun DayClosedContent(
     state: TodayUiState.DayClosed,
     onLessonOpen: (Long) -> Unit,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
     onOpenDebtors: () -> Unit
 ) {
@@ -404,8 +427,10 @@ private fun DayClosedContent(
         }
         item(key = "today_debtors") {
             TodayDebtorsSection(
-                debtors = state.todayDebtors,
-                formatter = currencyFormatter,
+                lessons = state.todayDueLessons,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile
             )
         }
@@ -417,14 +442,16 @@ private fun DayClosedContent(
                 )
             }
         }
-        if (state.pastDebtorsPreview.isNotEmpty()) {
+        if (state.pastDueLessonsPreview.isNotEmpty()) {
             item(key = "past_debtors") {
                 PastDebtorsCollapsible(
-                    debtors = state.pastDebtorsPreview,
-                    formatter = currencyFormatter,
+                    lessons = state.pastDueLessonsPreview,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
                     onOpenDebtors = onOpenDebtors,
-                    hasMore = state.hasMorePastDebtors
+                    hasMore = state.hasMorePastDueLessons
                 )
             }
         }
@@ -502,8 +529,10 @@ private fun SummaryMetric(
 
 @Composable
 private fun TodayDebtorsSection(
-    debtors: List<TodayDebtor>,
-    formatter: NumberFormat,
+    lessons: List<LessonForToday>,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit
 ) {
     Column(
@@ -514,7 +543,7 @@ private fun TodayDebtorsSection(
             text = stringResource(R.string.today_debtors_today_title),
             style = MaterialTheme.typography.titleMedium
         )
-        if (debtors.isEmpty()) {
+        if (lessons.isEmpty()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
@@ -529,17 +558,13 @@ private fun TodayDebtorsSection(
                 )
             }
         } else {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                debtors.forEach { debtor ->
-                    DebtorCard(
-                        debtor = debtor,
-                        formatter = formatter,
-                        onOpenStudentProfile = onOpenStudentProfile
-                    )
-                }
-            }
+            LessonsList(
+                lessons = lessons,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile
+            )
         }
     }
 }
@@ -570,30 +595,32 @@ private fun ClosedDayLessonsSection(
 
 @Composable
 private fun PastDebtorsCollapsible(
-    debtors: List<TodayDebtor>,
-    formatter: NumberFormat,
+    lessons: List<LessonForToday>,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
     onOpenDebtors: () -> Unit,
     hasMore: Boolean
 ) {
     val subtitle = if (hasMore) {
-        stringResource(R.string.today_debtors_past_subtitle_more, debtors.size)
+        stringResource(R.string.today_debtors_past_subtitle_more, lessons.size)
     } else {
-        stringResource(R.string.today_debtors_past_subtitle, debtors.size)
+        stringResource(R.string.today_debtors_past_subtitle, lessons.size)
     }
     CollapsibleCard(
         title = stringResource(R.string.today_debtors_past_title),
         subtitle = subtitle
     ) {
-        debtors.forEach { debtor ->
-            DebtorCard(
-                debtor = debtor,
-                formatter = formatter,
-                onOpenStudentProfile = onOpenStudentProfile
-            )
-        }
+        LessonsList(
+            lessons = lessons,
+            onSwipeRight = onSwipeRight,
+            onSwipeLeft = onSwipeLeft,
+            onLessonOpen = onLessonOpen,
+            onOpenStudentProfile = onOpenStudentProfile
+        )
         if (hasMore) {
-            FilledTonalButton(onClick = onOpenDebtors) {
+            Button(onClick = onOpenDebtors) {
                 Text(text = stringResource(R.string.today_debtors_more_cta))
             }
         }
@@ -661,59 +688,25 @@ private fun CollapsibleCard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DebtorCard(
-    debtor: TodayDebtor,
-    formatter: NumberFormat,
+private fun LessonsList(
+    lessons: List<LessonForToday>,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit
 ) {
-    val lessonCountText = pluralStringResource(
-        id = R.plurals.today_debtor_lessons,
-        count = debtor.lessonCount,
-        debtor.lessonCount
-    )
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = { onOpenStudentProfile(debtor.studentId) },
-                onLongClick = { onOpenStudentProfile(debtor.studentId) }
-            ),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = debtor.studentName,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        lessons.forEach { lesson ->
+            TodayLessonRow(
+                lesson = lesson,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onClick = { onLessonOpen(lesson.id) },
+                onLongPress = { onOpenStudentProfile(lesson.studentId) }
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = lessonCountText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatCurrency(debtor.amountCents, formatter),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
     }
 }
@@ -913,8 +906,9 @@ private fun PaymentStatusChip(
     val content: Color
     when (status) {
         PaymentStatus.PAID -> {
-            container = MaterialTheme.colorScheme.tertiaryContainer
-            content = MaterialTheme.colorScheme.onTertiaryContainer
+            val isDark = isSystemInDarkTheme()
+            container = if (isDark) DarkSuccessGreenContainer else SuccessGreenContainer
+            content = if (isDark) DarkOnSuccessGreenContainer else OnSuccessGreenContainer
         }
         PaymentStatus.DUE -> {
             container = MaterialTheme.colorScheme.errorContainer
