@@ -341,9 +341,9 @@ fun StudentEditorSheet(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
-                        contentColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color(0xFF4E998C),
                         disabledContainerColor = Color.White,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 ) {
@@ -455,9 +455,7 @@ private fun StudentCard(
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     note?.let {

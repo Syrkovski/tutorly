@@ -35,7 +35,9 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -255,7 +257,6 @@ fun StudentDetailsScreen(
             StudentProfileTopBar(
                 title = title,
                 subtitle = subtitle,
-                onStudentsClick = onBack,
                 onEditProfileClick = contentState?.let {
                     { openEditor(StudentEditTarget.PROFILE) }
                 },
@@ -412,7 +413,6 @@ fun StudentDetailsScreen(
 private fun StudentProfileTopBar(
     title: String,
     subtitle: String?,
-    onStudentsClick: () -> Unit,
     onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
     onArchiveClick: (() -> Unit)? = null,
@@ -434,15 +434,6 @@ private fun StudentProfileTopBar(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.student_details_students_link),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.White.copy(alpha = 0.72f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable(onClick = onStudentsClick)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -453,7 +444,7 @@ private fun StudentProfileTopBar(
                             overflow = TextOverflow.Ellipsis,
                             color = Color.White,
                             style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f)
                         )
                     }
                     if (!subtitle.isNullOrBlank()) {
@@ -585,7 +576,14 @@ private fun StudentEditorDialogContent(
         Button(
             onClick = onSave,
             enabled = !state.isSaving && state.name.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.White,
+                contentColor = Color(0xFF4E998C),
+                disabledContainerColor = Color.White,
+                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
         ) {
             Text(text = stringResource(id = R.string.student_editor_save))
         }
@@ -1117,7 +1115,7 @@ private fun StudentProfileLessonCard(
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f)
                 )
                 PaymentBadge(status = badgeStatus)
             }
