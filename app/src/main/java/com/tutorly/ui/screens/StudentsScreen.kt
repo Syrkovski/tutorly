@@ -348,12 +348,11 @@ fun StudentEditorSheet(
                     enabled = !state.isSaving && state.name.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF4E998C),
-                        disabledContainerColor = Color.White,
-                        disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        containerColor = Color(0xFF4E998C),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFF4E998C).copy(alpha = 0.3f),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                    )
                 ) {
                     Text(text = stringResource(id = R.string.student_editor_save))
                 }
