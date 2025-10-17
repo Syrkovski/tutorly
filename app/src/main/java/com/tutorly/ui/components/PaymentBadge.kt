@@ -20,7 +20,10 @@ enum class PaymentBadgeStatus {
 }
 
 @Composable
-fun PaymentBadge(status: PaymentBadgeStatus) {
+fun PaymentBadge(
+    status: PaymentBadgeStatus,
+    modifier: Modifier = Modifier
+) {
     val (txt, container, content) = when (status) {
         PaymentBadgeStatus.PAID -> Triple("Оплачено", PaidChipFill, PaidChipContent)
 
@@ -33,6 +36,7 @@ fun PaymentBadge(status: PaymentBadgeStatus) {
         )
     }
     Surface(
+        modifier = modifier,
         color = container,
         contentColor = content,
         shape = RoundedCornerShape(999.dp),
