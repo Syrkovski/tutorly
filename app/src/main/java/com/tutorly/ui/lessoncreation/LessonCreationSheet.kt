@@ -76,6 +76,8 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private val SectionSpacing = 12.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonCreationSheet(
@@ -115,7 +117,7 @@ fun LessonCreationSheet(
                     .heightIn(min = minHeight)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(SectionSpacing)
             ) {
                 SheetHeader(onDismiss)
                 StudentSection(
@@ -168,7 +170,7 @@ private fun StudentSection(
     onStudentSelect: (Long) -> Unit,
     onAddStudent: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         val selectedName = state.selectedStudent?.name ?: state.studentQuery
         var query by remember(selectedName) { mutableStateOf(selectedName) }
         var expanded by remember { mutableStateOf(false) }
@@ -316,7 +318,7 @@ private fun SubjectSection(
     val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
     val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         Box {
             OutlinedTextField(
                 value = state.subjectInput,
@@ -467,7 +469,7 @@ private fun DurationSection(
         mutableStateOf(state.durationMinutes.takeIf { it > 0 }?.toString().orEmpty())
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         OutlinedTextField(
             value = customDurationInput,
             onValueChange = { value ->
@@ -543,7 +545,7 @@ private fun PriceSection(
         NumberFormat.getIntegerInstance(state.locale).apply { maximumFractionDigits = 0 }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         OutlinedTextField(
             value = priceInput,
             onValueChange = { value ->
