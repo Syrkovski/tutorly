@@ -30,8 +30,6 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -176,6 +174,9 @@ fun TodayScreen(
                 )
                 is TodayUiState.DayClosed -> DayClosedContent(
                     state = state,
+                    onLessonOpen = { lessonId ->
+                        lessonCardViewModel.open(lessonId)
+                    },
                     onOpenStudentProfile = onOpenStudentProfile,
                     onOpenDebtors = onOpenDebtors
                 )
@@ -260,7 +261,7 @@ private fun DayInProgressContent(
                 lesson = lesson,
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
-                onClick = {},
+                onClick = { onLessonOpen(lesson.id) },
                 onLongPress = { onLessonOpen(lesson.id) }
             )
         }
@@ -273,7 +274,7 @@ private fun DayInProgressContent(
                     lesson = lesson,
                     onSwipeRight = onSwipeRight,
                     onSwipeLeft = onSwipeLeft,
-                    onClick = {},
+                    onClick = { onLessonOpen(lesson.id) },
                     onLongPress = { onLessonOpen(lesson.id) }
                 )
             }
@@ -384,6 +385,7 @@ private fun ConfirmCloseDayDialog(
 @Composable
 private fun DayClosedContent(
     state: TodayUiState.DayClosed,
+    onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
     onOpenDebtors: () -> Unit
 ) {
@@ -409,7 +411,10 @@ private fun DayClosedContent(
         }
         if (state.lessons.isNotEmpty()) {
             item(key = "closed_lessons") {
-                ClosedDayLessonsSection(lessons = state.lessons)
+                ClosedDayLessonsSection(
+                    lessons = state.lessons,
+                    onLessonOpen = onLessonOpen
+                )
             }
         }
         if (state.pastDebtorsPreview.isNotEmpty()) {
@@ -540,7 +545,10 @@ private fun TodayDebtorsSection(
 }
 
 @Composable
-private fun ClosedDayLessonsSection(lessons: List<LessonForToday>) {
+private fun ClosedDayLessonsSection(
+    lessons: List<LessonForToday>,
+    onLessonOpen: (Long) -> Unit
+) {
     val subtitle = stringResource(
         R.string.today_closed_lessons_section_subtitle,
         lessons.size
@@ -552,7 +560,9 @@ private fun ClosedDayLessonsSection(lessons: List<LessonForToday>) {
         lessons.forEach { lesson ->
             LessonCard(
                 lesson = lesson,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onLessonOpen(lesson.id) }
             )
         }
     }
@@ -953,7 +963,7 @@ private fun TodayTopBar(state: TodayUiState) {
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp),
+                .height(80.dp),
             title = {
                 Box(
                     modifier = Modifier
@@ -966,38 +976,6 @@ private fun TodayTopBar(state: TodayUiState) {
                         text = stringResource(R.string.today_title),
                         color = Color.White
                     )
-                }
-            },
-            actions = {
-                when (state) {
-                    is TodayUiState.DayInProgress -> {
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    text = stringResource(
-                                        R.string.today_remaining_count,
-                                        state.remainingLessons
-                                    )
-                                )
-                            },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                    is TodayUiState.DayClosed -> {
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(text = stringResource(R.string.today_topbar_closed)) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                    else -> Unit
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
