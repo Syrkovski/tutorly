@@ -1,11 +1,14 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,9 +24,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -40,6 +46,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -49,7 +56,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -91,6 +101,7 @@ fun TodayScreen(
     val context = LocalContext.current
     val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
     val lessonCardState by lessonCardViewModel.uiState.collectAsState()
+    var showCloseDayDialog by rememberSaveable { mutableStateOf(false) }
 
     LessonCardSheet(
         state = lessonCardState,
@@ -109,6 +120,16 @@ fun TodayScreen(
         onDeleteLesson = lessonCardViewModel::deleteLesson,
         onSnackbarConsumed = lessonCardViewModel::consumeSnackbar
     )
+
+    if (showCloseDayDialog) {
+        ConfirmCloseDayDialog(
+            onConfirm = {
+                showCloseDayDialog = false
+                viewModel.onDayCloseConfirmed()
+            },
+            onDismiss = { showCloseDayDialog = false }
+        )
+    }
 
     LaunchedEffect(snackbarMessage) {
         val message = snackbarMessage ?: return@LaunchedEffect
@@ -150,7 +171,8 @@ fun TodayScreen(
                     onSwipeLeft = viewModel::onSwipeLeft,
                     onLessonOpen = { lessonId ->
                         lessonCardViewModel.open(lessonId)
-                    }
+                    },
+                    onRequestCloseDay = { showCloseDayDialog = true }
                 )
                 is TodayUiState.DayClosed -> DayClosedContent(
                     state = state,
@@ -208,7 +230,8 @@ private fun DayInProgressContent(
     state: TodayUiState.DayInProgress,
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
-    onLessonOpen: (Long) -> Unit
+    onLessonOpen: (Long) -> Unit,
+    onRequestCloseDay: () -> Unit
 ) {
     val listState = rememberLazyListState()
     LazyColumn(
@@ -223,6 +246,11 @@ private fun DayInProgressContent(
                 total = state.totalLessons,
                 remaining = state.remainingLessons
             )
+        }
+        if (state.canCloseDay) {
+            item(key = "close_day_callout") {
+                CloseDayCallout(onRequestCloseDay = onRequestCloseDay)
+            }
         }
         items(state.lessons, key = { it.id }) { lesson ->
             TodayLessonRow(
@@ -273,6 +301,58 @@ private fun DayProgressSummary(
 }
 
 @Composable
+private fun CloseDayCallout(onRequestCloseDay: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.today_close_day_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = stringResource(R.string.today_close_day_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onRequestCloseDay) {
+                Text(text = stringResource(R.string.today_close_day_action))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmCloseDayDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.today_close_day_dialog_title)) },
+        text = { Text(text = stringResource(R.string.today_close_day_dialog_body)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(R.string.today_close_day_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.today_close_day_dialog_dismiss))
+            }
+        }
+    )
+}
+
+@Composable
 private fun DayClosedContent(
     state: TodayUiState.DayClosed,
     onOpenStudentProfile: (Long) -> Unit,
@@ -298,9 +378,14 @@ private fun DayClosedContent(
                 onOpenStudentProfile = onOpenStudentProfile
             )
         }
+        if (state.lessons.isNotEmpty()) {
+            item(key = "closed_lessons") {
+                ClosedDayLessonsSection(lessons = state.lessons)
+            }
+        }
         if (state.pastDebtorsPreview.isNotEmpty()) {
             item(key = "past_debtors") {
-                PastDebtorsPreviewSection(
+                PastDebtorsCollapsible(
                     debtors = state.pastDebtorsPreview,
                     formatter = currencyFormatter,
                     onOpenStudentProfile = onOpenStudentProfile,
@@ -426,34 +511,113 @@ private fun TodayDebtorsSection(
 }
 
 @Composable
-private fun PastDebtorsPreviewSection(
+private fun ClosedDayLessonsSection(lessons: List<LessonForToday>) {
+    val subtitle = stringResource(
+        R.string.today_closed_lessons_section_subtitle,
+        lessons.size
+    )
+    CollapsibleCard(
+        title = stringResource(R.string.today_closed_lessons_section_title),
+        subtitle = subtitle
+    ) {
+        lessons.forEach { lesson ->
+            LessonCard(
+                lesson = lesson,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun PastDebtorsCollapsible(
     debtors: List<TodayDebtor>,
     formatter: NumberFormat,
     onOpenStudentProfile: (Long) -> Unit,
     onOpenDebtors: () -> Unit,
     hasMore: Boolean
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    val subtitle = if (hasMore) {
+        stringResource(R.string.today_debtors_past_subtitle_more, debtors.size)
+    } else {
+        stringResource(R.string.today_debtors_past_subtitle, debtors.size)
+    }
+    CollapsibleCard(
+        title = stringResource(R.string.today_debtors_past_title),
+        subtitle = subtitle
     ) {
-        Text(
-            text = stringResource(R.string.today_debtors_past_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            debtors.forEach { debtor ->
-                DebtorCard(
-                    debtor = debtor,
-                    formatter = formatter,
-                    onOpenStudentProfile = onOpenStudentProfile
-                )
+        debtors.forEach { debtor ->
+            DebtorCard(
+                debtor = debtor,
+                formatter = formatter,
+                onOpenStudentProfile = onOpenStudentProfile
+            )
+        }
+        if (hasMore) {
+            FilledTonalButton(onClick = onOpenDebtors) {
+                Text(text = stringResource(R.string.today_debtors_more_cta))
             }
         }
-        FilledTonalButton(onClick = onOpenDebtors) {
-            Text(text = stringResource(R.string.today_debtors_more_cta))
+    }
+}
+
+@Composable
+private fun CollapsibleCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = content
+                )
+            }
         }
     }
 }

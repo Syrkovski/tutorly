@@ -171,6 +171,17 @@
     <string name="today_debtors_empty">Ура! Должников за сегодня нет</string>
     <string name="today_debtors_past_title">Долги прошлых дней</string>
     <string name="today_debtors_more_cta">Перейти к должникам</string>
+    <string name="today_close_day_title">Готовы закрыть день?</string>
+    <string name="today_close_day_subtitle">Убедитесь, что статусы всех занятий выставлены, затем закройте день.</string>
+    <string name="today_close_day_action">Закрыть день</string>
+    <string name="today_close_day_dialog_title">Закрыть день?</string>
+    <string name="today_close_day_dialog_body">После закрытия дня вы сможете посмотреть итоги и задолженности. Продолжить?</string>
+    <string name="today_close_day_dialog_confirm">Закрыть</string>
+    <string name="today_close_day_dialog_dismiss">Отмена</string>
+    <string name="today_closed_lessons_section_title">Занятия за сегодня</string>
+    <string name="today_closed_lessons_section_subtitle">Всего: %1$d</string>
+    <string name="today_debtors_past_subtitle">Должников: %1$d</string>
+    <string name="today_debtors_past_subtitle_more">Должников: %1$d+</string>
     <string name="today_topbar_closed">День закрыт</string>
     <string name="today_duration_format">%1$d мин</string>
     <string name="today_snackbar_paid">Отмечено: оплачено</string>
