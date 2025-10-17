@@ -413,36 +413,44 @@ private fun StudentCard(
         ),
         elevation = TutorlyCardDefaults.elevation()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            StudentAvatar(name = item.student.name, size = 48.dp)
-            Spacer(Modifier.width(12.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Row(
+        Box(Modifier.fillMaxWidth()) {
+            if (item.hasDebt) {
+                PaymentBadge(
+                    status = PaymentBadgeStatus.DEBT,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 16.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                StudentAvatar(name = item.student.name, size = 48.dp)
+                Spacer(Modifier.width(12.dp))
+                Box(modifier = Modifier.weight(1f)) {
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            text = item.student.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        if (item.hasDebt) {
-                            Spacer(Modifier.width(8.dp))
-                            PaymentBadge(status = PaymentBadgeStatus.DEBT)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = if (item.hasDebt) 80.dp else 0.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item.student.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
                         }
-                    }
                     subtitle?.let {
                         Text(
                             text = it,
