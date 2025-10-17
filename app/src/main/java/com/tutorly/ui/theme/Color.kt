@@ -33,10 +33,10 @@ val OnSurfaceVariantSoft = SecondaryTextColor
 val OutlineLavender = Color(0xFFB9C9C4)
 val OutlineVariantLavender = Color(0xFFE3ECE8)
 
-val PaidChipContent = Color(0xFF4E998C)
-val PaidChipFill = Color(0xFFFFFFFF)
-val DebtChipContent = Color(0xFFD05E6E)
-val DebtChipFill = Color(0xFFFFFFFF)
+val PaidChipContent = Color(0xFFFFFFFF)
+val PaidChipFill = Color(0xFF4E998C)
+val DebtChipContent = Color(0xFFFFFFFF)
+val DebtChipFill = Color(0xFFD05E6E)
 
 val SurfaceContainerLowest = Color(0xFFFFFFFF)
 val SurfaceContainerLow = Color(0xFFF8FCFB)
