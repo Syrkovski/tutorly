@@ -234,6 +234,9 @@ private fun DayInProgressContent(
     onRequestCloseDay: () -> Unit
 ) {
     val listState = rememberLazyListState()
+    val (pendingLessons, markedLessons) = remember(state.lessons) {
+        state.lessons.partition { it.paymentStatus == PaymentStatus.UNPAID }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -247,12 +250,12 @@ private fun DayInProgressContent(
                 remaining = state.remainingLessons
             )
         }
-        if (state.canCloseDay) {
+        if (state.showCloseDayCallout) {
             item(key = "close_day_callout") {
                 CloseDayCallout(onRequestCloseDay = onRequestCloseDay)
             }
         }
-        items(state.lessons, key = { it.id }) { lesson ->
+        items(pendingLessons, key = { it.id }) { lesson ->
             TodayLessonRow(
                 lesson = lesson,
                 onSwipeRight = onSwipeRight,
@@ -261,7 +264,33 @@ private fun DayInProgressContent(
                 onLongPress = { onLessonOpen(lesson.id) }
             )
         }
+        if (markedLessons.isNotEmpty()) {
+            item(key = "marked_header") {
+                SectionHeader(text = stringResource(id = R.string.today_marked_section_title))
+            }
+            items(markedLessons, key = { it.id }) { lesson ->
+                TodayLessonRow(
+                    lesson = lesson,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onClick = {},
+                    onLongPress = { onLessonOpen(lesson.id) }
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+    )
 }
 
 @Composable

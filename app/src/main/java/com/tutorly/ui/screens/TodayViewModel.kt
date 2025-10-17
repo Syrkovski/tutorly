@@ -87,7 +87,7 @@ class TodayViewModel @Inject constructor(
 
     fun onDayCloseConfirmed() {
         val currentState = uiState.value
-        if (currentState is TodayUiState.DayInProgress && currentState.canCloseDay) {
+        if (currentState is TodayUiState.DayInProgress && currentState.showCloseDayCallout) {
             dayClosedState.value = true
         }
     }
@@ -132,6 +132,9 @@ class TodayViewModel @Inject constructor(
             dayClosedState.value = false
         }
 
+        val completedLessons = todaySorted.count { it.endAt <= now }
+        val allLessonsCompleted = completedLessons == todaySorted.size && todaySorted.isNotEmpty()
+
         if (isDayClosed && allMarked) {
             val paidAmountCents = todaySorted
                 .filter { it.paymentStatus == PaymentStatus.PAID }
@@ -154,7 +157,6 @@ class TodayViewModel @Inject constructor(
             )
         }
 
-        val completedLessons = todaySorted.count { it.endAt <= now }
         val remainingLessons = (todaySorted.size - completedLessons).coerceAtLeast(0)
 
         return TodayUiState.DayInProgress(
@@ -162,7 +164,7 @@ class TodayViewModel @Inject constructor(
             completedLessons = completedLessons,
             totalLessons = todaySorted.size,
             remainingLessons = remainingLessons,
-            canCloseDay = allMarked
+            showCloseDayCallout = allLessonsCompleted && allMarked
         )
     }
 
@@ -194,7 +196,7 @@ sealed interface TodayUiState {
         val completedLessons: Int,
         val totalLessons: Int,
         val remainingLessons: Int,
-        val canCloseDay: Boolean
+        val showCloseDayCallout: Boolean
     ) : TodayUiState
 
     data class DayClosed(

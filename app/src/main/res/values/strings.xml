@@ -167,6 +167,7 @@
     <string name="today_closed_summary_title">Итоги дня</string>
     <string name="today_closed_income_label">Доход</string>
     <string name="today_closed_debt_label">Долг</string>
+    <string name="today_marked_section_title">Отмечено</string>
     <string name="today_debtors_today_title">Должники за сегодня</string>
     <string name="today_debtors_empty">Ура! Должников за сегодня нет</string>
     <string name="today_debtors_past_title">Долги прошлых дней</string>
