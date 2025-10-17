@@ -76,7 +76,7 @@
     <string name="student_prepayment_success">Предоплата изменена на %1$s ₽</string>
     <string name="student_prepayment_success_with_debt">Предоплата изменена на %1$s ₽. Долги на сумму %2$s ₽ оплачены из предоплаты.</string>
     <string name="student_details_title_placeholder">Ученик</string>
-    <string name="student_details_back">Назад</string>
+    <string name="student_details_students_link">Ученики</string>
     <string name="student_details_archive">В архив</string>
     <string name="student_details_unarchive">Вернуть из архива</string>
     <string name="student_details_delete">Удалить ученика</string>
