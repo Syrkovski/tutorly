@@ -13,10 +13,9 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Unarchive
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -314,19 +313,12 @@ private fun RowScope.StudentsArchiveAction(
             R.string.students_archive_show
         }
     )
-    val buttonColors = if (isArchiveMode) {
-        IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-    } else {
-        IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = Color.White.copy(alpha = 0.24f),
-            contentColor = Color.White
-        )
-    }
+    val buttonColors = IconButtonDefaults.iconButtonColors(
+        contentColor = Color.White,
+        disabledContentColor = Color.White.copy(alpha = 0.4f)
+    )
 
-    FilledTonalIconButton(
+    IconButton(
         onClick = onToggle,
         colors = buttonColors
     ) {
