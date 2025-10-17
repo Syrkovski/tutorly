@@ -66,8 +66,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
 import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
@@ -425,17 +423,35 @@ private fun StudentProfileTopBar(
                 (onArchiveClick != null && isArchived != null) ||
                 onDeleteClick != null
 
-            ConstraintLayout(modifier = Modifier.fillMaxWidth()) {
-                val titleRef = createRef()
-                val subtitleRef = createRef()
-                val actionsRef = if (hasActions) createRef() else null
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
 
-                if (hasActions && actionsRef != null) {
+                    if (!subtitle.isNullOrBlank()) {
+                        Text(
+                            text = subtitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.White.copy(alpha = 0.75f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+
+                if (hasActions) {
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     Row(
-                        modifier = Modifier.constrainAs(actionsRef) {
-                            top.linkTo(parent.top)
-                            end.linkTo(parent.end)
-                        },
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.Top
                     ) {
@@ -476,47 +492,6 @@ private fun StudentProfileTopBar(
                             }
                         }
                     }
-                }
-
-                val titleModifier = if (hasActions && actionsRef != null) {
-                    Modifier.constrainAs(titleRef) {
-                        start.linkTo(parent.start)
-                        top.linkTo(parent.top)
-                        end.linkTo(actionsRef.start, margin = 12.dp)
-                        width = Dimension.fillToConstraints
-                    }
-                } else {
-                    Modifier.constrainAs(titleRef) {
-                        start.linkTo(parent.start)
-                        top.linkTo(parent.top)
-                        end.linkTo(parent.end)
-                        width = Dimension.fillToConstraints
-                    }
-                }
-
-                Text(
-                    text = title,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = titleModifier
-                )
-
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        text = subtitle,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = Color.White.copy(alpha = 0.75f),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.constrainAs(subtitleRef) {
-                            start.linkTo(titleRef.start)
-                            top.linkTo(titleRef.bottom, margin = 4.dp)
-                            end.linkTo(parent.end)
-                            width = Dimension.fillToConstraints
-                        }
-                    )
                 }
             }
         }
