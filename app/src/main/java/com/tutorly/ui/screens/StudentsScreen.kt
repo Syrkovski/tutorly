@@ -267,6 +267,15 @@ fun StudentEditorSheet(
     snackbarHostState: SnackbarHostState? = null,
 ) {
     val isEditing = state.studentId != null
+    val titleRes = when {
+        !isEditing -> R.string.add_student
+        editTarget == StudentEditTarget.RATE -> R.string.student_editor_title_rate
+        editTarget == StudentEditTarget.PHONE -> R.string.student_editor_title_phone
+        editTarget == StudentEditTarget.MESSENGER -> R.string.student_editor_title_messenger
+        editTarget == StudentEditTarget.NOTES -> R.string.student_editor_title_note
+        else -> R.string.student_editor_title
+    }
+    val title = stringResource(id = titleRes)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val configuration = LocalConfiguration.current
     val minHeight = remember(configuration) { configuration.screenHeightDp.dp * 0.5f }
@@ -293,9 +302,7 @@ fun StudentEditorSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(
-                            id = if (isEditing) R.string.student_editor_edit_title else R.string.add_student
-                        ),
+                        text = title,
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f)
                     )

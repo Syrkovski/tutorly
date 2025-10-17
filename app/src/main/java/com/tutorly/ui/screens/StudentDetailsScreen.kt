@@ -515,14 +515,15 @@ private fun StudentEditorDialogContent(
     initialFocus: StudentEditTarget?,
     snackbarHostState: SnackbarHostState,
 ) {
-    val isEditing = state.studentId != null
-    val title = stringResource(
-        id = if (isEditing) {
-            R.string.student_editor_edit_title
-        } else {
-            R.string.add_student
-        }
-    )
+    val titleRes = when {
+        state.studentId == null -> R.string.add_student
+        editTarget == StudentEditTarget.RATE -> R.string.student_editor_title_rate
+        editTarget == StudentEditTarget.PHONE -> R.string.student_editor_title_phone
+        editTarget == StudentEditTarget.MESSENGER -> R.string.student_editor_title_messenger
+        editTarget == StudentEditTarget.NOTES -> R.string.student_editor_title_note
+        else -> R.string.student_editor_title
+    }
+    val title = stringResource(id = titleRes)
 
     TutorlyDialog(
         onDismissRequest = {

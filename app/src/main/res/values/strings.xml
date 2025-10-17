@@ -15,7 +15,10 @@
     <string name="students_rate_label_custom">Ставка за %1$d мин</string>
     <string name="students_rate_placeholder">Нет данных</string>
     <string name="student_editor_title">Ученик</string>
-    <string name="student_editor_edit_title">Редактировать ученика</string>
+    <string name="student_editor_title_rate">Ставка</string>
+    <string name="student_editor_title_phone">Телефон</string>
+    <string name="student_editor_title_messenger">Мессенджер</string>
+    <string name="student_editor_title_note">Заметка</string>
     <string name="student_editor_close">Закрыть</string>
     <string name="student_editor_save">Сохранить</string>
     <string name="student_editor_name">Имя*</string>
@@ -68,7 +71,7 @@
     <string name="student_profile_metrics_earned_label">₽ дохода</string>
     <string name="student_profile_metrics_prepayment_label">₽ предоплата</string>
     <string name="student_profile_add_prepayment">Добавить предоплату</string>
-    <string name="student_prepayment_title">Редактировать предоплату</string>
+    <string name="student_prepayment_title">Предоплата</string>
     <string name="student_prepayment_amount_label">Сумма</string>
     <string name="student_prepayment_amount_error">Введите ненулевую сумму</string>
     <string name="student_prepayment_save">Сохранить</string>
