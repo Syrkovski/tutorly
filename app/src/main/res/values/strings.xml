@@ -152,7 +152,7 @@
     <string name="lesson_create_subject_placeholder">Выберите ученика, чтобы выбрать предмет</string>
     <string name="lesson_create_subject_empty">Для ученика не найдены предметы</string>
     <string name="lesson_create_duration_label">Длительность</string>
-    <string name="lesson_create_duration_chip">%1$d мин</string>
+    <string name="lesson_create_duration_chip">%1$d</string>
     <string name="lesson_create_duration_custom_label">Своя длительность</string>
     <string name="lesson_create_minutes_suffix">мин</string>
     <string name="lesson_create_price_label">Стоимость</string>

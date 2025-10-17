@@ -972,8 +972,7 @@ private fun ProfileContactsCard(
                 label = stringResource(id = R.string.student_details_messenger_label),
                 value = messenger,
                 placeholder = stringResource(id = R.string.student_profile_contact_placeholder),
-                onClick = onMessengerClick,
-                modifier = Modifier.padding(bottom = 16.dp)
+                onClick = onMessengerClick
             )
         }
     }
