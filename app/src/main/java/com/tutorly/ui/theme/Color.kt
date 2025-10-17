@@ -33,10 +33,10 @@ val OnSurfaceVariantSoft = SecondaryTextColor
 val OutlineLavender = Color(0xFFB9C9C4)
 val OutlineVariantLavender = Color(0xFFE3ECE8)
 
-val SuccessGreen = Color(0xFF2DBE72)
-val OnSuccessGreen = Color(0xFFFFFFFF)
-val SuccessGreenContainer = Color(0xFFD9F5E6)
-val OnSuccessGreenContainer = Color(0xFF0F3E25)
+val PaidChipContent = Color(0xFF4E998C)
+val PaidChipFill = Color(0xFFFFFFFF)
+val DebtChipContent = Color(0xFFD05E6E)
+val DebtChipFill = Color(0xFFFFFFFF)
 
 val SurfaceContainerLowest = Color(0xFFFFFFFF)
 val SurfaceContainerLow = Color(0xFFF8FCFB)
@@ -81,10 +81,6 @@ val DarkSurfaceContainer = Color(0xFF221B27)
 val DarkSurfaceContainerHigh = Color(0xFF2B2430)
 val DarkSurfaceContainerHighest = Color(0xFF352E3A)
 
-val DarkSuccessGreen = Color(0xFF81E8B4)
-val DarkOnSuccessGreen = Color(0xFF003918)
-val DarkSuccessGreenContainer = Color(0xFF005227)
-val DarkOnSuccessGreenContainer = Color(0xFF9AF5CA)
 
 // Legacy references updated to new palette
 val RailAccent = PrimaryPurple  // вертикальная рейка слота

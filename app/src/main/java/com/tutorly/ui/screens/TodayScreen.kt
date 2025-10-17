@@ -3,7 +3,6 @@ package com.tutorly.ui.screens
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,10 +74,10 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
-import com.tutorly.ui.theme.DarkOnSuccessGreenContainer
-import com.tutorly.ui.theme.DarkSuccessGreenContainer
-import com.tutorly.ui.theme.SuccessGreenContainer
-import com.tutorly.ui.theme.OnSuccessGreenContainer
+import com.tutorly.ui.theme.DebtChipContent
+import com.tutorly.ui.theme.DebtChipFill
+import com.tutorly.ui.theme.PaidChipContent
+import com.tutorly.ui.theme.PaidChipFill
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.time.Instant
@@ -902,22 +901,10 @@ private fun PaymentStatusChip(
         PaymentStatus.CANCELLED -> stringResource(R.string.lesson_status_cancelled)
         PaymentStatus.UNPAID -> return
     }
-    val container: Color
-    val content: Color
-    when (status) {
-        PaymentStatus.PAID -> {
-            val isDark = isSystemInDarkTheme()
-            container = if (isDark) DarkSuccessGreenContainer else SuccessGreenContainer
-            content = if (isDark) DarkOnSuccessGreenContainer else OnSuccessGreenContainer
-        }
-        PaymentStatus.DUE -> {
-            container = MaterialTheme.colorScheme.errorContainer
-            content = MaterialTheme.colorScheme.onErrorContainer
-        }
-        else -> {
-            container = MaterialTheme.colorScheme.surfaceVariant
-            content = MaterialTheme.colorScheme.onSurfaceVariant
-        }
+    val (container, content) = when (status) {
+        PaymentStatus.PAID -> PaidChipFill to PaidChipContent
+        PaymentStatus.DUE -> DebtChipFill to DebtChipContent
+        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         color = container,
