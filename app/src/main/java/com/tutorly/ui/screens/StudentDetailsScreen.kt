@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
@@ -35,9 +34,6 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -533,22 +529,10 @@ private fun StudentEditorDialogContent(
         },
         modifier = Modifier.imePadding()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = { if (!state.isSaving) onDismiss() }, enabled = !state.isSaving) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(id = R.string.student_profile_close)
-                )
-            }
-        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge
+        )
 
         if (state.isSaving) {
             LinearProgressIndicator(
@@ -574,19 +558,24 @@ private fun StudentEditorDialogContent(
             onSubmit = onSave
         )
 
-        Button(
-            onClick = onSave,
-            enabled = !state.isSaving && state.name.isNotBlank(),
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White,
-                contentColor = Color(0xFF4E998C),
-                disabledContainerColor = Color.White,
-                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = stringResource(id = R.string.student_editor_save))
+            TextButton(
+                onClick = onDismiss,
+                enabled = !state.isSaving
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_cancel))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(
+                onClick = onSave,
+                enabled = !state.isSaving && state.name.isNotBlank()
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_save))
+            }
         }
 
         SnackbarHost(
