@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -563,16 +564,22 @@ private fun StudentEditorDialogContent(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val actionColors = ButtonDefaults.textButtonColors(
+                contentColor = Color(0xFF4E998C),
+                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
+            )
             TextButton(
                 onClick = onDismiss,
-                enabled = !state.isSaving
+                enabled = !state.isSaving,
+                colors = actionColors
             ) {
                 Text(text = stringResource(id = R.string.student_editor_cancel))
             }
             Spacer(modifier = Modifier.width(8.dp))
             TextButton(
                 onClick = onSave,
-                enabled = !state.isSaving && state.name.isNotBlank()
+                enabled = !state.isSaving && state.name.isNotBlank(),
+                colors = actionColors
             ) {
                 Text(text = stringResource(id = R.string.student_editor_save))
             }

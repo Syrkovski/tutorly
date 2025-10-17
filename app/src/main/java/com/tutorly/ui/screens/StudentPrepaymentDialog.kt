@@ -1,21 +1,25 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -23,6 +27,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
@@ -122,23 +128,41 @@ fun StudentPrepaymentDialog(
             enabled = !state.isSaving
         )
 
-        FilledTonalButton(
-            onClick = attemptSave,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isSaving,
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (state.isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            } else {
-                Text(text = stringResource(id = R.string.student_prepayment_save))
+            val actionColors = ButtonDefaults.textButtonColors(
+                contentColor = Color(0xFF4E998C),
+                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
+            )
+            TextButton(
+                onClick = {
+                    if (!state.isSaving) {
+                        closeDialog()
+                    }
+                },
+                enabled = !state.isSaving,
+                colors = actionColors
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_cancel))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(
+                onClick = attemptSave,
+                enabled = !state.isSaving,
+                colors = actionColors
+            ) {
+                if (state.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color(0xFF4E998C)
+                    )
+                } else {
+                    Text(text = stringResource(id = R.string.student_editor_save))
+                }
             }
         }
 
