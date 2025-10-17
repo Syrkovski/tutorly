@@ -23,14 +23,17 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class StudentEditorVM @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val repo: StudentsRepository
 ) : ViewModel() {
     private val id: Long? = savedStateHandle.get<Long>("studentId")
     private val editTargetName: String? = savedStateHandle.get<String>("editTarget")
-    val editTarget: StudentEditTarget? = editTargetName?.let { target ->
-        runCatching { StudentEditTarget.valueOf(target) }.getOrNull()
-    }
+    var editTarget by mutableStateOf(
+        editTargetName?.let { target ->
+            runCatching { StudentEditTarget.valueOf(target) }.getOrNull()
+        }
+    )
+        private set
     var formState by mutableStateOf(StudentEditorFormState())
         private set
     private var loadedStudent: Student? = null
@@ -41,21 +44,16 @@ class StudentEditorVM @Inject constructor(
                 repo.observeStudent(it).collect { s ->
                     if (s != null) {
                         loadedStudent = s
-                        formState = StudentEditorFormState(
-                            studentId = s.id,
-                            name = s.name,
-                            phone = s.phone.orEmpty(),
-                            messenger = s.messenger.orEmpty(),
-                            rate = formatMoneyInput(s.rateCents),
-                            subject = s.subject.orEmpty(),
-                            grade = s.grade.orEmpty(),
-                            note = s.note.orEmpty(),
-                            isArchived = s.isArchived,
-                            isActive = s.active,
-                        )
+                        formState = s.toFormState()
                     }
                 }
             }
+        }
+    }
+
+    fun resetFormToLoadedStudent() {
+        loadedStudent?.let { student ->
+            formState = student.toFormState()
         }
     }
 
@@ -93,6 +91,11 @@ class StudentEditorVM @Inject constructor(
 
     fun onActiveChange(value: Boolean) {
         formState = formState.copy(isActive = value)
+    }
+
+    fun updateEditTarget(target: StudentEditTarget?) {
+        editTarget = target
+        savedStateHandle["editTarget"] = target?.name
     }
 
     fun save(
@@ -164,6 +167,19 @@ class StudentEditorVM @Inject constructor(
                 }
         }
     }
+
+    private fun Student.toFormState(): StudentEditorFormState = StudentEditorFormState(
+        studentId = id,
+        name = name,
+        phone = phone.orEmpty(),
+        messenger = messenger.orEmpty(),
+        rate = formatMoneyInput(rateCents),
+        subject = subject.orEmpty(),
+        grade = grade.orEmpty(),
+        note = note.orEmpty(),
+        isArchived = isArchived,
+        isActive = active,
+    )
 }
 
 @Composable

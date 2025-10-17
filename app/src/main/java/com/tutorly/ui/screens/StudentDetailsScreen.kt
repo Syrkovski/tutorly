@@ -96,7 +96,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun StudentDetailsScreen(
     onBack: () -> Unit,
-    onEdit: (Long, StudentEditTarget) -> Unit,
     onAddStudentFromCreation: () -> Unit = {},
     modifier: Modifier = Modifier,
     vm: StudentDetailsViewModel = hiltViewModel(),
@@ -105,14 +104,54 @@ fun StudentDetailsScreen(
     val state by vm.uiState.collectAsState()
     val lessonCardViewModel: LessonCardViewModel = hiltViewModel()
     val lessonCardState by lessonCardViewModel.uiState.collectAsState()
+    val editorViewModel: StudentEditorVM = hiltViewModel()
     val creationState by creationViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val editorSnackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPrepaymentDialog by rememberSaveable { mutableStateOf(false) }
     var isArchiving by remember { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
+    var showEditorSheet by rememberSaveable { mutableStateOf(false) }
+    var pendingEditTarget by remember { mutableStateOf<StudentEditTarget?>(null) }
+
+    val editorFormState = editorViewModel.formState
+
+    val closeEditor: () -> Unit = {
+        if (!editorFormState.isSaving) {
+            showEditorSheet = false
+            pendingEditTarget = null
+            editorViewModel.updateEditTarget(null)
+        }
+    }
+
+    val attemptEditorSave: () -> Unit = {
+        if (!editorFormState.isSaving) {
+            editorViewModel.save(
+                onSaved = {
+                    closeEditor()
+                },
+                onError = { message ->
+                    val text = if (message.isNotBlank()) {
+                        message
+                    } else {
+                        context.getString(R.string.student_editor_save_error)
+                    }
+                    coroutineScope.launch { editorSnackbarHostState.showSnackbar(text) }
+                }
+            )
+        }
+    }
+
+    val openEditor: (StudentEditTarget) -> Unit = { target ->
+        pendingEditTarget = target
+        editorSnackbarHostState.currentSnackbarData?.dismiss()
+        editorViewModel.resetFormToLoadedStudent()
+        editorViewModel.updateEditTarget(target)
+        showEditorSheet = true
+    }
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
@@ -211,7 +250,7 @@ fun StudentDetailsScreen(
                 title = title,
                 subtitle = subtitle,
                 onEditProfileClick = contentState?.let {
-                    { onEdit(it.profile.student.id, StudentEditTarget.PROFILE) }
+                    { openEditor(StudentEditTarget.PROFILE) }
                 },
                 isArchived = contentState?.profile?.student?.isArchived,
                 onBack = onBack,
@@ -281,7 +320,7 @@ fun StudentDetailsScreen(
             is StudentProfileUiState.Content -> {
                 StudentProfileContent(
                     profile = currentState.profile,
-                    onEdit = onEdit,
+                    onEdit = openEditor,
                     onAddLesson = openLessonCreation,
                     onPrepaymentClick = { showPrepaymentDialog = true },
                     onLessonClick = lessonCardViewModel::open,
@@ -289,8 +328,9 @@ fun StudentDetailsScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                 )
+            }
+        }
     }
-}
 
     if (showDeleteDialog && contentState != null) {
         val studentName = contentState.profile.student.name
@@ -337,6 +377,25 @@ fun StudentDetailsScreen(
                     Text(text = stringResource(id = R.string.student_details_delete_cancel))
                 }
             }
+        )
+    }
+
+    if (showEditorSheet) {
+        val focusTarget = pendingEditTarget ?: StudentEditTarget.PROFILE
+        StudentEditorSheet(
+            state = editorFormState,
+            onNameChange = editorViewModel::onNameChange,
+            onPhoneChange = editorViewModel::onPhoneChange,
+            onMessengerChange = editorViewModel::onMessengerChange,
+            onRateChange = editorViewModel::onRateChange,
+            onSubjectChange = editorViewModel::onSubjectChange,
+            onGradeChange = editorViewModel::onGradeChange,
+            onNoteChange = editorViewModel::onNoteChange,
+            onSave = attemptEditorSave,
+            onDismiss = closeEditor,
+            editTarget = pendingEditTarget,
+            initialFocus = focusTarget,
+            snackbarHostState = editorSnackbarHostState
         )
     }
 }
@@ -439,7 +498,7 @@ private fun StudentProfileTopBar(
 @Composable
 private fun StudentProfileContent(
     profile: StudentProfile,
-    onEdit: (Long, StudentEditTarget) -> Unit,
+    onEdit: (StudentEditTarget) -> Unit,
     onAddLesson: (Long) -> Unit,
     onPrepaymentClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
@@ -487,7 +546,7 @@ private fun StudentProfileContent(
             StudentProfileMetricsSection(
                 profile = profile,
                 numberFormatter = numberFormatter,
-                onRateClick = { onEdit(profile.student.id, StudentEditTarget.RATE) },
+                onRateClick = { onEdit(StudentEditTarget.RATE) },
                 onPrepaymentClick = { onPrepaymentClick(profile.student.id) }
             )
         }
@@ -497,14 +556,14 @@ private fun StudentProfileContent(
                 ProfileContactsCard(
                     phone = profile.student.phone,
                     messenger = profile.student.messenger,
-                    onPhoneClick = { onEdit(profile.student.id, StudentEditTarget.PHONE) },
-                    onMessengerClick = { onEdit(profile.student.id, StudentEditTarget.MESSENGER) }
+                    onPhoneClick = { onEdit(StudentEditTarget.PHONE) },
+                    onMessengerClick = { onEdit(StudentEditTarget.MESSENGER) }
                 )
                 ProfileInfoCard(
                     icon = Icons.Outlined.StickyNote2,
                     label = stringResource(id = R.string.student_details_notes_title),
                     value = profile.student.note,
-                    onClick = { onEdit(profile.student.id, StudentEditTarget.NOTES) },
+                    onClick = { onEdit(StudentEditTarget.NOTES) },
                     valueMaxLines = 4
                 )
             }
