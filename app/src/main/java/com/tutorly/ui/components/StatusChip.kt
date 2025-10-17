@@ -18,28 +18,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.theme.DarkSuccessGreen
-import com.tutorly.ui.theme.SuccessGreen
+import com.tutorly.ui.theme.DebtChipContent
+import com.tutorly.ui.theme.DebtChipFill
+import com.tutorly.ui.theme.PaidChipContent
+import com.tutorly.ui.theme.PaidChipFill
 import java.time.ZonedDateTime
 
 /** Visual parameters for the payment status indicator. */
 data class StatusChipData(
     val label: String,
     val description: String,
-    val color: Color
+    val background: Color,
+    val content: Color
 )
 
 @Composable
 fun StatusChip(data: StatusChipData, modifier: Modifier = Modifier) {
-    val contentColor = if (data.color.luminance() < 0.5f) {
-        Color.White
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
     Surface(
-        color = data.color,
-        contentColor = contentColor,
+        color = data.background,
+        contentColor = data.content,
         shape = CircleShape,
         modifier = modifier
             .defaultMinSize(minWidth = 24.dp, minHeight = 24.dp)
@@ -49,7 +46,8 @@ fun StatusChip(data: StatusChipData, modifier: Modifier = Modifier) {
             Text(
                 text = data.label,
                 style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = data.content
             )
         }
     }
@@ -63,49 +61,57 @@ fun statusChipData(
     now: ZonedDateTime
 ): StatusChipData {
     val colorScheme = MaterialTheme.colorScheme
-    val todayColor = colorScheme.primary
-    val isLightTheme = colorScheme.surface.luminance() > 0.5f
-    val paidColor = if (isLightTheme) SuccessGreen else DarkSuccessGreen
-    val dueColor = colorScheme.error
+    val plannedColor = colorScheme.primary
     val cancelledColor = colorScheme.outline
 
+    fun defaultContentColor(background: Color): Color =
+        if (background.luminance() < 0.5f) Color.White else colorScheme.onSurface
+
     val description: String
-    val color: Color
+    val background: Color
+    val content: Color
     val label: String
 
     if (paymentStatus == PaymentStatus.CANCELLED) {
         description = stringResource(R.string.lesson_status_cancelled)
-        color = cancelledColor
+        background = cancelledColor
+        content = defaultContentColor(cancelledColor)
         label = "×"
     } else if (now.isBefore(start)) {
         if (paymentStatus == PaymentStatus.PAID) {
             description = stringResource(R.string.calendar_status_prepaid)
-            color = paidColor
+            background = PaidChipFill
+            content = PaidChipContent
             label = "₽"
         } else {
             description = stringResource(R.string.calendar_status_planned)
-            color = todayColor
+            background = plannedColor
+            content = defaultContentColor(plannedColor)
             label = "⏳"
         }
     } else if (now.isAfter(end)) {
         if (paymentStatus == PaymentStatus.PAID) {
             description = stringResource(R.string.lesson_status_paid)
-            color = paidColor
+            background = PaidChipFill
+            content = PaidChipContent
             label = "₽"
         } else {
             description = stringResource(R.string.lesson_status_due)
-            color = dueColor
+            background = DebtChipFill
+            content = DebtChipContent
             label = "!"
         }
     } else {
         description = stringResource(R.string.calendar_status_in_progress)
-        color = todayColor
+        background = plannedColor
+        content = defaultContentColor(plannedColor)
         label = "▶"
     }
 
     return StatusChipData(
         label = label,
         description = description,
-        color = color
+        background = background,
+        content = content
     )
 }

@@ -153,8 +153,24 @@ fun AppNavRoot() {
                 }
                 composable(ROUTE_TODAY) {
                     TodayScreen(
+                        onAddLesson = {
+                            nav.navigate(calendarRoute(nav)) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         onAddStudent = {
                             nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenStudentProfile = { studentId ->
+                            nav.navigate(studentDetailsRoute(studentId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenDebtors = {
+                            nav.navigate(ROUTE_FINANCE) {
                                 launchSingleTop = true
                             }
                         }
@@ -226,19 +242,12 @@ fun AppNavRoot() {
                     val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
                     StudentDetailsScreen(
                         onBack = { nav.popBackStack() },
-                        onEdit = { id, target ->
-                            nav.navigate(studentEditRoute(id, target)) {
-                                launchSingleTop = true
-                            }
-                        },
                         onAddStudentFromCreation = {
                             nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
                                 launchSingleTop = true
                             }
                         },
-                        creationViewModel = creationViewModel,
-                        sharedTransitionScope = sharedScope,
-                        animatedVisibilityScope = this
+                        creationViewModel = creationViewModel
                     )
                 }
                 dialog(

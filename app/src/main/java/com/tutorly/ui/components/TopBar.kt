@@ -41,7 +41,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(135.dp),
+                .height(80.dp),
             title = {
                 Box(
                     modifier = Modifier
@@ -83,7 +83,7 @@ fun AppTopBar(title: String, onAddClick: (() -> Unit)? = null) {
 
 @Composable
 fun GradientTopBarContainer(content: @Composable () -> Unit) {
-    val shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+    val shape = RoundedCornerShape(0.dp)
     Surface(
         modifier = Modifier
             .fillMaxWidth()

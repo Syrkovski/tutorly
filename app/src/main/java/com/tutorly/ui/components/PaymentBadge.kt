@@ -2,18 +2,16 @@ package com.tutorly.ui.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tutorly.ui.theme.DarkOnSuccessGreenContainer
-import com.tutorly.ui.theme.DarkSuccessGreenContainer
-import com.tutorly.ui.theme.OnSuccessGreenContainer
-import com.tutorly.ui.theme.SuccessGreenContainer
+import com.tutorly.ui.theme.DebtChipContent
+import com.tutorly.ui.theme.DebtChipFill
+import com.tutorly.ui.theme.PaidChipContent
+import com.tutorly.ui.theme.PaidChipFill
 
 enum class PaymentBadgeStatus {
     PAID,
@@ -22,29 +20,23 @@ enum class PaymentBadgeStatus {
 }
 
 @Composable
-fun PaymentBadge(status: PaymentBadgeStatus) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isLightTheme = colorScheme.surface.luminance() > 0.5f
+fun PaymentBadge(
+    status: PaymentBadgeStatus,
+    modifier: Modifier = Modifier
+) {
     val (txt, container, content) = when (status) {
-        PaymentBadgeStatus.PAID -> {
-            val background = if (isLightTheme) SuccessGreenContainer else DarkSuccessGreenContainer
-            val foreground = if (isLightTheme) OnSuccessGreenContainer else DarkOnSuccessGreenContainer
-            Triple("Оплачено", background, foreground)
-        }
+        PaymentBadgeStatus.PAID -> Triple("Оплачено", PaidChipFill, PaidChipContent)
 
-        PaymentBadgeStatus.DEBT -> {
-            Triple("Долг", colorScheme.errorContainer, colorScheme.onErrorContainer)
-        }
+        PaymentBadgeStatus.DEBT -> Triple("Долг", DebtChipFill, DebtChipContent)
 
-        PaymentBadgeStatus.PREPAID -> {
-            Triple(
-                "Предоплата",
-                colorScheme.primaryContainer,
-                colorScheme.onPrimaryContainer
-            )
-        }
+        PaymentBadgeStatus.PREPAID -> Triple(
+            "Предоплата",
+            PaidChipFill,
+            PaidChipContent
+        )
     }
     Surface(
+        modifier = modifier,
         color = container,
         contentColor = content,
         shape = RoundedCornerShape(999.dp),
