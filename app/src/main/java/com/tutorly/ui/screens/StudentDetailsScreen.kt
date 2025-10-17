@@ -1097,11 +1097,18 @@ private fun StudentProfileLessonCard(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = dateText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = dateText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                PaymentBadge(status = badgeStatus)
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
@@ -1123,7 +1130,6 @@ private fun StudentProfileLessonCard(
                     text = amount,
                     style = MaterialTheme.typography.titleMedium
                 )
-                PaymentBadge(status = badgeStatus)
             }
         }
     }
