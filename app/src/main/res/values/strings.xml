@@ -72,7 +72,7 @@
     <string name="student_profile_metrics_prepayment_label">₽ предоплата</string>
     <string name="student_profile_add_prepayment">Добавить предоплату</string>
     <string name="student_prepayment_title">Предоплата</string>
-    <string name="student_prepayment_amount_label">Сумма</string>
+    <string name="student_prepayment_amount_label">Предоплата</string>
     <string name="student_prepayment_amount_error">Введите ненулевую сумму</string>
     <string name="student_prepayment_save">Сохранить</string>
     <string name="student_prepayment_error">Не удалось сохранить предоплату</string>
