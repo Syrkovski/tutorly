@@ -425,13 +425,23 @@ private fun StudentCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = item.student.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.student.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (item.hasDebt) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        PaymentBadge(status = PaymentBadgeStatus.DEBT)
+                    }
+                }
                 subtitle?.let {
                     Text(
                         text = it,
@@ -526,12 +536,6 @@ private fun StudentCard(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
-                        }
-                        if (item.hasDebt) {
-                            if (phone != null || email != null) {
-                                Spacer(Modifier.width(12.dp))
-                            }
-                            PaymentBadge(status = PaymentBadgeStatus.DEBT)
                         }
                     }
                 }

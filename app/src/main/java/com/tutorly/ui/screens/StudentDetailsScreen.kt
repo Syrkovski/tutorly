@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
@@ -25,6 +26,8 @@ import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Schedule
@@ -234,6 +237,15 @@ fun StudentDetailsScreen(
             .takeIf { it.isNotBlank() }
     }
 
+    val badgeStatus = contentState?.profile?.let { profile ->
+        when {
+            profile.hasDebt -> PaymentBadgeStatus.DEBT
+            profile.metrics.prepaymentCents > 0L -> PaymentBadgeStatus.PREPAID
+            profile.metrics.totalPaidCents > 0L || profile.metrics.paidLessons > 0 -> PaymentBadgeStatus.PAID
+            else -> null
+        }
+    }
+
     val openLessonCreation: (Long) -> Unit = { id ->
         creationViewModel.start(
             LessonCreationConfig(
@@ -249,6 +261,7 @@ fun StudentDetailsScreen(
             StudentProfileTopBar(
                 title = title,
                 subtitle = subtitle,
+                badgeStatus = badgeStatus,
                 onEditProfileClick = contentState?.let {
                     { openEditor(StudentEditTarget.PROFILE) }
                 },
@@ -406,6 +419,7 @@ fun StudentDetailsScreen(
 private fun StudentProfileTopBar(
     title: String,
     subtitle: String?,
+    badgeStatus: PaymentBadgeStatus?,
     onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
     onBack: () -> Unit,
@@ -428,13 +442,23 @@ private fun StudentProfileTopBar(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text(
-                        text = title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (badgeStatus != null) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            PaymentBadge(status = badgeStatus)
+                        }
+                    }
                     if (!subtitle.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -583,31 +607,90 @@ private fun StudentProfileContent(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         groupedLessons.forEach { (month, lessons) ->
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text(
-                                    text = monthFormatter.format(month),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                lessons.forEach { lesson ->
-                                    StudentProfileLessonCard(
-                                        lesson = lesson,
-                                        fallbackSubject = profile.subject,
-                                        currencyFormatter = currencyFormatter,
-                                        zoneId = zoneId,
-                                        dateFormatter = dateFormatter,
-                                        timeFormatter = timeFormatter,
-                                        referenceTime = referenceTime,
-                                        onClick = { onLessonClick(lesson.id) }
-                                    )
-                                }
-                            }
+                            StudentProfileLessonMonthSection(
+                                month = month,
+                                monthLabel = monthFormatter.format(month),
+                                lessons = lessons,
+                                fallbackSubject = profile.subject,
+                                currencyFormatter = currencyFormatter,
+                                zoneId = zoneId,
+                                dateFormatter = dateFormatter,
+                                timeFormatter = timeFormatter,
+                                referenceTime = referenceTime,
+                                onLessonClick = onLessonClick
+                            )
                         }
                     }
                 }
             }
         }
         item { Spacer(modifier = Modifier.height(60.dp)) }
+    }
+}
+
+@Composable
+private fun StudentProfileLessonMonthSection(
+    month: YearMonth,
+    monthLabel: String,
+    lessons: List<StudentProfileLesson>,
+    fallbackSubject: String?,
+    currencyFormatter: NumberFormat,
+    zoneId: ZoneId,
+    dateFormatter: DateTimeFormatter,
+    timeFormatter: DateTimeFormatter,
+    referenceTime: Instant,
+    onLessonClick: (Long) -> Unit
+) {
+    var expanded by rememberSaveable(month) { mutableStateOf(false) }
+    val toggleDescription = stringResource(
+        id = if (expanded) {
+            R.string.student_details_history_collapse_month
+        } else {
+            R.string.student_details_history_expand_month
+        },
+        monthLabel
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = monthLabel,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                imageVector = if (expanded) {
+                    Icons.Outlined.ExpandLess
+                } else {
+                    Icons.Outlined.ExpandMore
+                },
+                contentDescription = toggleDescription,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                lessons.forEach { lesson ->
+                    StudentProfileLessonCard(
+                        lesson = lesson,
+                        fallbackSubject = fallbackSubject,
+                        currencyFormatter = currencyFormatter,
+                        zoneId = zoneId,
+                        dateFormatter = dateFormatter,
+                        timeFormatter = timeFormatter,
+                        referenceTime = referenceTime,
+                        onClick = { onLessonClick(lesson.id) }
+                    )
+                }
+            }
+        }
     }
 }
 
