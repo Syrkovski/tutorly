@@ -2,16 +2,22 @@ package com.tutorly.di
 
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
 import com.tutorly.data.db.migrations.MIGRATION_5_6
 import com.tutorly.data.repo.memory.StaticUserSettingsRepository
+import com.tutorly.data.repo.preferences.PreferencesDayClosureRepository
 import com.tutorly.data.repo.room.RoomLessonsRepository
 import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
 import com.tutorly.data.repo.room.RoomSubjectPresetsRepository
 import com.tutorly.data.repo.room.StudentPrepaymentAllocator
+import com.tutorly.domain.repo.DayClosureRepository
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.domain.repo.StudentsRepository
@@ -23,6 +29,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -71,4 +80,17 @@ object DatabaseModule {
 
     @Provides @Singleton
     fun provideUserSettingsRepo(): UserSettingsRepository = StaticUserSettingsRepository()
+
+    @Provides @Singleton
+    fun providePreferencesDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        ) {
+            ctx.preferencesDataStoreFile("today_prefs")
+        }
+
+    @Provides @Singleton
+    fun provideDayClosureRepository(
+        dataStore: DataStore<Preferences>
+    ): DayClosureRepository = PreferencesDayClosureRepository(dataStore)
 }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,7 +89,6 @@ import java.util.Locale
 @Composable
 fun TodayScreen(
     modifier: Modifier = Modifier,
-    onAddLesson: () -> Unit = {},
     onAddStudent: () -> Unit = {},
     onOpenStudentProfile: (Long) -> Unit = {},
     onOpenDebtors: () -> Unit = {},
@@ -165,7 +163,7 @@ fun TodayScreen(
         ) {
             when (val state = uiState) {
                 TodayUiState.Loading -> LoadingState()
-                TodayUiState.Empty -> EmptyState(onAddLesson = onAddLesson)
+                TodayUiState.Empty -> EmptyState()
                 is TodayUiState.DayInProgress -> DayInProgressContent(
                     state = state,
                     onSwipeRight = viewModel::onSwipeRight,
@@ -198,7 +196,7 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun EmptyState(onAddLesson: () -> Unit) {
+private fun EmptyState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -223,10 +221,6 @@ private fun EmptyState(onAddLesson: () -> Unit) {
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onAddLesson) {
-            Text(text = stringResource(R.string.today_empty_add_button))
-        }
     }
 }
 
@@ -441,18 +435,16 @@ private fun DayClosedContent(
                 )
             }
         }
-        if (state.pastDueLessonsPreview.isNotEmpty()) {
-            item(key = "past_debtors") {
-                PastDebtorsCollapsible(
-                    lessons = state.pastDueLessonsPreview,
-                    onSwipeRight = onSwipeRight,
-                    onSwipeLeft = onSwipeLeft,
-                    onLessonOpen = onLessonOpen,
-                    onOpenStudentProfile = onOpenStudentProfile,
-                    onOpenDebtors = onOpenDebtors,
-                    hasMore = state.hasMorePastDueLessons
-                )
-            }
+        item(key = "past_debtors") {
+            PastDebtorsCollapsible(
+                lessons = state.pastDueLessonsPreview,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile,
+                onOpenDebtors = onOpenDebtors,
+                hasMore = state.hasMorePastDueLessons
+            )
         }
     }
 }
@@ -611,13 +603,21 @@ private fun PastDebtorsCollapsible(
         title = stringResource(R.string.today_debtors_past_title),
         subtitle = subtitle
     ) {
-        LessonsList(
-            lessons = lessons,
-            onSwipeRight = onSwipeRight,
-            onSwipeLeft = onSwipeLeft,
-            onLessonOpen = onLessonOpen,
-            onOpenStudentProfile = onOpenStudentProfile
-        )
+        if (lessons.isEmpty()) {
+            Text(
+                text = stringResource(R.string.today_debtors_past_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            LessonsList(
+                lessons = lessons,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile
+            )
+        }
         if (hasMore) {
             Button(onClick = onOpenDebtors) {
                 Text(text = stringResource(R.string.today_debtors_more_cta))

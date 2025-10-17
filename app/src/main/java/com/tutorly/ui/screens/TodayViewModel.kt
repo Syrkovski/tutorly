@@ -1,10 +1,10 @@
 package com.tutorly.ui.screens
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.repo.LessonsRepository
+import com.tutorly.domain.repo.DayClosureRepository
 import com.tutorly.models.PaymentStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
@@ -17,19 +17,16 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 @HiltViewModel
 class TodayViewModel @Inject constructor(
     private val lessonsRepository: LessonsRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val dayClosureRepository: DayClosureRepository
 ) : ViewModel() {
-
-    companion object {
-        private const val KEY_DAY_CLOSED = "today_day_closed"
-    }
 
     private val zoneId: ZoneId = ZoneId.systemDefault()
     private val dayBounds: Pair<Instant, Instant> = run {
@@ -40,10 +37,11 @@ class TodayViewModel @Inject constructor(
     }
     private val dayStart: Instant = dayBounds.first
     private val dayEnd: Instant = dayBounds.second
+    private val currentDate: LocalDate = LocalDate.now(zoneId)
 
     private val nowState = MutableStateFlow(Instant.now())
     private val snackbarState = MutableStateFlow<TodaySnackbarMessage?>(null)
-    private val dayClosedState = MutableStateFlow(savedStateHandle[KEY_DAY_CLOSED] ?: false)
+    private val dayClosedState = MutableStateFlow(false)
 
     private val todayLessonsFlow = lessonsRepository.observeTodayLessons(
         dayStart = dayStart,
@@ -64,6 +62,11 @@ class TodayViewModel @Inject constructor(
 
     init {
         refreshNow()
+        viewModelScope.launch {
+            dayClosureRepository.observeDayClosed(currentDate).collect { isClosed ->
+                dayClosedState.value = isClosed
+            }
+        }
         viewModelScope.launch {
             while (isActive) {
                 delay(60_000L)
@@ -181,7 +184,9 @@ class TodayViewModel @Inject constructor(
 
     private fun setDayClosed(isClosed: Boolean) {
         dayClosedState.value = isClosed
-        savedStateHandle[KEY_DAY_CLOSED] = isClosed
+        viewModelScope.launch {
+            dayClosureRepository.setDayClosed(currentDate, isClosed)
+        }
     }
 }
 

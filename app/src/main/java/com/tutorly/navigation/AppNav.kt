@@ -151,12 +151,6 @@ fun AppNavRoot() {
                 }
                 composable(ROUTE_TODAY) {
                     TodayScreen(
-                        onAddLesson = {
-                            nav.navigate(calendarRoute(nav)) {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
                         onAddStudent = {
                             nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
                                 launchSingleTop = true
