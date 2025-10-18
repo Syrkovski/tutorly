@@ -839,7 +839,7 @@ private fun MonthDayCell(
     val weekNumber = remember(date) { date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
     val containerColor = when {
         !enabled -> Color.Transparent
-        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+        isToday -> Color.White
         else -> Color.Transparent
     }
     val border = if (isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
