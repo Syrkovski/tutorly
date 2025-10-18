@@ -125,6 +125,11 @@
     <string name="lesson_status_cancelled">Отменено</string>
     <string name="calendar_title">Календарь</string>
     <string name="calendar_open_settings">Открыть настройки</string>
+    <string name="calendar_mode_day">День</string>
+    <string name="calendar_mode_week">Неделя</string>
+    <string name="calendar_prev_period">Предыдущий период</string>
+    <string name="calendar_next_period">Следующий период</string>
+    <string name="calendar_open_day_picker">Открыть календарь</string>
     <string name="calendar_status_planned">Запланировано</string>
     <string name="calendar_status_prepaid">Предоплачено</string>
     <string name="calendar_status_in_progress">Идёт сейчас</string>

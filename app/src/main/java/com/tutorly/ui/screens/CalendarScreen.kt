@@ -17,11 +17,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,13 +42,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
 import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.AppTopBar
+import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
@@ -91,6 +97,12 @@ fun CalendarScreen(
     val anchor = uiState.anchor
     val mode = uiState.mode
     val zoneId = remember { ZoneId.systemDefault() }
+
+    LaunchedEffect(mode) {
+        if (mode == CalendarMode.MONTH) {
+            viewModel.setMode(CalendarMode.DAY)
+        }
+    }
 
     LessonCardSheet(
         state = lessonCardState,
@@ -195,26 +207,16 @@ fun CalendarScreen(
         )
     }
 
-    val calendarTitle = remember(anchor) {
-        anchor.format(DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru")))
-            .replaceFirstChar { it.titlecase(Locale("ru")) }
-    }
-
     Scaffold(
         modifier = modifier,
         topBar = {
-            AppTopBar(
-                title = calendarTitle,
-                actions = {
-                    IconButton(
-                        onClick = onOpenSettings
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = stringResource(id = R.string.calendar_open_settings)
-                        )
-                    }
-                }
+            CalendarTopBar(
+                selectedMode = mode,
+                onSelectMode = { newMode ->
+                    direction = 0
+                    viewModel.setMode(newMode)
+                },
+                onOpenSettings = onOpenSettings
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -251,10 +253,7 @@ fun CalendarScreen(
             anchor = anchor,
             mode = mode,
             weekendDays = uiState.weekendDays,
-            onModeChange = {
-                direction = 0
-                viewModel.setMode(it)
-            },
+            currentDateTime = uiState.currentDateTime,
             onPrevPeriod = prevPeriod,
             onNextPeriod = nextPeriod,
             onSelectDate = { selected ->
@@ -352,7 +351,8 @@ fun CalendarScreen(
                             }
                             viewModel.setMode(CalendarMode.DAY)
                             viewModel.selectDate(selected)
-                        }
+                        },
+                        selectedDate = currentDate
                     )
                 }
             }
@@ -375,6 +375,108 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 }
 
 
+/* ----------------------------- TOP BAR ----------------------------------- */
+
+@Composable
+private fun CalendarTopBar(
+    selectedMode: CalendarMode,
+    onSelectMode: (CalendarMode) -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    val displayMode = remember(selectedMode) {
+        if (selectedMode == CalendarMode.MONTH) CalendarMode.DAY else selectedMode
+    }
+
+    GradientTopBarContainer {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(id = R.string.calendar_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CalendarModeToggle(
+                    selected = displayMode,
+                    onSelect = onSelectMode
+                )
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = stringResource(id = R.string.calendar_open_settings)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarModeToggle(
+    selected: CalendarMode,
+    onSelect: (CalendarMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = remember { listOf(CalendarMode.DAY, CalendarMode.WEEK) }
+    Row(
+        modifier = modifier
+            .selectableGroup()
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        options.forEach { option ->
+            val isSelected = option == selected
+            val segmentShape = RoundedCornerShape(20.dp)
+            val background = if (isSelected) {
+                Color.White
+            } else {
+                Color.White.copy(alpha = 0.12f)
+            }
+            val contentColor = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onPrimary
+            }
+
+            Surface(
+                onClick = {
+                    if (!isSelected) onSelect(option)
+                },
+                shape = segmentShape,
+                color = background,
+                contentColor = contentColor,
+                tonalElevation = 0.dp,
+                shadowElevation = if (isSelected) 2.dp else 0.dp
+            ) {
+                val labelRes = if (option == CalendarMode.DAY) {
+                    R.string.calendar_mode_day
+                } else {
+                    R.string.calendar_mode_week
+                }
+                Text(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                    text = stringResource(id = labelRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor
+                )
+            }
+        }
+    }
+}
+
+
 /* ----------------------------- HEADER ----------------------------------- */
 
 @Composable
@@ -382,13 +484,44 @@ fun PlanScreenHeader(
     anchor: LocalDate,
     mode: CalendarMode,
     weekendDays: Set<DayOfWeek>,
-    onModeChange: (CalendarMode) -> Unit,
+    currentDateTime: ZonedDateTime,
     onPrevPeriod: () -> Unit,
     onNextPeriod: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit
 ) {
+    val locale = remember { Locale("ru") }
+    val dayFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
+    val dayMonthFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM", locale) }
+    val periodLabel = remember(anchor, mode) {
+        when (mode) {
+            CalendarMode.WEEK -> {
+                val weekStart = anchor.with(DayOfWeek.MONDAY)
+                val weekEnd = weekStart.plusDays(6)
+                when {
+                    weekStart.month == weekEnd.month && weekStart.year == weekEnd.year -> {
+                        val endText = dayFormatter.format(weekEnd)
+                        "${weekStart.dayOfMonth} – $endText"
+                    }
+                    weekStart.year == weekEnd.year -> {
+                        val startText = dayMonthFormatter.format(weekStart)
+                        val endText = dayFormatter.format(weekEnd)
+                        "$startText – $endText"
+                    }
+                    else -> {
+                        val startText = dayFormatter.format(weekStart)
+                        val endText = dayFormatter.format(weekEnd)
+                        "$startText – $endText"
+                    }
+                }
+            }
+            else -> dayFormatter.format(anchor)
+        }
+    }
+
+    var calendarExpanded by remember { mutableStateOf(false) }
+
     Column(
         Modifier
             .fillMaxWidth()
@@ -424,27 +557,87 @@ fun PlanScreenHeader(
                 )
             }
     ) {
-        TabRow(
-            selectedTabIndex = mode.ordinal,
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.primary,
-            divider = {}
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            listOf("День", "Неделя", "Месяц").forEachIndexed { i, label ->
-                Tab(
-                    selected = i == mode.ordinal,
-                    onClick = { onModeChange(CalendarMode.values()[i]) },
-                    text = { Text(label) }
+            IconButton(onClick = onPrevPeriod) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronLeft,
+                    contentDescription = stringResource(id = R.string.calendar_prev_period)
                 )
             }
-        }
-        if (mode == CalendarMode.DAY) {
-            DayWeekStrip(
-                anchor = anchor,
-                weekendDays = weekendDays,
-                onSelect = onSelectDate,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+            ) {
+                Surface(
+                    onClick = { calendarExpanded = true },
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.DateRange,
+                            contentDescription = null
+                        )
+                        Text(
+                            text = periodLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Icon(
+                            imageVector = Icons.Outlined.ExpandMore,
+                            contentDescription = stringResource(id = R.string.calendar_open_day_picker)
+                        )
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = calendarExpanded,
+                    onDismissRequest = { calendarExpanded = false },
+                    offset = DpOffset(x = 0.dp, y = 4.dp)
+                ) {
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        tonalElevation = 4.dp,
+                        shadowElevation = 8.dp
+                    ) {
+                        MonthCalendar(
+                            anchor = anchor,
+                            currentDateTime = currentDateTime,
+                            weekendDays = weekendDays,
+                            onDaySelected = {
+                                calendarExpanded = false
+                                onSelectDate(it)
+                            },
+                            selectedDate = anchor,
+                            modifier = Modifier
+                                .width(320.dp)
+                                .height(360.dp)
+                        )
+                    }
+                }
+            }
+
+            IconButton(onClick = onNextPeriod) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = stringResource(id = R.string.calendar_next_period)
+                )
+            }
         }
     }
 }
@@ -735,7 +928,9 @@ private fun MonthCalendar(
     anchor: LocalDate,
     currentDateTime: ZonedDateTime,
     weekendDays: Set<DayOfWeek>,
-    onDaySelected: (LocalDate) -> Unit
+    onDaySelected: (LocalDate) -> Unit,
+    selectedDate: LocalDate? = null,
+    modifier: Modifier = Modifier.fillMaxSize()
 ) {
     val month = remember(anchor) { YearMonth.from(anchor) }
     val firstDay = remember(month) { month.atDay(1) }
@@ -750,7 +945,7 @@ private fun MonthCalendar(
     }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier) {
         val headerHeight = 36.dp
         val gridHeight = remember(maxHeight) { (maxHeight - headerHeight).coerceAtLeast(0.dp) }
         val cellHeight = remember(gridHeight) { if (gridHeight == 0.dp) 0.dp else gridHeight / 6 }
@@ -809,6 +1004,7 @@ private fun MonthCalendar(
                         inCurrentMonth = date.month == month.month,
                         isToday = date == today,
                         isWeekend = date.dayOfWeek in weekendDays,
+                        isSelected = selectedDate == date,
                         onClick = {
                             if (date.month == month.month) {
                                 onDaySelected(date)
@@ -830,6 +1026,7 @@ private fun MonthDayCell(
     inCurrentMonth: Boolean,
     isToday: Boolean,
     isWeekend: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -838,6 +1035,7 @@ private fun MonthDayCell(
     val weekNumber = remember(date) { date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
     val containerColor = when {
         !enabled -> Color.Transparent
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         isToday -> Color.White
         else -> Color.Transparent
     }
@@ -847,12 +1045,14 @@ private fun MonthDayCell(
     }
     val dayNumberColor = when {
         !enabled -> contentColor.copy(alpha = 0.3f)
+        isSelected -> MaterialTheme.colorScheme.onPrimary
         isToday -> MaterialTheme.colorScheme.primary
         isWeekend -> MaterialTheme.colorScheme.primary
         else -> contentColor
     }
     val weekNumberColor = when {
         !enabled -> contentColor.copy(alpha = 0.2f)
+        isSelected -> MaterialTheme.colorScheme.primary
         isWeekend -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     }
@@ -860,8 +1060,8 @@ private fun MonthDayCell(
     Surface(
         color = containerColor,
         shape = MaterialTheme.shapes.medium,
-        tonalElevation = if (isToday && enabled) 2.dp else 0.dp,
-        shadowElevation = if (isToday && enabled) 4.dp else 0.dp,
+        tonalElevation = if ((isToday || isSelected) && enabled) 2.dp else 0.dp,
+        shadowElevation = if ((isToday || isSelected) && enabled) 4.dp else 0.dp,
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .clickable(enabled = enabled, onClick = onClick)
@@ -879,6 +1079,7 @@ private fun MonthDayCell(
                 DayNumberBadge(
                     day = date.dayOfMonth,
                     isToday = isToday,
+                    isSelected = isSelected,
                     color = dayNumberColor,
                     enabled = enabled
                 )
@@ -900,16 +1101,18 @@ private fun MonthDayCell(
 private fun DayNumberBadge(
     day: Int,
     isToday: Boolean,
+    isSelected: Boolean,
     color: Color,
     enabled: Boolean
 ) {
     val badgeColor = when {
         !enabled -> Color.Transparent
+        isSelected -> MaterialTheme.colorScheme.primary
         isToday -> MaterialTheme.colorScheme.primary
         else -> Color.Transparent
     }
     val textColor = when {
-        isToday && enabled -> MaterialTheme.colorScheme.onPrimary
+        (isSelected || isToday) && enabled -> MaterialTheme.colorScheme.onPrimary
         else -> color
     }
     Box(
@@ -924,81 +1127,5 @@ private fun DayNumberBadge(
             style = MaterialTheme.typography.bodyMedium,
             color = textColor
         )
-    }
-}
-
-/* --------------------------- DAY/WEEK STRIP ------------------------------ */
-
-@Composable
-fun DayWeekStrip(
-    anchor: LocalDate,
-    weekendDays: Set<DayOfWeek>,
-    onSelect: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val monday = anchor.with(DayOfWeek.MONDAY)
-    val days = remember(monday) { (0..6).map { monday.plusDays(it.toLong()) } }
-
-    Row(modifier.padding(top = 8.dp)) {
-        days.forEachIndexed { idx, d ->
-            val selected = d == anchor
-            DayTwoLineChip(
-                date = d,
-                selected = selected,
-                isWeekend = d.dayOfWeek in weekendDays,
-                onClick = { onSelect(d) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-                    .then(if (idx < days.lastIndex) Modifier.padding(end = 8.dp) else Modifier)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DayTwoLineChip(
-    date: LocalDate,
-    selected: Boolean,
-    isWeekend: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val background = if (selected) {
-        Color.White
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
-    }
-    val foreground = when {
-        selected -> MaterialTheme.colorScheme.onSurface
-        isWeekend -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Surface(
-        color = background,
-        shape = MaterialTheme.shapes.medium,
-        onClick = onClick,
-        modifier = modifier,
-        shadowElevation = if (selected) 6.dp else 4.dp
-    ) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
-                    .replaceFirstChar { it.titlecase(Locale("ru")) },
-                style = MaterialTheme.typography.labelSmall,
-                color = foreground
-            )
-            Text(
-                "${date.dayOfMonth}",
-                style = MaterialTheme.typography.labelLarge,
-                color = foreground
-            )
-        }
     }
 }
