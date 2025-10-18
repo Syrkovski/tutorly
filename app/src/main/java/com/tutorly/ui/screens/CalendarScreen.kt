@@ -252,6 +252,7 @@ fun CalendarScreen(
         PlanScreenHeader(
             anchor = anchor,
             mode = mode,
+            weekendDays = uiState.weekendDays,
             onModeChange = {
                 direction = 0
                 viewModel.setMode(it)
@@ -315,6 +316,8 @@ fun CalendarScreen(
                         date = currentDate,
                         lessons = lessonsForCurrent,
                         currentDateTime = uiState.currentDateTime,
+                        workDayStartMinutes = uiState.workDayStartMinutes,
+                        workDayEndMinutes = uiState.workDayEndMinutes,
                         onLessonClick = { lesson ->
                             lessonCardViewModel.open(lesson.id)
                         },
@@ -342,6 +345,7 @@ fun CalendarScreen(
                     CalendarMode.MONTH -> MonthCalendar(
                         anchor = currentDate,
                         currentDateTime = uiState.currentDateTime,
+                        weekendDays = uiState.weekendDays,
                         onDaySelected = { selected ->
                             direction = when {
                                 selected.isAfter(anchor) -> 1
@@ -379,6 +383,7 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 fun PlanScreenHeader(
     anchor: LocalDate,
     mode: CalendarMode,
+    weekendDays: Set<DayOfWeek>,
     onModeChange: (CalendarMode) -> Unit,
     onPrevPeriod: () -> Unit,
     onNextPeriod: () -> Unit,
@@ -438,6 +443,7 @@ fun PlanScreenHeader(
         if (mode == CalendarMode.DAY) {
             DayWeekStrip(
                 anchor = anchor,
+                weekendDays = weekendDays,
                 onSelect = onSelectDate,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -453,46 +459,78 @@ private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
 private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
 private const val SlotIncrementMinutes: Int = 30
+private const val MAX_START_MINUTE: Int = LAST_TIMELINE_MINUTE - SlotIncrementMinutes
+private const val MAX_END_MINUTE: Int = LAST_TIMELINE_MINUTE
 
 @Composable
 private fun DayTimeline(
     date: LocalDate,
     lessons: List<CalendarLesson>,
     currentDateTime: ZonedDateTime,
+    workDayStartMinutes: Int,
+    workDayEndMinutes: Int,
     onLessonClick: (CalendarLesson) -> Unit,
     onEmptySlot: (LocalTime) -> Unit
 ) {
     val dayLessons = remember(date, lessons) { lessons }
     val isToday = remember(date, currentDateTime) { currentDateTime.toLocalDate() == date }
-    val (startHour, endHourExclusive) = remember { computeTimelineBounds() }
-    val hours = remember(startHour, endHourExclusive) {
-        (startHour until endHourExclusive).map { "%02d:00".format(it) }
+    val startMinutes = remember(workDayStartMinutes) {
+        workDayStartMinutes.coerceIn(0, MAX_START_MINUTE)
     }
-    val totalHeight: Dp = HourHeight * hours.size
-    val totalMinutes = remember(startHour, endHourExclusive) {
-        (endHourExclusive - startHour) * MinutesPerHour
+    val endMinutes = remember(workDayEndMinutes, startMinutes) {
+        workDayEndMinutes.coerceIn(startMinutes + SlotIncrementMinutes, MAX_END_MINUTE)
     }
+    val totalMinutes = remember(startMinutes, endMinutes) {
+        (endMinutes - startMinutes).coerceAtLeast(SlotIncrementMinutes)
+    }
+    val minuteHeight = remember { HourHeight / MinutesPerHour }
+    val totalHeight = remember(totalMinutes) { minuteHeight * totalMinutes.toFloat() }
 
     val scroll = rememberScrollState()
     val density = LocalDensity.current
-    val hourHeightPx = remember(density) { with(density) { HourHeight.toPx() } }
+    val minuteHeightPx = remember(density) { with(density) { minuteHeight.toPx() } }
     val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
     val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
     val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
-    val nowMinutesFromStart = remember(isToday, currentDateTime, startHour) {
-        if (!isToday) null else {
+    val nowMinutesFromStart = remember(isToday, currentDateTime, startMinutes, totalMinutes) {
+        if (!isToday) {
+            null
+        } else {
             val currentMinutes = currentDateTime.hour * MinutesPerHour + currentDateTime.minute
-            currentMinutes - startHour * MinutesPerHour
+            val within = currentMinutes - startMinutes
+            within.takeIf { it in 0..totalMinutes }
         }
     }
-    val lessonRegions = remember(dayLessons, startHour, hourHeightPx, labelWidthPx, cardInsetPx) {
-        val baseMin = startHour * MinutesPerHour
+    val hourMarks = remember(startMinutes, endMinutes) {
+        buildList {
+            add(startMinutes)
+            var next = ((startMinutes / MinutesPerHour) + 1) * MinutesPerHour
+            while (next < endMinutes) {
+                add(next)
+                next += MinutesPerHour
+            }
+            add(endMinutes)
+        }.distinct()
+    }
+    val labelMinutes = remember(startMinutes, endMinutes) {
+        buildList {
+            add(startMinutes)
+            var next = ((startMinutes / MinutesPerHour) + 1) * MinutesPerHour
+            while (next < endMinutes) {
+                add(next)
+                next += MinutesPerHour
+            }
+        }
+    }
+    val lessonRegions = remember(dayLessons, startMinutes, minuteHeightPx, labelWidthPx, cardInsetPx) {
+        val baseMin = startMinutes
         dayLessons.map { lesson ->
             val startTime = lesson.start.toLocalTime()
-            val startMin = startTime.hour * MinutesPerHour + startTime.minute
+            val lessonStart = startTime.hour * MinutesPerHour + startTime.minute
+            val offsetMinutes = (lessonStart - baseMin).coerceAtLeast(0)
             val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
-            val topPx = ((startMin - baseMin).coerceAtLeast(0)) * hourHeightPx / MinutesPerHour
-            val heightPx = durationMinutes.toFloat() * hourHeightPx / MinutesPerHour
+            val topPx = offsetMinutes * minuteHeightPx
+            val heightPx = durationMinutes.toFloat() * minuteHeightPx
             TimelineLessonRegion(
                 topPx = topPx,
                 bottomPx = topPx + heightPx,
@@ -501,47 +539,47 @@ private fun DayTimeline(
         }
     }
 
-    // ВЕСЬ день = одна большая "простыня" высотой totalHeight; она вертикально скроллится
     Box(
         Modifier
             .fillMaxSize()
             .background(Color(0xFFFCFAFC))
             .verticalScroll(scroll)
     ) {
-        // Внутренний контейнер фиксированной высоты = весь день
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(totalHeight)
                 .padding(horizontal = 8.dp)
-                .pointerInput(dayLessons, startHour, endHourExclusive, lessonRegions) {
+                .pointerInput(dayLessons, startMinutes, endMinutes, lessonRegions) {
                     detectTapGestures { offset ->
                         if (offset.x < labelWidthPx) return@detectTapGestures
-                        if (lessonRegions.any { region -> offset.x >= region.leftPx && offset.y in region.topPx..region.bottomPx }) {
+                        if (lessonRegions.any { region ->
+                                offset.x >= region.leftPx && offset.y in region.topPx..region.bottomPx
+                            }
+                        ) {
                             return@detectTapGestures
                         }
 
                         val clampedY = offset.y.coerceIn(0f, totalHeightPx)
-                        val minutesWithin = (clampedY / hourHeightPx) * MinutesPerHour
-                        val candidate = (startHour * MinutesPerHour) + minutesWithin.roundToInt()
-                        val normalized = candidate.coerceIn(0, LAST_TIMELINE_MINUTE)
-                        val rounded = (normalized / SlotIncrementMinutes) * SlotIncrementMinutes
+                        val minutesWithin = (clampedY / minuteHeightPx).roundToInt()
+                        val candidate = startMinutes + minutesWithin
+                        val maxSelectable = (endMinutes - SlotIncrementMinutes).coerceAtLeast(startMinutes)
+                        val normalized = candidate.coerceIn(startMinutes, maxSelectable)
+                        val slots = (normalized - startMinutes) / SlotIncrementMinutes
+                        val rounded = startMinutes + slots * SlotIncrementMinutes
                         val hour = rounded / MinutesPerHour
                         val minute = rounded % MinutesPerHour
                         onEmptySlot(LocalTime.of(hour, minute))
                     }
                 }
         ) {
-            // 1) Сетка фоном
             val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
             val spineColor = MaterialTheme.colorScheme.primary
             Canvas(Modifier.matchParentSize()) {
-                val rowH = HourHeight.toPx()
                 val leftPad = LabelWidth.toPx()
                 val spineW = 2.dp.toPx()
-
-                repeat(hours.size + 1) { i ->
-                    val y = i * rowH
+                hourMarks.forEach { minute ->
+                    val y = (minute - startMinutes) * minuteHeightPx
                     drawLine(
                         color = gridLineColor,
                         start = androidx.compose.ui.geometry.Offset(0f, y),
@@ -554,8 +592,8 @@ private fun DayTimeline(
                     topLeft = androidx.compose.ui.geometry.Offset(leftPad, 0f),
                     size = androidx.compose.ui.geometry.Size(spineW, size.height)
                 )
-                nowMinutesFromStart?.takeIf { it in 0..totalMinutes }?.let { minutes ->
-                    val y = minutes * rowH / MinutesPerHour
+                nowMinutesFromStart?.let { minutes ->
+                    val y = minutes * minuteHeightPx
                     drawLine(
                         color = NowAccent,
                         start = androidx.compose.ui.geometry.Offset(0f, y),
@@ -565,34 +603,33 @@ private fun DayTimeline(
                 }
             }
 
-            // 2) Уроки — точное позиционирование по времени, до правого края
             dayLessons.forEach { lesson ->
                 LessonBlock(
                     lesson = lesson,
-                    baseHour = startHour,
-                    hourHeight = HourHeight,
+                    baseMinutes = startMinutes,
+                    minuteHeight = minuteHeight,
                     now = currentDateTime,
                     onLessonClick = onLessonClick
                 )
             }
 
-            // 3) Метки времени слева
-            Column(
+            Box(
                 Modifier
                     .fillMaxHeight()
                     .width(LabelWidth)
             ) {
-                hours.forEach {
-                    Box(
-                        Modifier
-                            .height(HourHeight),
-                        contentAlignment = Alignment.TopStart
-                    ) {
-                        Text(it, style = MaterialTheme.typography.labelLarge)
-                    }
+                labelMinutes.forEach { minute ->
+                    val label = "%02d:%02d".format(minute / MinutesPerHour, minute % MinutesPerHour)
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(y = minuteHeight * (minute - startMinutes).toFloat())
+                    )
                 }
             }
-
         }
     }
 }
@@ -606,20 +643,18 @@ private data class TimelineLessonRegion(
 @Composable
 private fun LessonBlock(
     lesson: CalendarLesson,
-    baseHour: Int,
-    hourHeight: Dp,
+    baseMinutes: Int,
+    minuteHeight: Dp,
     now: ZonedDateTime,
     onLessonClick: (CalendarLesson) -> Unit
 ) {
     val startTime = lesson.start.toLocalTime()
-    val startMin = startTime.hour * 60 + startTime.minute
-    val baseMin = baseHour * 60
+    val startMin = startTime.hour * MinutesPerHour + startTime.minute
+    val offsetMinutes = (startMin - baseMinutes).coerceAtLeast(0)
     val durationMinutes = lesson.duration.toMinutes().coerceAtLeast(SlotIncrementMinutes.toLong())
 
-    // Переводим минуты в dp (1 мин = hourHeight/60)
-    val minuteDp = hourHeight / 60f
-    val top = minuteDp * (startMin - baseMin)
-    val height = minuteDp * durationMinutes.toInt()
+    val top = minuteHeight * offsetMinutes.toFloat()
+    val height = minuteHeight * durationMinutes.toInt().toFloat()
 
     val statusInfo = lesson.statusPresentation(now)
     val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
@@ -633,7 +668,7 @@ private fun LessonBlock(
             .fillMaxWidth()
             .offset(y = top)
             .height(height)
-            .padding(start = LabelWidth + 8.dp, end = 8.dp) // от оси до правого края
+            .padding(start = LabelWidth + 8.dp, end = 8.dp)
     ) {
         Card(
             onClick = { onLessonClick(lesson) },
@@ -694,14 +729,13 @@ private fun LessonBlock(
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
 
-private fun computeTimelineBounds(): Pair<Int, Int> = 6 to 24
-
 /* ----------------------------- MONTH GRID -------------------------------- */
 
 @Composable
 private fun MonthCalendar(
     anchor: LocalDate,
     currentDateTime: ZonedDateTime,
+    weekendDays: Set<DayOfWeek>,
     onDaySelected: (LocalDate) -> Unit
 ) {
     val month = remember(anchor) { YearMonth.from(anchor) }
@@ -744,7 +778,7 @@ private fun MonthCalendar(
                     val label = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
                         .replaceFirstChar { it.titlecase(Locale("ru")) }
                     val labelColor = when {
-                        isWeekend(dayOfWeek) -> NowAccent
+                        dayOfWeek in weekendDays -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     }
                     Box(
@@ -775,6 +809,7 @@ private fun MonthCalendar(
                         date = date,
                         inCurrentMonth = date.month == month.month,
                         isToday = date == today,
+                        isWeekend = date.dayOfWeek in weekendDays,
                         onClick = {
                             if (date.month == month.month) {
                                 onDaySelected(date)
@@ -795,6 +830,7 @@ private fun MonthDayCell(
     date: LocalDate,
     inCurrentMonth: Boolean,
     isToday: Boolean,
+    isWeekend: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -813,11 +849,13 @@ private fun MonthDayCell(
     }
     val dayNumberColor = when {
         !enabled -> contentColor.copy(alpha = 0.3f)
-        isWeekend(date.dayOfWeek) -> NowAccent
+        isToday -> MaterialTheme.colorScheme.primary
+        isWeekend -> MaterialTheme.colorScheme.primary
         else -> contentColor
     }
     val weekNumberColor = when {
         !enabled -> contentColor.copy(alpha = 0.2f)
+        isWeekend -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     }
 
@@ -892,15 +930,12 @@ private fun DayNumberBadge(
     }
 }
 
-private fun isWeekend(dayOfWeek: DayOfWeek): Boolean {
-    return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY
-}
-
 /* --------------------------- DAY/WEEK STRIP ------------------------------ */
 
 @Composable
 fun DayWeekStrip(
     anchor: LocalDate,
+    weekendDays: Set<DayOfWeek>,
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -913,6 +948,7 @@ fun DayWeekStrip(
             DayTwoLineChip(
                 date = d,
                 selected = selected,
+                isWeekend = d.dayOfWeek in weekendDays,
                 onClick = { onSelect(d) },
                 modifier = Modifier
                     .weight(1f)
@@ -927,6 +963,7 @@ fun DayWeekStrip(
 private fun DayTwoLineChip(
     date: LocalDate,
     selected: Boolean,
+    isWeekend: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -935,10 +972,10 @@ private fun DayTwoLineChip(
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
     }
-    val foreground = if (selected) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val foreground = when {
+        selected -> MaterialTheme.colorScheme.onSurface
+        isWeekend -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         color = background,

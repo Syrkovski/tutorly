@@ -7,7 +7,9 @@ import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.domain.repo.LessonsRepository
+import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.PaymentStatus
+import com.tutorly.models.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.Duration
@@ -37,7 +39,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val lessonsRepository: LessonsRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    private val userProfileRepository: UserProfileRepository
 ) : ViewModel() {
 
     companion object {
@@ -69,6 +72,8 @@ class CalendarViewModel @Inject constructor(
         .flatMapLatest { range ->
             lessonsRepository.observeWeekStats(range.start, range.end)
         }
+
+    private val userProfileFlow = userProfileRepository.profile
 
     init {
         viewModelScope.launch {
@@ -107,8 +112,9 @@ class CalendarViewModel @Inject constructor(
         queryFlow,
         lessonsFlow,
         statsFlow,
-        currentDateTime
-    ) { query, lessons, stats, now ->
+        currentDateTime,
+        userProfileFlow
+    ) { query, lessons, stats, now, profile ->
         val calendarLessons = lessons
             .map { it.toCalendarLesson(zoneId) }
             .sortedBy { it.start }
@@ -120,7 +126,10 @@ class CalendarViewModel @Inject constructor(
             lessons = calendarLessons,
             lessonsByDate = groupedByDate,
             stats = stats,
-            currentDateTime = now
+            currentDateTime = now,
+            workDayStartMinutes = profile.workDayStartMinutes,
+            workDayEndMinutes = profile.workDayEndMinutes,
+            weekendDays = profile.weekendDays
         )
     }.stateIn(
         scope = viewModelScope,
@@ -130,7 +139,10 @@ class CalendarViewModel @Inject constructor(
             mode = mode.value,
             zoneId = zoneId,
             stats = LessonsRangeStats.EMPTY,
-            currentDateTime = currentDateTime.value
+            currentDateTime = currentDateTime.value,
+            workDayStartMinutes = UserProfile.DEFAULT_WORK_DAY_START,
+            workDayEndMinutes = UserProfile.DEFAULT_WORK_DAY_END,
+            weekendDays = emptySet()
         )
     )
 
@@ -232,17 +244,17 @@ data class CalendarLesson(
     val end: ZonedDateTime,
     val duration: Duration,
     val studentName: String,
-        val studentNote: String?,
-        val subjectName: String?,
-        val studentGrade: String?,
-        val lessonTitle: String?,
+    val studentNote: String?,
+    val subjectName: String?,
+    val studentGrade: String?,
+    val lessonTitle: String?,
     val lessonNote: String?,
     val paymentStatus: PaymentStatus,
     val paymentStatusIcon: PaymentStatusIcon,
     val paidCents: Int,
     val priceCents: Int,
-        val subjectColorArgb: Int?
-    )
+    val subjectColorArgb: Int?
+)
 
 data class CalendarUiState(
     val anchor: LocalDate,
@@ -251,7 +263,10 @@ data class CalendarUiState(
     val lessons: List<CalendarLesson> = emptyList(),
     val lessonsByDate: Map<LocalDate, List<CalendarLesson>> = emptyMap(),
     val stats: LessonsRangeStats = LessonsRangeStats.EMPTY,
-    val currentDateTime: ZonedDateTime
+    val currentDateTime: ZonedDateTime,
+    val workDayStartMinutes: Int,
+    val workDayEndMinutes: Int,
+    val weekendDays: Set<DayOfWeek>
 )
 
 sealed interface CalendarEvent {

@@ -25,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -99,7 +100,7 @@ private fun SettingsContent(
     onStartTimeClick: (LocalTime) -> Unit,
     onEndTimeClick: (LocalTime) -> Unit,
     onWeekendToggle: (DayOfWeek) -> Unit,
-    onThemeSelect: (ThemeColorOption) -> Unit
+    onThemeSelect: (ThemeOption) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val timeFormatter = rememberTimeFormatter()
@@ -148,7 +149,12 @@ private fun SettingsContent(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                    }
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFE7EFEA),
+                        selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 )
             }
         }
@@ -160,7 +166,7 @@ private fun SettingsContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             state.availableThemes.forEach { option ->
-                val isSelected = option == state.selectedTheme
+                val isSelected = option.preset == state.selectedTheme
                 ThemeOptionChip(
                     option = option,
                     isSelected = isSelected,
@@ -232,7 +238,7 @@ private fun TimePreferenceCard(
 
 @Composable
 private fun ThemeOptionChip(
-    option: ThemeColorOption,
+    option: ThemeOption,
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {

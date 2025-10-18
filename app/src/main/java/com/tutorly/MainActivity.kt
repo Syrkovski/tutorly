@@ -3,10 +3,11 @@ package com.tutorly
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-
-// MainActivity.kt
-
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tutorly.navigation.AppNavRoot
+import com.tutorly.ui.UserProfileViewModel
 import com.tutorly.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -17,8 +18,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AppTheme {
-                AppNavRoot() // твой корень навигации/экранов
+            val profileViewModel: UserProfileViewModel = hiltViewModel()
+            val profileState by profileViewModel.profile.collectAsStateWithLifecycle()
+            AppTheme(preset = profileState.theme) {
+                AppNavRoot()
             }
         }
     }

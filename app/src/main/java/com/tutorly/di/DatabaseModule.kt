@@ -12,6 +12,7 @@ import com.tutorly.data.db.dao.*
 import com.tutorly.data.db.migrations.MIGRATION_5_6
 import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.preferences.PreferencesDayClosureRepository
+import com.tutorly.data.repo.preferences.PreferencesUserProfileRepository
 import com.tutorly.data.repo.room.RoomLessonsRepository
 import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
@@ -22,6 +23,7 @@ import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.PaymentsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
+import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.domain.repo.UserSettingsRepository
 import dagger.Module
 import dagger.Provides
@@ -80,6 +82,11 @@ object DatabaseModule {
 
     @Provides @Singleton
     fun provideUserSettingsRepo(): UserSettingsRepository = StaticUserSettingsRepository()
+
+    @Provides @Singleton
+    fun provideUserProfileRepository(
+        dataStore: DataStore<Preferences>
+    ): UserProfileRepository = PreferencesUserProfileRepository(dataStore)
 
     @Provides @Singleton
     fun providePreferencesDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> =

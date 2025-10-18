@@ -8,8 +8,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.tutorly.models.AppThemePreset
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPrimaryPurple,
@@ -118,11 +120,59 @@ private val LightColors = lightColorScheme(
 )
 
 @Composable
-fun AppTheme(content: @Composable () -> Unit) {
+fun AppTheme(
+    preset: AppThemePreset = AppThemePreset.OCEAN,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = remember(preset) { colorSchemeForPreset(preset) }
     MaterialTheme(
-        colorScheme = LightColors,
+        colorScheme = colorScheme,
         typography = Typography,
         shapes = Shapes,
         content = content
+    )
+}
+
+private fun colorSchemeForPreset(preset: AppThemePreset) = when (preset) {
+    AppThemePreset.OCEAN -> LightColors.copy(
+        primary = Color(0xFF1E88E5),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFD6E4FF),
+        onPrimaryContainer = Color(0xFF001B3D),
+        secondary = Color(0xFF1565C0),
+        onSecondary = Color.White,
+        secondaryContainer = Color(0xFFD7E3FF),
+        onSecondaryContainer = Color(0xFF001C3F),
+        background = Color(0xFFF5F9FF),
+        surface = Color(0xFFF5F9FF),
+        surfaceTint = Color(0xFF1E88E5)
+    )
+
+    AppThemePreset.FOREST -> LightColors.copy(
+        primary = Color(0xFF2E7D32),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFCBEACD),
+        onPrimaryContainer = Color(0xFF063815),
+        secondary = Color(0xFF558B2F),
+        onSecondary = Color.White,
+        secondaryContainer = Color(0xFFDDEFD2),
+        onSecondaryContainer = Color(0xFF10290A),
+        background = Color(0xFFF4FFF4),
+        surface = Color(0xFFF4FFF4),
+        surfaceTint = Color(0xFF2E7D32)
+    )
+
+    AppThemePreset.SUNSET -> LightColors.copy(
+        primary = Color(0xFFF4511E),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFFFDAD1),
+        onPrimaryContainer = Color(0xFF3B0B00),
+        secondary = Color(0xFFFF8A50),
+        onSecondary = Color(0xFF4A1500),
+        secondaryContainer = Color(0xFFFFDEC8),
+        onSecondaryContainer = Color(0xFF321000),
+        background = Color(0xFFFFF6F2),
+        surface = Color(0xFFFFF6F2),
+        surfaceTint = Color(0xFFF4511E)
     )
 }

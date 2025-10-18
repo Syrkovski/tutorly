@@ -1,8 +1,11 @@
 package com.tutorly.ui.screens
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tutorly.domain.repo.UserSettingsRepository
+import com.tutorly.R
+import com.tutorly.domain.repo.UserProfileRepository
+import com.tutorly.models.AppThemePreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -15,7 +18,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val userSettingsRepository: UserSettingsRepository
+    private val userProfileRepository: UserProfileRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -23,45 +26,67 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val settings = userSettingsRepository.get()
-            _uiState.update { current ->
-                current.copy(
-                    workDayStart = minutesToLocalTime(settings.workDayStartMinutes),
-                    workDayEnd = minutesToLocalTime(settings.workDayEndMinutes)
-                )
+            userProfileRepository.profile.collect { profile ->
+                _uiState.update { current ->
+                    current.copy(
+                        workDayStart = minutesToLocalTime(profile.workDayStartMinutes),
+                        workDayEnd = minutesToLocalTime(profile.workDayEndMinutes),
+                        weekendDays = profile.weekendDays,
+                        selectedTheme = profile.theme
+                    )
+                }
             }
         }
     }
 
     fun updateWorkDayStart(time: LocalTime) {
+        val newStartMinutes = time.roundToStep().coerceIn(0, MAX_START_MINUTE)
+        val currentEndMinutes = _uiState.value.workDayEnd.roundToStep().coerceIn(newStartMinutes + SLOT_STEP_MINUTES, MAX_END_MINUTE)
+        val adjustedEndMinutes = if (newStartMinutes >= currentEndMinutes) {
+            (newStartMinutes + SLOT_STEP_MINUTES).coerceAtMost(MAX_END_MINUTE)
+        } else {
+            currentEndMinutes
+        }
+        val newStart = minutesToLocalTime(newStartMinutes)
+        val newEnd = minutesToLocalTime(adjustedEndMinutes)
         _uiState.update { current ->
-            current.copy(workDayStart = time)
+            current.copy(workDayStart = newStart, workDayEnd = newEnd)
+        }
+        viewModelScope.launch {
+            userProfileRepository.updateWorkDay(newStartMinutes, adjustedEndMinutes)
         }
     }
 
     fun updateWorkDayEnd(time: LocalTime) {
+        val startMinutes = _uiState.value.workDayStart.roundToStep().coerceIn(0, MAX_START_MINUTE)
+        val desiredEnd = time.roundToStep()
+        val endMinutes = desiredEnd.coerceIn(startMinutes + SLOT_STEP_MINUTES, MAX_END_MINUTE)
+        val endTime = minutesToLocalTime(endMinutes)
         _uiState.update { current ->
-            current.copy(workDayEnd = time)
+            current.copy(workDayEnd = endTime)
+        }
+        viewModelScope.launch {
+            userProfileRepository.updateWorkDay(startMinutes, endMinutes)
         }
     }
 
     fun toggleWeekend(day: DayOfWeek) {
-        _uiState.update { current ->
-            val updated = current.weekendDays.toMutableSet().apply {
-                if (contains(day)) {
-                    remove(day)
-                } else {
-                    add(day)
-                }
+        val updated = _uiState.value.weekendDays.toMutableSet().apply {
+            if (contains(day)) {
+                remove(day)
+            } else {
+                add(day)
             }
-            current.copy(weekendDays = updated)
         }
+        _uiState.update { current -> current.copy(weekendDays = updated) }
+        viewModelScope.launch { userProfileRepository.setWeekendDays(updated) }
     }
 
-    fun selectTheme(option: ThemeColorOption) {
+    fun selectTheme(option: ThemeOption) {
         _uiState.update { current ->
-            current.copy(selectedTheme = option)
+            current.copy(selectedTheme = option.preset)
         }
+        viewModelScope.launch { userProfileRepository.setTheme(option.preset) }
     }
 
     private fun minutesToLocalTime(minutes: Int): LocalTime {
@@ -69,18 +94,49 @@ class SettingsViewModel @Inject constructor(
         val mins = minutes % 60
         return LocalTime.of(hours, mins)
     }
+
+    private fun LocalTime.roundToStep(): Int {
+        val totalMinutes = hour * 60 + minute
+        val rounded = (totalMinutes / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES
+        return rounded
+    }
 }
 
 data class SettingsUiState(
     val workDayStart: LocalTime = LocalTime.of(9, 0),
     val workDayEnd: LocalTime = LocalTime.of(22, 0),
-    val weekendDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
-    val selectedTheme: ThemeColorOption = ThemeColorOption.OCEAN,
-    val availableThemes: List<ThemeColorOption> = ThemeColorOption.values().toList()
+    val weekendDays: Set<DayOfWeek> = emptySet(),
+    val selectedTheme: AppThemePreset = AppThemePreset.OCEAN,
+    val availableThemes: List<ThemeOption> = ThemeOption.defaults()
 )
 
-enum class ThemeColorOption(val labelRes: Int, val previewColor: Long) {
-    OCEAN(labelRes = com.tutorly.R.string.settings_theme_ocean, previewColor = 0xFF1E88E5),
-    FOREST(labelRes = com.tutorly.R.string.settings_theme_forest, previewColor = 0xFF2E7D32),
-    SUNSET(labelRes = com.tutorly.R.string.settings_theme_sunset, previewColor = 0xFFF4511E)
+data class ThemeOption(
+    val preset: AppThemePreset,
+    @StringRes val labelRes: Int,
+    val previewColor: Long
+) {
+    companion object {
+        fun defaults(): List<ThemeOption> = listOf(
+            ThemeOption(
+                preset = AppThemePreset.OCEAN,
+                labelRes = R.string.settings_theme_ocean,
+                previewColor = 0xFF1E88E5
+            ),
+            ThemeOption(
+                preset = AppThemePreset.FOREST,
+                labelRes = R.string.settings_theme_forest,
+                previewColor = 0xFF2E7D32
+            ),
+            ThemeOption(
+                preset = AppThemePreset.SUNSET,
+                labelRes = R.string.settings_theme_sunset,
+                previewColor = 0xFFF4511E
+            )
+        )
+    }
 }
+
+private const val SLOT_STEP_MINUTES: Int = 30
+private const val LAST_DAY_MINUTE: Int = 23 * 60 + 30
+private const val MAX_START_MINUTE: Int = LAST_DAY_MINUTE - SLOT_STEP_MINUTES
+private const val MAX_END_MINUTE: Int = LAST_DAY_MINUTE
