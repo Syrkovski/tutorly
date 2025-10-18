@@ -64,7 +64,7 @@ class FinanceViewModel @Inject constructor(
         }
 
         val chart = periodBounds.mapValues { (period, bounds) ->
-            buildChart(payments, bounds, period)
+            buildChart(lessons, bounds, period)
         }
 
         val debtors = computeDebtors(currentOutstanding)
@@ -110,14 +110,17 @@ class FinanceViewModel @Inject constructor(
     }
 
     private fun buildChart(
-        payments: List<Payment>,
+        lessons: List<LessonDetails>,
         bounds: FinancePeriodBounds,
         period: FinancePeriod
     ): List<FinanceChartPoint> {
-        val paidByDate = payments
-            .filter { it.status == PaymentStatus.PAID && it.at.isWithin(bounds.start, bounds.end) }
-            .groupBy { payment -> payment.at.atZone(zoneId).toLocalDate() }
-            .mapValues { (_, items) -> centsToRubles(items.sumOf { it.amountCents.toLong() }) }
+        val accruedByDate = lessons
+            .filter { lesson ->
+                lesson.lessonStatus == LessonStatus.DONE &&
+                    lesson.startAt.isWithin(bounds.start, bounds.end)
+            }
+            .groupBy { lesson -> lesson.startAt.atZone(zoneId).toLocalDate() }
+            .mapValues { (_, items) -> centsToRubles(items.sumOf { it.priceCents.toLong() }) }
 
         val startDate = bounds.start.atZone(zoneId).toLocalDate()
         val endExclusive = bounds.end.atZone(zoneId).toLocalDate()
@@ -136,7 +139,7 @@ class FinanceViewModel @Inject constructor(
                 dates.map { date ->
                     FinanceChartPoint(
                         date = date,
-                        amount = paidByDate[date] ?: 0
+                        amount = accruedByDate[date] ?: 0
                     )
                 }
             }
@@ -155,7 +158,7 @@ class FinanceViewModel @Inject constructor(
                 dates.map { date ->
                     FinanceChartPoint(
                         date = date,
-                        amount = paidByDate[date] ?: 0
+                        amount = accruedByDate[date] ?: 0
                     )
                 }
             }
