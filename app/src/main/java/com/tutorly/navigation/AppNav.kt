@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,8 +47,7 @@ import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.screens.*
 import java.time.LocalDate
 import java.time.ZonedDateTime
-import com.tutorly.ui.theme.ScreenGradientEnd
-import com.tutorly.ui.theme.ScreenGradientStart
+import com.tutorly.ui.theme.extendedColors
 import com.tutorly.R
 
 const val ROUTE_CALENDAR = "calendar"
@@ -83,12 +83,14 @@ fun AppNavRoot() {
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
 
+    val extendedColors = MaterialTheme.extendedColors
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(ScreenGradientStart, ScreenGradientEnd)
+                    colors = listOf(extendedColors.backgroundTop, extendedColors.backgroundBottom)
                 )
             )
     ) {

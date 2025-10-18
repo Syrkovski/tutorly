@@ -21,7 +21,7 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
-import com.tutorly.ui.theme.PaidChipFill
+import com.tutorly.ui.theme.extendedColors
 import java.time.ZonedDateTime
 
 /** Visual parameters for the payment status indicator. */
@@ -80,7 +80,7 @@ fun statusChipData(
     } else if (now.isBefore(start)) {
         if (paymentStatus == PaymentStatus.PAID) {
             description = stringResource(R.string.calendar_status_prepaid)
-            background = PaidChipFill
+            background = MaterialTheme.extendedColors.accent
             content = PaidChipContent
             label = "₽"
         } else {
@@ -92,7 +92,7 @@ fun statusChipData(
     } else if (now.isAfter(end)) {
         if (paymentStatus == PaymentStatus.PAID) {
             description = stringResource(R.string.lesson_status_paid)
-            background = PaidChipFill
+            background = MaterialTheme.extendedColors.accent
             content = PaidChipContent
             label = "₽"
         } else {

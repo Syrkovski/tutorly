@@ -260,7 +260,6 @@
     <string name="settings_weekends">Выходные</string>
     <string name="settings_theme">Цвет темы</string>
     <string name="settings_theme_original">Фирменная</string>
-    <string name="settings_theme_ocean">Океан</string>
-    <string name="settings_theme_forest">Лес</string>
-    <string name="settings_theme_sunset">Закат</string>
+    <string name="settings_theme_plum">Лиловая</string>
+    <string name="settings_theme_royal">Королевская</string>
 </resources>

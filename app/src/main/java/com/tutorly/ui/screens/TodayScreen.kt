@@ -76,7 +76,7 @@ import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
-import com.tutorly.ui.theme.PaidChipFill
+import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.time.Instant
@@ -948,7 +948,7 @@ private fun PaymentStatusChip(
         PaymentStatus.UNPAID -> return
     }
     val (container, content) = when (status) {
-        PaymentStatus.PAID -> PaidChipFill to PaidChipContent
+        PaymentStatus.PAID -> MaterialTheme.extendedColors.accent to PaidChipContent
         PaymentStatus.DUE -> DebtChipFill to DebtChipContent
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }

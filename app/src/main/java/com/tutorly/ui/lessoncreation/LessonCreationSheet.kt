@@ -69,7 +69,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
-import com.tutorly.ui.theme.AvatarFill
+import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
@@ -288,7 +288,7 @@ private fun StudentAvatar(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(AvatarFill),
+            .background(MaterialTheme.extendedColors.chipSelected),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -522,7 +522,7 @@ private fun DurationSection(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AvatarFill,
+                            selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
                             selectedLabelColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
@@ -598,7 +598,7 @@ private fun PriceSection(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AvatarFill,
+                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
                                 selectedLabelColor = MaterialTheme.colorScheme.onSurface
                             )
                         )

@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
+import com.tutorly.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,23 +74,23 @@ fun AppTopBar(
                 navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
             ),
             windowInsets = WindowInsets(0, 0, 0, 0),
-            actions = {
-                actions()
-                onAddClick?.let {
-                    FilledTonalIconButton(
-                        onClick = it,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = stringResource(id = R.string.add_student)
-                        )
+                actions = {
+                    actions()
+                    onAddClick?.let {
+                        FilledTonalIconButton(
+                            onClick = it,
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.extendedColors.accent,
+                                contentColor = MaterialTheme.colorScheme.onSecondary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(id = R.string.add_student)
+                            )
+                        }
                     }
                 }
-            }
         )
     }
 }
@@ -97,9 +98,9 @@ fun AppTopBar(
 @Composable
 fun GradientTopBarContainer(content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(0.dp)
-    val colorScheme = MaterialTheme.colorScheme
-    val startColor = colorScheme.primary
-    val endColor = colorScheme.primaryContainer
+    val extended = MaterialTheme.extendedColors
+    val startColor = extended.topBarStart
+    val endColor = extended.topBarEnd
     Surface(
         modifier = Modifier
             .fillMaxWidth()

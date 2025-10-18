@@ -64,7 +64,10 @@ class PreferencesUserProfileRepository @Inject constructor(
             ?.toSet()
             ?: emptySet()
         val theme = this[Keys.THEME]
-            ?.let { value -> runCatching { AppThemePreset.valueOf(value) }.getOrNull() }
+            ?.let { value ->
+                runCatching { AppThemePreset.valueOf(value) }.getOrNull()
+                    ?: legacyTheme(value)
+            }
             ?: AppThemePreset.ORIGINAL
         return UserProfile(
             workDayStartMinutes = sanitizedStart,
@@ -72,6 +75,13 @@ class PreferencesUserProfileRepository @Inject constructor(
             weekendDays = weekend,
             theme = theme
         )
+    }
+
+    private fun legacyTheme(value: String): AppThemePreset? = when (value) {
+        "OCEAN" -> AppThemePreset.ROYAL,
+        "FOREST" -> AppThemePreset.PLUM,
+        "SUNSET" -> AppThemePreset.ORIGINAL,
+        else -> null
     }
 
     private object Keys {

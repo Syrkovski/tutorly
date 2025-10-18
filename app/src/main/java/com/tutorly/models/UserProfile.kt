@@ -19,7 +19,6 @@ data class UserProfile(
 
 enum class AppThemePreset {
     ORIGINAL,
-    OCEAN,
-    FOREST,
-    SUNSET
+    PLUM,
+    ROYAL
 }

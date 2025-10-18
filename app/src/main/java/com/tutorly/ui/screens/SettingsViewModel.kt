@@ -120,22 +120,17 @@ data class ThemeOption(
             ThemeOption(
                 preset = AppThemePreset.ORIGINAL,
                 labelRes = R.string.settings_theme_original,
-                previewColor = 0xFF3B7D72
+                previewColor = 0xFF4E998C
             ),
             ThemeOption(
-                preset = AppThemePreset.OCEAN,
-                labelRes = R.string.settings_theme_ocean,
-                previewColor = 0xFF1E88E5
+                preset = AppThemePreset.PLUM,
+                labelRes = R.string.settings_theme_plum,
+                previewColor = 0xFF8F4AA1
             ),
             ThemeOption(
-                preset = AppThemePreset.FOREST,
-                labelRes = R.string.settings_theme_forest,
-                previewColor = 0xFF2E7D32
-            ),
-            ThemeOption(
-                preset = AppThemePreset.SUNSET,
-                labelRes = R.string.settings_theme_sunset,
-                previewColor = 0xFFF4511E
+                preset = AppThemePreset.ROYAL,
+                labelRes = R.string.settings_theme_royal,
+                previewColor = 0xFF4D71CE
             )
         )
     }

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.AppTopBar
+import com.tutorly.ui.theme.extendedColors
 import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -149,8 +150,8 @@ private fun SettingsContent(
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFFE7EFEA),
-                        selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
@@ -258,17 +259,17 @@ private fun ThemeOptionChip(
         },
         colors = AssistChipDefaults.elevatedAssistChipColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.extendedColors.chipSelected
             } else {
                 Color.White
             },
             labelColor = if (isSelected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.onSecondaryContainer
             } else {
                 MaterialTheme.colorScheme.onSurface
             },
             leadingIconContentColor = if (isSelected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.onSecondaryContainer
             } else {
                 MaterialTheme.colorScheme.onSurface
             }

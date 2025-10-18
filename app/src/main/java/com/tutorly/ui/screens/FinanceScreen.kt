@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyCardDefaults
+import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -206,9 +207,9 @@ private fun FinancePeriodSelector(
                 },
                 shape = RoundedCornerShape(12.dp),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     containerColor = MaterialTheme.colorScheme.surface,
                     labelColor = MaterialTheme.colorScheme.onSurface
                 )
