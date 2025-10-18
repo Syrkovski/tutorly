@@ -87,41 +87,32 @@ private fun FinancePeriodToggle(
     onSelect: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val containerShape = RoundedCornerShape(24.dp)
-    Surface(
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.24f),
-        shape = containerShape,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+    Row(
+        modifier = modifier
+            .selectableGroup()
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .selectableGroup()
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            FinancePeriod.entries.forEach { period ->
-                val isSelected = period == selected
-                val segmentShape = RoundedCornerShape(20.dp)
-                val background = if (isSelected) Color.White else Color.White.copy(alpha = 0.12f)
-                val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+        FinancePeriod.entries.forEach { period ->
+            val isSelected = period == selected
+            val segmentShape = RoundedCornerShape(20.dp)
+            val background = if (isSelected) Color.White else Color.White.copy(alpha = 0.12f)
+            val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
 
-                Surface(
-                    onClick = { onSelect(period) },
-                    shape = segmentShape,
-                    color = background,
-                    contentColor = contentColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = if (isSelected) 2.dp else 0.dp
-                ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                        text = stringResource(period.tabLabelRes),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = contentColor
-                    )
-                }
+            Surface(
+                onClick = { onSelect(period) },
+                shape = segmentShape,
+                color = background,
+                contentColor = contentColor,
+                tonalElevation = 0.dp,
+                shadowElevation = if (isSelected) 2.dp else 0.dp
+            ) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                    text = stringResource(period.tabLabelRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor
+                )
             }
         }
     }
