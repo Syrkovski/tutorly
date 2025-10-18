@@ -394,6 +394,7 @@ private fun FinanceLineChart(
     modifier: Modifier = Modifier
 ) {
     val maxValue = remember(points) { points.maxOfOrNull { it.amount } ?: 0L }
+    val lineColor = MaterialTheme.colorScheme.primary
     Canvas(modifier = modifier) {
         if (points.isEmpty()) return@Canvas
         val max = maxValue.toFloat().coerceAtLeast(1f)
@@ -416,7 +417,7 @@ private fun FinanceLineChart(
         if (points.size > 1) {
             drawPath(
                 path = path,
-                color = MaterialTheme.colorScheme.primary,
+                color = lineColor,
                 style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
             )
         }
@@ -426,7 +427,7 @@ private fun FinanceLineChart(
             val x = if (points.size == 1) width / 2f else stepX * index
             val y = height - (ratio * height)
             drawCircle(
-                color = MaterialTheme.colorScheme.primary,
+                color = lineColor,
                 radius = 6.dp.toPx(),
                 center = Offset(x, y)
             )
