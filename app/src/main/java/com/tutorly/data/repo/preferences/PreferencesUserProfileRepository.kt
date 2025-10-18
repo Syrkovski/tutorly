@@ -78,9 +78,9 @@ class PreferencesUserProfileRepository @Inject constructor(
     }
 
     private fun legacyTheme(value: String): AppThemePreset? = when (value) {
-        "OCEAN" -> AppThemePreset.ROYAL,
-        "FOREST" -> AppThemePreset.PLUM,
-        "SUNSET" -> AppThemePreset.ORIGINAL,
+        "OCEAN" -> AppThemePreset.ROYAL
+        "FOREST" -> AppThemePreset.PLUM
+        "SUNSET" -> AppThemePreset.ORIGINAL
         else -> null
     }
 
