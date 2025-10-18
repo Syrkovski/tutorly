@@ -114,10 +114,13 @@ class FinanceViewModel @Inject constructor(
         bounds: FinancePeriodBounds,
         period: FinancePeriod
     ): List<FinanceChartPoint> {
+        val now = ZonedDateTime.now(zoneId).toInstant()
         val accruedByDate = lessons
             .filter { lesson ->
-                lesson.lessonStatus == LessonStatus.DONE &&
-                    lesson.startAt.isWithin(bounds.start, bounds.end)
+                lesson.startAt.isWithin(bounds.start, bounds.end) &&
+                    !lesson.startAt.isAfter(now) &&
+                    lesson.paymentStatus != PaymentStatus.CANCELLED &&
+                    lesson.lessonStatus != LessonStatus.CANCELED
             }
             .groupBy { lesson -> lesson.startAt.atZone(zoneId).toLocalDate() }
             .mapValues { (_, items) -> centsToRubles(items.sumOf { it.priceCents.toLong() }) }
