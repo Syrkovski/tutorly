@@ -526,53 +526,39 @@ private fun PriceRow(
                 style = MaterialTheme.typography.titleLarge
             )
         }
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.End
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(id = R.string.lesson_card_payment_label),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val isPaid = paymentStatus == PaymentStatus.PAID
-                val statusText = if (isPaid) {
-                    stringResource(id = R.string.lesson_status_paid)
-                } else {
-                    stringResource(id = R.string.lesson_status_due)
-                }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelLarge
+            if (isStatusBusy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp
                 )
-                if (isStatusBusy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
+            } else {
+                val isPaid = paymentStatus == PaymentStatus.PAID
+                Switch(
+                    checked = isPaid,
+                    onCheckedChange = { checked ->
+                        val newStatus = if (checked) PaymentStatus.PAID else PaymentStatus.DUE
+                        onStatusSelect(newStatus)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onError,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.error,
+                        uncheckedBorderColor = Color.Transparent,
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedIconColor = MaterialTheme.colorScheme.onError,
+                        checkedIconColor = MaterialTheme.colorScheme.onPrimary
                     )
-                } else {
-                    Switch(
-                        checked = isPaid,
-                        onCheckedChange = { checked ->
-                            val newStatus = if (checked) PaymentStatus.PAID else PaymentStatus.DUE
-                            onStatusSelect(newStatus)
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primary,
-                            uncheckedThumbColor = MaterialTheme.colorScheme.onError,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.error,
-                            uncheckedBorderColor = Color.Transparent,
-                            checkedBorderColor = Color.Transparent,
-                            uncheckedIconColor = MaterialTheme.colorScheme.onError,
-                            checkedIconColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                }
+                )
             }
         }
     }
