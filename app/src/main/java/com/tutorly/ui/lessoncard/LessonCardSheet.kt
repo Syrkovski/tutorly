@@ -536,19 +536,15 @@ private fun PriceRow(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (isStatusBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                val isPaid = paymentStatus == PaymentStatus.PAID
+            val isPaid = paymentStatus == PaymentStatus.PAID
+            Box(contentAlignment = Alignment.Center) {
                 Switch(
                     checked = isPaid,
                     onCheckedChange = { checked ->
                         val newStatus = if (checked) PaymentStatus.PAID else PaymentStatus.DUE
                         onStatusSelect(newStatus)
                     },
+                    enabled = !isStatusBusy,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                         checkedTrackColor = MaterialTheme.colorScheme.primary,
@@ -560,6 +556,12 @@ private fun PriceRow(
                         checkedIconColor = MaterialTheme.colorScheme.onPrimary
                     )
                 )
+                if (isStatusBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
             }
         }
     }
