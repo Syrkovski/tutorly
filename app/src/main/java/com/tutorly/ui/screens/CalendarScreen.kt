@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -78,6 +79,7 @@ enum class CalendarMode { DAY, WEEK, MONTH }
 fun CalendarScreen(
     modifier: Modifier = Modifier,
     onAddStudent: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     creationViewModel: LessonCreationViewModel,
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
@@ -202,7 +204,20 @@ fun CalendarScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            AppTopBar(title = calendarTitle)
+            AppTopBar(
+                title = calendarTitle,
+                actions = {
+                    IconButton(
+                        onClick = onOpenSettings,
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = stringResource(id = R.string.calendar_open_settings)
+                        )
+                    }
+                }
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {

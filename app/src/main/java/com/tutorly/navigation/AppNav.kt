@@ -54,6 +54,7 @@ const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
 const val ROUTE_TODAY = "today"
 const val ROUTE_STUDENTS = "students"
+const val ROUTE_SETTINGS = "settings"
 private const val ARG_STUDENT_EDITOR_ORIGIN = "studentEditorOrigin"
 private const val ROUTE_STUDENTS_PATTERN = "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN={$ARG_STUDENT_EDITOR_ORIGIN}"
 const val ROUTE_FINANCE = "finance"
@@ -143,6 +144,11 @@ fun AppNavRoot() {
                     CalendarScreen(
                         onAddStudent = {
                             nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenSettings = {
+                            nav.navigate(ROUTE_SETTINGS) {
                                 launchSingleTop = true
                             }
                         },
@@ -261,6 +267,11 @@ fun AppNavRoot() {
                     )
                 }
                 composable(ROUTE_FINANCE) { FinanceScreen() }
+                composable(ROUTE_SETTINGS) {
+                    SettingsScreen(
+                        onBack = { nav.popBackStack() }
+                    )
+                }
             }
         }
     }
