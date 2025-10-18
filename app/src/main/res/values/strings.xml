@@ -239,8 +239,7 @@
     <string name="finance_ar_label">Долги</string>
     <string name="finance_prepayments_label">Предоплата</string>
     <string name="finance_lessons_label">Занятий</string>
-    <string name="finance_lessons_badge_conducted">Проведено: %1$d</string>
-    <string name="finance_lessons_badge_cancelled">Отменено: %1$d</string>
+    <string name="finance_period_range">Период: %1$s — %2$s</string>
     <string name="finance_debtors_title">Должники</string>
     <string name="finance_debtors_empty">Должников нет — отличная работа!</string>
     <string name="finance_debtors_last_debt">Последняя дата долга: %1$s</string>

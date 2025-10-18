@@ -199,8 +199,6 @@ private fun FinanceContent(
     val debtValue = currencyFormatter.format(summary.accountsReceivable)
     val prepaymentValue = currencyFormatter.format(summary.prepayments)
     val lessonsValue = summary.lessons.total.toString()
-    val conductedText = stringResource(R.string.finance_lessons_badge_conducted, summary.lessons.conducted)
-    val cancelledText = stringResource(R.string.finance_lessons_badge_cancelled, summary.lessons.cancelled)
 
     val swipeModifier = Modifier.pointerInput(selectedPeriod, periodOffset) {
         val threshold = 48.dp.toPx()
@@ -233,6 +231,20 @@ private fun FinanceContent(
         )
     }
 
+    val zoneId = temporalContext.zoneId
+    val periodStartDate = remember(bounds, zoneId) {
+        bounds.start.atZone(zoneId).toLocalDate()
+    }
+    val periodEndDate = remember(bounds, zoneId, periodStartDate) {
+        val exclusive = bounds.end.atZone(zoneId).toLocalDate()
+        if (exclusive.isAfter(periodStartDate)) exclusive.minusDays(1) else periodStartDate
+    }
+    val periodRange = stringResource(
+        R.string.finance_period_range,
+        dateFormatter.format(periodStartDate),
+        dateFormatter.format(periodEndDate)
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -242,6 +254,12 @@ private fun FinanceContent(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Text(
+            text = periodRange,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -280,21 +298,7 @@ private fun FinanceContent(
             modifier = Modifier.fillMaxWidth(),
             title = stringResource(R.string.finance_lessons_label),
             value = lessonsValue,
-            subtitle = periodText,
-            footer = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FinanceBadge(
-                        text = conductedText,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    FinanceBadge(
-                        text = cancelledText,
-                        color = Color(0xFFD05E6E),
-                        contentColor = Color.White
-                    )
-                }
-            }
+            subtitle = periodText
         )
 
         FinanceChartCard(
@@ -361,29 +365,6 @@ private fun FinanceMetricCard(
                 it()
             }
         }
-    }
-}
-
-@Composable
-private fun FinanceBadge(
-    text: String,
-    color: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = color,
-        contentColor = contentColor
-    ) {
-        Text(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
