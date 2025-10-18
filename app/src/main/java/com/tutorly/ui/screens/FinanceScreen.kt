@@ -524,8 +524,13 @@ private fun buildChartLabels(
             point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
         }
 
-        FinancePeriod.MONTH -> points.map { point ->
-            point.date.dayOfMonth.toString()
+        FinancePeriod.MONTH -> {
+            val lastDay = points.maxOfOrNull { it.date.dayOfMonth } ?: 1
+            val labeledDays = setOf(1, 7, 15, 21, lastDay)
+            points.map { point ->
+                val day = point.date.dayOfMonth
+                if (day in labeledDays) day.toString() else ""
+            }
         }
     }
 }
