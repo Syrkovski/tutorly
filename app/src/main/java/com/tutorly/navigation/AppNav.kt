@@ -1,8 +1,5 @@
 package com.tutorly.navigation
 
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -33,12 +30,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.navArgument
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
 import androidx.navigation.compose.dialog
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tutorly.ui.CalendarMode
 import com.tutorly.ui.CalendarScreen
 import com.tutorly.ui.CalendarViewModel
@@ -77,13 +74,9 @@ private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null)
     }
 }
 
-@OptIn(
-    ExperimentalSharedTransitionApi::class,
-    ExperimentalAnimationApi::class
-)
 @Composable
 fun AppNavRoot() {
-    val nav = rememberAnimatedNavController()
+    val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
@@ -143,13 +136,11 @@ fun AppNavRoot() {
             // чтобы контент корректно учитывал статус/навигационные панели
             contentWindowInsets = WindowInsets.systemBars
         ) { innerPadding ->
-            SharedTransitionLayout {
-                val sharedScope = this
-                AnimatedNavHost(
-                    navController = nav,
-                    startDestination = ROUTE_CALENDAR_PATTERN,
-                    modifier = Modifier.padding(innerPadding)
-                ) {
+            NavHost(
+                navController = nav,
+                startDestination = ROUTE_CALENDAR_PATTERN,
+                modifier = Modifier.padding(innerPadding)
+            ) {
                 composable(
                     route = ROUTE_CALENDAR_PATTERN,
                     arguments = listOf(
@@ -196,7 +187,7 @@ fun AppNavRoot() {
                             }
                         }
                     )
-                }      // сам рисует свой верх (заголовок + счетчики)
+                } // сам рисует свой верх (заголовок + счетчики)
                 composable(
                     route = ROUTE_STUDENTS_PATTERN,
                     arguments = listOf(
@@ -249,9 +240,7 @@ fun AppNavRoot() {
                                 creationViewModel.dismiss()
                             }
                         },
-                        initialEditorOrigin = origin,
-                        sharedTransitionScope = sharedScope,
-                        animatedVisibilityScope = this
+                        initialEditorOrigin = origin
                     )
                 }
                 composable(
@@ -310,7 +299,7 @@ fun AppNavRoot() {
             }
         }
     }
-}}
+}
 
 fun calendarRoute(nav: NavHostController): String {
     val entry = runCatching { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }.getOrNull()
