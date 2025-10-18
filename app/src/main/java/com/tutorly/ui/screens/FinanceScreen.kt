@@ -15,23 +15,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -48,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
+import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
@@ -57,12 +51,89 @@ import java.util.Currency
 import java.util.Locale
 
 @Composable
+fun FinanceTopBar(
+    selectedPeriod: FinancePeriod,
+    onSelectPeriod: (FinancePeriod) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GradientTopBarContainer {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(id = R.string.finance_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            FinancePeriodToggle(
+                selected = selectedPeriod,
+                onSelect = onSelectPeriod
+            )
+        }
+    }
+}
+
+@Composable
+private fun FinancePeriodToggle(
+    selected: FinancePeriod,
+    onSelect: (FinancePeriod) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val containerShape = RoundedCornerShape(24.dp)
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.24f),
+        shape = containerShape,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .selectableGroup()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            FinancePeriod.entries.forEach { period ->
+                val isSelected = period == selected
+                val segmentShape = RoundedCornerShape(20.dp)
+                val background = if (isSelected) Color.White else Color.White.copy(alpha = 0.12f)
+                val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+
+                Surface(
+                    onClick = { onSelect(period) },
+                    shape = segmentShape,
+                    color = background,
+                    contentColor = contentColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = if (isSelected) 2.dp else 0.dp
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                        text = stringResource(period.tabLabelRes),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = contentColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun FinanceScreen(
+    selectedPeriod: FinancePeriod,
     modifier: Modifier = Modifier,
     viewModel: FinanceViewModel = hiltViewModel(),
     onOpenStudent: (Long) -> Unit = {}
 ) {
-    var selectedPeriod by rememberSaveable { mutableStateOf(FinancePeriod.WEEK) }
     val state by viewModel.uiState.collectAsState()
 
     when (val uiState = state) {
@@ -70,7 +141,6 @@ fun FinanceScreen(
         is FinanceUiState.Content -> FinanceContent(
             modifier = modifier,
             selectedPeriod = selectedPeriod,
-            onSelectPeriod = { selectedPeriod = it },
             state = uiState,
             onOpenStudent = onOpenStudent
         )
@@ -93,7 +163,6 @@ private fun FinanceLoading(modifier: Modifier) {
 private fun FinanceContent(
     modifier: Modifier,
     selectedPeriod: FinancePeriod,
-    onSelectPeriod: (FinancePeriod) -> Unit,
     state: FinanceUiState.Content,
     onOpenStudent: (Long) -> Unit
 ) {
@@ -123,11 +192,6 @@ private fun FinanceContent(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        FinancePeriodSelector(
-            selected = selectedPeriod,
-            onSelect = onSelectPeriod
-        )
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -200,45 +264,6 @@ private fun FinanceContent(
         )
 
         Spacer(modifier = Modifier.height(8.dp))
-    }
-}
-
-@Composable
-private fun FinancePeriodSelector(
-    selected: FinancePeriod,
-    onSelect: (FinancePeriod) -> Unit
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        FinancePeriod.entries.forEach { period ->
-            val isSelected = period == selected
-            FilterChip(
-                selected = isSelected,
-                onClick = { onSelect(period) },
-                label = {
-                    Text(text = stringResource(period.tabLabelRes))
-                },
-                leadingIcon = if (isSelected) {
-                    {
-                        Icon(
-                            imageVector = Icons.Outlined.Check,
-                            contentDescription = null
-                        )
-                    }
-                } else {
-                    null
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    labelColor = MaterialTheme.colorScheme.onSurface
-                )
-            )
-        }
     }
 }
 

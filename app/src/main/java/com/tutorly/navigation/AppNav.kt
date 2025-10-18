@@ -21,7 +21,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -87,6 +89,8 @@ fun AppNavRoot() {
 
     val extendedColors = MaterialTheme.extendedColors
 
+    var financePeriod by rememberSaveable { mutableStateOf(FinancePeriod.WEEK) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -100,7 +104,10 @@ fun AppNavRoot() {
             topBar = {
                 when (route) {
                     ROUTE_STUDENTS -> StudentsTopBar(nav)
-                    ROUTE_FINANCE -> AppTopBar(title = stringResource(id = R.string.finance_title))
+                    ROUTE_FINANCE -> FinanceTopBar(
+                        selectedPeriod = financePeriod,
+                        onSelectPeriod = { financePeriod = it }
+                    )
                 }
             },
             bottomBar = {
@@ -278,7 +285,16 @@ fun AppNavRoot() {
                         }
                     )
                 }
-                composable(ROUTE_FINANCE) { FinanceScreen() }
+                composable(ROUTE_FINANCE) {
+                    FinanceScreen(
+                        selectedPeriod = financePeriod,
+                        onOpenStudent = { studentId ->
+                            nav.navigate(studentDetailsRoute(studentId)) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
                 composable(ROUTE_SETTINGS) {
                     SettingsScreen(
                         onBack = { nav.popBackStack() }
