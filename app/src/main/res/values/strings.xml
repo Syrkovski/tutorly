@@ -133,6 +133,7 @@
     <string name="calendar_status_planned">Запланировано</string>
     <string name="calendar_status_prepaid">Предоплачено</string>
     <string name="calendar_status_in_progress">Идёт сейчас</string>
+    <string name="calendar_onboarding_no_students">Начните с добавления ученика, чтобы заполнить расписание.</string>
     <string name="lesson_card_subject_placeholder">Без предмета</string>
     <string name="lesson_card_duration_value">%1$d мин</string>
     <string name="lesson_card_price_label">Стоимость</string>

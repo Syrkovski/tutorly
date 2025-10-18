@@ -357,8 +357,47 @@ fun CalendarScreen(
                     )
                 }
             }
+            if (!uiState.hasStudents) {
+                CalendarOnboardingHint(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    message = stringResource(id = R.string.calendar_onboarding_no_students),
+                    onAddStudent = onAddStudent
+                )
+            }
         }
     }
+    }
+}
+
+@Composable
+private fun CalendarOnboardingHint(
+    modifier: Modifier = Modifier,
+    message: String,
+    onAddStudent: () -> Unit
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 6.dp,
+        shadowElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+            OutlinedButton(onClick = onAddStudent) {
+                Text(text = stringResource(id = R.string.add_student))
+            }
+        }
     }
 }
 

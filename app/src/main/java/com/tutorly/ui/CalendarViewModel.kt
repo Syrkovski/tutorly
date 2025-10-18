@@ -7,6 +7,7 @@ import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.domain.repo.LessonsRepository
+import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.UserProfile
@@ -40,7 +41,8 @@ import kotlinx.coroutines.launch
 class CalendarViewModel @Inject constructor(
     private val lessonsRepository: LessonsRepository,
     private val savedStateHandle: SavedStateHandle,
-    private val userProfileRepository: UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    private val studentsRepository: StudentsRepository
 ) : ViewModel() {
 
     companion object {
@@ -74,6 +76,10 @@ class CalendarViewModel @Inject constructor(
         }
 
     private val userProfileFlow = userProfileRepository.profile
+    private val hasStudentsFlow = studentsRepository
+        .observeStudents("")
+        .map { students -> students.isNotEmpty() }
+        .distinctUntilChanged()
 
     init {
         viewModelScope.launch {
@@ -113,8 +119,9 @@ class CalendarViewModel @Inject constructor(
         lessonsFlow,
         statsFlow,
         currentDateTime,
-        userProfileFlow
-    ) { query, lessons, stats, now, profile ->
+        userProfileFlow,
+        hasStudentsFlow
+    ) { query, lessons, stats, now, profile, hasStudents ->
         val calendarLessons = lessons
             .map { it.toCalendarLesson(zoneId) }
             .sortedBy { it.start }
@@ -129,7 +136,8 @@ class CalendarViewModel @Inject constructor(
             currentDateTime = now,
             workDayStartMinutes = profile.workDayStartMinutes,
             workDayEndMinutes = profile.workDayEndMinutes,
-            weekendDays = profile.weekendDays
+            weekendDays = profile.weekendDays,
+            hasStudents = hasStudents
         )
     }.stateIn(
         scope = viewModelScope,
@@ -142,7 +150,8 @@ class CalendarViewModel @Inject constructor(
             currentDateTime = currentDateTime.value,
             workDayStartMinutes = UserProfile.DEFAULT_WORK_DAY_START,
             workDayEndMinutes = UserProfile.DEFAULT_WORK_DAY_END,
-            weekendDays = emptySet()
+            weekendDays = emptySet(),
+            hasStudents = true
         )
     )
 
@@ -266,7 +275,8 @@ data class CalendarUiState(
     val currentDateTime: ZonedDateTime,
     val workDayStartMinutes: Int,
     val workDayEndMinutes: Int,
-    val weekendDays: Set<DayOfWeek>
+    val weekendDays: Set<DayOfWeek>,
+    val hasStudents: Boolean = true
 )
 
 sealed interface CalendarEvent {
