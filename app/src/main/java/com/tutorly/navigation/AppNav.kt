@@ -228,9 +228,12 @@ fun AppNavRoot() {
                         },
                         onStudentCreatedFromLesson = { newId ->
                             val reopened = creationViewModel.onStudentCreated(newId)
-                            nav.navigate(calendarRoute(nav)) {
-                                launchSingleTop = true
-                                restoreState = true
+                            val returnedToPrevious = nav.popBackStack()
+                            if (!returnedToPrevious) {
+                                nav.navigate(calendarRoute(nav)) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                             if (!reopened) {
                                 creationViewModel.dismiss()
