@@ -37,14 +37,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.app.DatePickerDialog
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
 import com.tutorly.domain.model.PaymentStatusIcon
@@ -520,7 +521,8 @@ fun PlanScreenHeader(
         }
     }
 
-    var calendarExpanded by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         Modifier
@@ -575,7 +577,7 @@ fun PlanScreenHeader(
                     .wrapContentWidth(Alignment.CenterHorizontally)
             ) {
                 Surface(
-                    onClick = { calendarExpanded = true },
+                    onClick = { showDatePicker = true },
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.onSurface,
@@ -605,29 +607,26 @@ fun PlanScreenHeader(
                     }
                 }
 
-                DropdownMenu(
-                    expanded = calendarExpanded,
-                    onDismissRequest = { calendarExpanded = false },
-                    offset = DpOffset(x = 0.dp, y = 4.dp)
-                ) {
-                    Surface(
-                        shape = MaterialTheme.shapes.large,
-                        tonalElevation = 4.dp,
-                        shadowElevation = 8.dp
-                    ) {
-                        MonthCalendar(
-                            anchor = anchor,
-                            currentDateTime = currentDateTime,
-                            weekendDays = weekendDays,
-                            onDaySelected = {
-                                calendarExpanded = false
-                                onSelectDate(it)
+                if (showDatePicker) {
+                    DisposableEffect(Unit) {
+                        val picker = DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                showDatePicker = false
+                                onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
                             },
-                            selectedDate = anchor,
-                            modifier = Modifier
-                                .width(320.dp)
-                                .height(360.dp)
+                            anchor.year,
+                            anchor.monthValue - 1,
+                            anchor.dayOfMonth
                         )
+                        picker.setOnDismissListener { showDatePicker = false }
+                        picker.show()
+                        onDispose {
+                            picker.setOnDismissListener(null)
+                            if (picker.isShowing) {
+                                picker.dismiss()
+                            }
+                        }
                     }
                 }
             }
