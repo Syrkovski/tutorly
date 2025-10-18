@@ -38,11 +38,14 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyCardDefaults
@@ -381,6 +384,17 @@ private fun FinanceBarChart(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        val density = LocalDensity.current
+        val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        val textSizePx = with(density) { 12.sp.toPx() }
+        val labelPaint = remember(labelColor, textSizePx) {
+            android.graphics.Paint().apply {
+                isAntiAlias = true
+                color = labelColor.toArgb()
+                textAlign = android.graphics.Paint.Align.CENTER
+                textSize = textSizePx
+            }
+        }
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -406,20 +420,21 @@ private fun FinanceBarChart(
                 )
             }
         }
-        Row(modifier = Modifier.fillMaxWidth()) {
-            labels.forEach { label ->
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Clip
-                    )
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+        ) {
+            if (points.isEmpty()) return@Canvas
+            val bars = points.size
+            val width = size.width
+            val stepX = width / bars
+            val baseline = size.height - labelPaint.fontMetrics.descent
+
+            labels.forEachIndexed { index, label ->
+                if (label.isNotBlank()) {
+                    val x = stepX * index + stepX / 2f
+                    drawContext.canvas.nativeCanvas.drawText(label, x, baseline, labelPaint)
                 }
             }
         }
