@@ -235,11 +235,9 @@
     <string name="finance_period_month_accusative">месяц</string>
     <string name="finance_metric_period">за %1$s</string>
     <string name="finance_cash_in_label">Получено</string>
-    <string name="finance_accrued_label">Начислено за уроки</string>
-    <string name="finance_ar_label">Долги на конец периода</string>
-    <string name="finance_ar_subtitle">на сегодня</string>
-    <string name="finance_prepayments_label">Баланс авансов</string>
-    <string name="finance_prepayments_subtitle">по всем ученикам</string>
+    <string name="finance_accrued_label">Начислено</string>
+    <string name="finance_ar_label">Долги</string>
+    <string name="finance_prepayments_label">Предоплата</string>
     <string name="finance_lessons_label">Занятий</string>
     <string name="finance_lessons_badge_conducted">Проведено: %1$d</string>
     <string name="finance_lessons_badge_cancelled">Отменено: %1$d</string>

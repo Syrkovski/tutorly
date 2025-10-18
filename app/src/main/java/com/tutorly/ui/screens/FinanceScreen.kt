@@ -34,11 +34,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -152,14 +151,12 @@ private fun FinanceContent(
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_ar_label),
-                value = debtValue,
-                subtitle = stringResource(R.string.finance_ar_subtitle)
+                value = debtValue
             )
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_prepayments_label),
-                value = prepaymentValue,
-                subtitle = stringResource(R.string.finance_prepayments_subtitle)
+                value = prepaymentValue
             )
         }
 
@@ -347,7 +344,7 @@ private fun FinanceChartCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                FinanceLineChart(
+                FinanceBarChart(
                     points = points,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -389,47 +386,30 @@ private fun FinanceChartCard(
 }
 
 @Composable
-private fun FinanceLineChart(
+private fun FinanceBarChart(
     points: List<FinanceChartPoint>,
     modifier: Modifier = Modifier
 ) {
     val maxValue = remember(points) { points.maxOfOrNull { it.amount } ?: 0L }
-    val lineColor = MaterialTheme.colorScheme.primary
+    val barColor = MaterialTheme.colorScheme.primary
     Canvas(modifier = modifier) {
         if (points.isEmpty()) return@Canvas
         val max = maxValue.toFloat().coerceAtLeast(1f)
         val height = size.height
         val width = size.width
-        val stepX = if (points.size > 1) width / (points.size - 1) else 0f
-        val path = Path()
+        val bars = points.size
+        val barWidth = width / (bars * 1.6f)
+        val stepX = width / bars
 
         points.forEachIndexed { index, point ->
             val ratio = point.amount.toFloat() / max
-            val x = if (points.size == 1) width / 2f else stepX * index
-            val y = height - (ratio * height)
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
-            }
-        }
-
-        if (points.size > 1) {
-            drawPath(
-                path = path,
-                color = lineColor,
-                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-            )
-        }
-
-        points.forEachIndexed { index, point ->
-            val ratio = point.amount.toFloat() / max
-            val x = if (points.size == 1) width / 2f else stepX * index
-            val y = height - (ratio * height)
-            drawCircle(
-                color = lineColor,
-                radius = 6.dp.toPx(),
-                center = Offset(x, y)
+            val barHeight = ratio * height
+            val left = stepX * index + (stepX - barWidth) / 2f
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(x = left, y = height - barHeight),
+                size = Size(width = barWidth, height = barHeight),
+                cornerRadius = CornerRadius(x = 12.dp.toPx(), y = 12.dp.toPx())
             )
         }
     }
