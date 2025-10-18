@@ -1,8 +1,5 @@
 package com.tutorly.navigation
 
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -33,12 +30,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.navArgument
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
 import androidx.navigation.compose.dialog
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tutorly.ui.CalendarMode
 import com.tutorly.ui.CalendarScreen
 import com.tutorly.ui.CalendarViewModel
@@ -50,9 +47,11 @@ import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.screens.*
 import java.time.LocalDate
 import java.time.ZonedDateTime
+import com.tutorly.ui.splash.SplashRoute
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.R
 
+const val ROUTE_SPLASH = "splash"
 const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
 const val ROUTE_TODAY = "today"
@@ -77,13 +76,9 @@ private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null)
     }
 }
 
-@OptIn(
-    ExperimentalSharedTransitionApi::class,
-    ExperimentalAnimationApi::class
-)
 @Composable
 fun AppNavRoot() {
-    val nav = rememberAnimatedNavController()
+    val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
@@ -116,40 +111,50 @@ fun AppNavRoot() {
                 }
             },
             bottomBar = {
-                AppBottomBar(
-                    currentRoute = route,
-                    onSelect = { dest ->
-                        if (dest == ROUTE_STUDENTS) {
-                            val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
-                            if (returnedToList) {
-                                return@AppBottomBar
+                if (route != ROUTE_SPLASH) {
+                    AppBottomBar(
+                        currentRoute = route,
+                        onSelect = { dest ->
+                            if (dest == ROUTE_STUDENTS) {
+                                val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
+                                if (returnedToList) {
+                                    return@AppBottomBar
+                                }
+                            }
+
+                            val target = when (dest) {
+                                ROUTE_CALENDAR -> calendarRoute(nav)
+                                ROUTE_STUDENTS -> studentsRoute()
+                                else -> dest
+                            }
+                            nav.navigate(target) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(nav.graph.startDestinationId) { saveState = true }
                             }
                         }
-
-                        val target = when (dest) {
-                            ROUTE_CALENDAR -> calendarRoute(nav)
-                            ROUTE_STUDENTS -> studentsRoute()
-                            else -> dest
-                        }
-                        nav.navigate(target) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(nav.graph.startDestinationId) { saveState = true }
-                        }
-                    }
-                )
+                    )
+                }
             },
             containerColor = Color.Transparent,
             // чтобы контент корректно учитывал статус/навигационные панели
             contentWindowInsets = WindowInsets.systemBars
         ) { innerPadding ->
-            SharedTransitionLayout {
-                val sharedScope = this
-                AnimatedNavHost(
-                    navController = nav,
-                    startDestination = ROUTE_CALENDAR_PATTERN,
-                    modifier = Modifier.padding(innerPadding)
-                ) {
+            NavHost(
+                navController = nav,
+                startDestination = ROUTE_SPLASH,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(ROUTE_SPLASH) {
+                    SplashRoute(
+                        onFinished = {
+                            nav.navigate(buildCalendarRoute(date = null, mode = null)) {
+                                popUpTo(ROUTE_SPLASH) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
                 composable(
                     route = ROUTE_CALENDAR_PATTERN,
                     arguments = listOf(
@@ -196,7 +201,7 @@ fun AppNavRoot() {
                             }
                         }
                     )
-                }      // сам рисует свой верх (заголовок + счетчики)
+                } // сам рисует свой верх (заголовок + счетчики)
                 composable(
                     route = ROUTE_STUDENTS_PATTERN,
                     arguments = listOf(
@@ -249,9 +254,7 @@ fun AppNavRoot() {
                                 creationViewModel.dismiss()
                             }
                         },
-                        initialEditorOrigin = origin,
-                        sharedTransitionScope = sharedScope,
-                        animatedVisibilityScope = this
+                        initialEditorOrigin = origin
                     )
                 }
                 composable(
@@ -310,7 +313,7 @@ fun AppNavRoot() {
             }
         }
     }
-}}
+}
 
 fun calendarRoute(nav: NavHostController): String {
     val entry = runCatching { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }.getOrNull()

@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Tutorly</string>
+    <string name="splash_tagline">Планирование занятий без лишних забот</string>
+    <string name="splash_loading">Загружаем расписание…</string>
     <string name="add_student">Добавить ученика</string>
     <string name="search_students_hint">Поиск по имени или телефону</string>
     <string name="students_empty_state">Добавьте первого ученика</string>
