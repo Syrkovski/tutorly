@@ -1,5 +1,6 @@
 package com.tutorly.domain.model
 
+import com.tutorly.models.LessonStatus
 import com.tutorly.models.PaymentStatus
 import java.time.Duration
 import java.time.Instant
@@ -22,6 +23,7 @@ data class LessonDetails(
     val subjectColorArgb: Int?,
     val paymentStatus: PaymentStatus,
     val paymentStatusIcon: PaymentStatusIcon,
+    val lessonStatus: LessonStatus = LessonStatus.PLANNED,
     val priceCents: Int,
     val paidCents: Int,
     val lessonTitle: String?,

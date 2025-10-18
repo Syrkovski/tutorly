@@ -2,83 +2,58 @@ package com.tutorly.ui.screens
 
 import androidx.annotation.StringRes
 import com.tutorly.R
+import java.time.LocalDate
 
 enum class FinancePeriod(
     @StringRes val tabLabelRes: Int,
-    @StringRes val periodLabelRes: Int,
-    @StringRes val previousLabelRes: Int
+    @StringRes val periodLabelRes: Int
 ) {
-    DAY(
-        tabLabelRes = R.string.finance_period_day,
-        periodLabelRes = R.string.finance_period_day_accusative,
-        previousLabelRes = R.string.finance_previous_day
-    ),
     WEEK(
         tabLabelRes = R.string.finance_period_week,
-        periodLabelRes = R.string.finance_period_week_accusative,
-        previousLabelRes = R.string.finance_previous_week
+        periodLabelRes = R.string.finance_period_week_accusative
     ),
     MONTH(
         tabLabelRes = R.string.finance_period_month,
-        periodLabelRes = R.string.finance_period_month_accusative,
-        previousLabelRes = R.string.finance_previous_month
+        periodLabelRes = R.string.finance_period_month_accusative
     )
 }
 
 data class FinanceSummary(
-    val income: Long,
-    val incomeChange: FinanceChange,
-    val debt: Long,
-    val debtChange: FinanceChange,
-    val hours: Double,
-    val lessons: Int,
-    val topStudents: List<StudentEarning>
+    val cashIn: Long,
+    val accrued: Long,
+    val accountsReceivable: Long,
+    val prepayments: Long,
+    val lessons: FinanceLessonsSummary
 ) {
     companion object {
         val EMPTY = FinanceSummary(
-            income = 0,
-            incomeChange = FinanceChange.ZERO,
-            debt = 0,
-            debtChange = FinanceChange.ZERO,
-            hours = 0.0,
-            lessons = 0,
-            topStudents = emptyList()
+            cashIn = 0,
+            accrued = 0,
+            accountsReceivable = 0,
+            prepayments = 0,
+            lessons = FinanceLessonsSummary.EMPTY
         )
     }
 }
 
-data class FinanceChange(
-    val percent: Double,
-    val deltaCents: Long
+data class FinanceLessonsSummary(
+    val total: Int,
+    val conducted: Int,
+    val cancelled: Int
 ) {
     companion object {
-        val ZERO = FinanceChange(percent = 0.0, deltaCents = 0L)
-
-        fun from(currentCents: Long, previousCents: Long): FinanceChange {
-            val percent = when {
-                previousCents == 0L && currentCents == 0L -> 0.0
-                previousCents == 0L -> 1.0
-                else -> (currentCents - previousCents).toDouble() / previousCents.toDouble()
-            }
-            val delta = currentCents - previousCents
-            return FinanceChange(percent = percent, deltaCents = delta)
-        }
+        val EMPTY = FinanceLessonsSummary(total = 0, conducted = 0, cancelled = 0)
     }
 }
 
-data class FinanceAverages(
-    val day: Long,
-    val week: Long,
-    val month: Long
-) {
-    companion object {
-        val ZERO = FinanceAverages(day = 0, week = 0, month = 0)
-    }
-}
-
-data class StudentEarning(
+data class FinanceDebtor(
     val studentId: Long,
     val name: String,
-    val amount: Long
+    val amount: Long,
+    val lastDueDate: LocalDate
 )
 
+data class FinanceChartPoint(
+    val date: LocalDate,
+    val amount: Long
+)

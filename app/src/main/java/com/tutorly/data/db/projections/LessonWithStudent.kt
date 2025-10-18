@@ -51,6 +51,7 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         subjectColorArgb = subject?.colorArgb,
         paymentStatus = lesson.paymentStatus,
         paymentStatusIcon = lesson.paymentStatus.asIcon(),
+        lessonStatus = lesson.status,
         priceCents = lesson.priceCents,
         paidCents = lesson.paidCents,
         lessonTitle = lesson.title,

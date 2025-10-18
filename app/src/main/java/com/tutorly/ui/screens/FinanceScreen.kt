@@ -1,32 +1,30 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.TrendingDown
-import androidx.compose.material.icons.outlined.TrendingFlat
-import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,9 +34,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,16 +48,18 @@ import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
+import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
-import kotlin.math.abs
 
 @Composable
 fun FinanceScreen(
     modifier: Modifier = Modifier,
-    viewModel: FinanceViewModel = hiltViewModel()
+    viewModel: FinanceViewModel = hiltViewModel(),
+    onOpenStudent: (Long) -> Unit = {},
+    onViewAllDebtors: () -> Unit = {}
 ) {
-    var selectedPeriod by rememberSaveable { mutableStateOf(FinancePeriod.DAY) }
+    var selectedPeriod by rememberSaveable { mutableStateOf(FinancePeriod.WEEK) }
     val state by viewModel.uiState.collectAsState()
 
     when (val uiState = state) {
@@ -64,7 +68,9 @@ fun FinanceScreen(
             modifier = modifier,
             selectedPeriod = selectedPeriod,
             onSelectPeriod = { selectedPeriod = it },
-            state = uiState
+            state = uiState,
+            onOpenStudent = onOpenStudent,
+            onViewAllDebtors = onViewAllDebtors
         )
     }
 }
@@ -86,36 +92,27 @@ private fun FinanceContent(
     modifier: Modifier,
     selectedPeriod: FinancePeriod,
     onSelectPeriod: (FinancePeriod) -> Unit,
-    state: FinanceUiState.Content
+    state: FinanceUiState.Content,
+    onOpenStudent: (Long) -> Unit,
+    onViewAllDebtors: () -> Unit
 ) {
     val currencyFormatter = rememberCurrencyFormatter()
-    val percentFormatter = rememberPercentFormatter()
-    val numberFormatter = rememberNumberFormatter()
+    val dateFormatter = rememberDateFormatter()
     val scrollState = rememberScrollState()
 
     val summary = state.summaries[selectedPeriod] ?: FinanceSummary.EMPTY
-    val averages = state.averages
+    val chartPoints = state.chart[selectedPeriod].orEmpty()
+    val debtors = state.debtors
 
     val periodLabel = stringResource(selectedPeriod.periodLabelRes)
     val periodText = stringResource(R.string.finance_metric_period, periodLabel)
-    val incomeValue = currencyFormatter.format(summary.income)
-    val debtValue = currencyFormatter.format(summary.debt)
-    val hoursValue = numberFormatter.format(summary.hours)
-    val lessonsValue = summary.lessons.toString()
-    val averageDay = currencyFormatter.format(averages.day)
-    val averageWeek = currencyFormatter.format(averages.week)
-    val averageMonth = currencyFormatter.format(averages.month)
-
-    val incomeChangeDisplay = summary.incomeChange.toDisplay(
-        period = selectedPeriod,
-        percentFormatter = percentFormatter,
-        increaseIsGood = true
-    )
-    val debtChangeDisplay = summary.debtChange.toDisplay(
-        period = selectedPeriod,
-        percentFormatter = percentFormatter,
-        increaseIsGood = false
-    )
+    val cashInValue = currencyFormatter.format(summary.cashIn)
+    val accruedValue = currencyFormatter.format(summary.accrued)
+    val debtValue = currencyFormatter.format(summary.accountsReceivable)
+    val prepaymentValue = currencyFormatter.format(summary.prepayments)
+    val lessonsValue = summary.lessons.total.toString()
+    val conductedText = stringResource(R.string.finance_lessons_badge_conducted, summary.lessons.conducted)
+    val cancelledText = stringResource(R.string.finance_lessons_badge_cancelled, summary.lessons.cancelled)
 
     Column(
         modifier = modifier
@@ -136,15 +133,15 @@ private fun FinanceContent(
         ) {
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_income_label),
-                value = incomeValue,
-                change = incomeChangeDisplay
+                title = stringResource(R.string.finance_cash_in_label),
+                value = cashInValue,
+                subtitle = periodText
             )
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_debt_label),
-                value = debtValue,
-                change = debtChangeDisplay
+                title = stringResource(R.string.finance_accrued_label),
+                value = accruedValue,
+                subtitle = periodText
             )
         }
 
@@ -154,25 +151,53 @@ private fun FinanceContent(
         ) {
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_hours_label),
-                value = stringResource(R.string.finance_hours_value_format, hoursValue),
-                subtitle = periodText
+                title = stringResource(R.string.finance_ar_label),
+                value = debtValue,
+                subtitle = stringResource(R.string.finance_ar_subtitle)
             )
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_lessons_label),
-                value = lessonsValue,
-                subtitle = periodText
+                title = stringResource(R.string.finance_prepayments_label),
+                value = prepaymentValue,
+                subtitle = stringResource(R.string.finance_prepayments_subtitle)
             )
         }
 
-        FinanceAveragesCard(
+        FinanceMetricCard(
             modifier = Modifier.fillMaxWidth(),
-            averageDay = averageDay,
-            averageWeek = averageWeek,
-            averageMonth = averageMonth,
-            topStudents = summary.topStudents,
-            currencyFormatter = currencyFormatter
+            title = stringResource(R.string.finance_lessons_label),
+            value = lessonsValue,
+            subtitle = periodText,
+            footer = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FinanceBadge(
+                        text = conductedText,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    FinanceBadge(
+                        text = cancelledText,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        )
+
+        FinanceChartCard(
+            modifier = Modifier.fillMaxWidth(),
+            points = chartPoints,
+            currencyFormatter = currencyFormatter,
+            dateFormatter = dateFormatter
+        )
+
+        FinanceDebtorsSection(
+            modifier = Modifier.fillMaxWidth(),
+            debtors = debtors,
+            currencyFormatter = currencyFormatter,
+            dateFormatter = dateFormatter,
+            onOpenStudent = onOpenStudent,
+            onViewAllDebtors = onViewAllDebtors
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -224,7 +249,7 @@ private fun FinanceMetricCard(
     value: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    change: ChangeDisplay? = null
+    footer: (@Composable () -> Unit)? = null
 ) {
     Card(
         modifier = modifier,
@@ -251,47 +276,53 @@ private fun FinanceMetricCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            when {
-                change != null -> {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = change.icon,
-                            contentDescription = null,
-                            tint = change.tint,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = change.text,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = change.tint
-                        )
-                    }
-                }
-
-                subtitle != null -> {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            footer?.let {
+                it()
             }
         }
     }
 }
 
 @Composable
-private fun FinanceAveragesCard(
-    modifier: Modifier,
-    averageDay: String,
-    averageWeek: String,
-    averageMonth: String,
-    topStudents: List<StudentEarning>,
-    currencyFormatter: NumberFormat
+private fun FinanceBadge(
+    text: String,
+    color: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier
 ) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = color,
+        contentColor = contentColor
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun FinanceChartCard(
+    modifier: Modifier,
+    points: List<FinanceChartPoint>,
+    currencyFormatter: NumberFormat,
+    dateFormatter: DateTimeFormatter
+) {
+    val firstDate = points.firstOrNull()?.date
+    val lastDate = points.lastOrNull()?.date
+
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -305,38 +336,52 @@ private fun FinanceAveragesCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = stringResource(R.string.finance_average_title),
-                style = MaterialTheme.typography.titleMedium
+                text = stringResource(R.string.finance_chart_title),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1
             )
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                FinanceAverageRow(
-                    label = stringResource(R.string.finance_average_day),
-                    value = averageDay
+            if (points.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.finance_chart_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                FinanceAverageRow(
-                    label = stringResource(R.string.finance_average_week),
-                    value = averageWeek
+            } else {
+                FinanceLineChart(
+                    points = points,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
                 )
-                FinanceAverageRow(
-                    label = stringResource(R.string.finance_average_month),
-                    value = averageMonth
-                )
-            }
-
-            Divider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            Text(
-                text = stringResource(R.string.finance_top_students_title),
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                topStudents.take(3).forEachIndexed { index, student ->
-                    FinanceTopStudentRow(
-                        position = index + 1,
-                        student = student,
-                        currencyFormatter = currencyFormatter
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        firstDate?.let { date ->
+                            Text(
+                                text = dateFormatter.format(date),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        val total = points.sumOf { it.amount }
+                        Text(
+                            text = currencyFormatter.format(total),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        lastDate?.let { date ->
+                            Text(
+                                text = dateFormatter.format(date),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -344,96 +389,146 @@ private fun FinanceAveragesCard(
 }
 
 @Composable
-private fun FinanceAverageRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium
-        )
-    }
-}
-
-@Composable
-private fun FinanceTopStudentRow(
-    position: Int,
-    student: StudentEarning,
-    currencyFormatter: NumberFormat
+private fun FinanceLineChart(
+    points: List<FinanceChartPoint>,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(R.string.finance_top_student_item, position, student.name),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = currencyFormatter.format(student.amount),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    val maxValue = remember(points) { points.maxOfOrNull { it.amount } ?: 0L }
+    Canvas(modifier = modifier) {
+        if (points.isEmpty()) return@Canvas
+        val max = maxValue.toFloat().coerceAtLeast(1f)
+        val height = size.height
+        val width = size.width
+        val stepX = if (points.size > 1) width / (points.size - 1) else 0f
+        val path = Path()
+
+        points.forEachIndexed { index, point ->
+            val ratio = point.amount.toFloat() / max
+            val x = if (points.size == 1) width / 2f else stepX * index
+            val y = height - (ratio * height)
+            if (index == 0) {
+                path.moveTo(x, y)
+            } else {
+                path.lineTo(x, y)
+            }
+        }
+
+        if (points.size > 1) {
+            drawPath(
+                path = path,
+                color = MaterialTheme.colorScheme.primary,
+                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+            )
+        }
+
+        points.forEachIndexed { index, point ->
+            val ratio = point.amount.toFloat() / max
+            val x = if (points.size == 1) width / 2f else stepX * index
+            val y = height - (ratio * height)
+            drawCircle(
+                color = MaterialTheme.colorScheme.primary,
+                radius = 6.dp.toPx(),
+                center = Offset(x, y)
+            )
+        }
     }
 }
 
-private data class ChangeDisplay(
-    val icon: ImageVector,
-    val tint: Color,
-    val text: String
-)
+@Composable
+private fun FinanceDebtorsSection(
+    modifier: Modifier,
+    debtors: List<FinanceDebtor>,
+    currencyFormatter: NumberFormat,
+    dateFormatter: DateTimeFormatter,
+    onOpenStudent: (Long) -> Unit,
+    onViewAllDebtors: () -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.finance_debtors_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                TextButton(onClick = onViewAllDebtors) {
+                    Text(text = stringResource(R.string.finance_debtors_all))
+                }
+            }
+
+            if (debtors.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.finance_debtors_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    debtors.forEach { debtor ->
+                        FinanceDebtorRow(
+                            debtor = debtor,
+                            currencyFormatter = currencyFormatter,
+                            dateFormatter = dateFormatter,
+                            onOpenStudent = onOpenStudent
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
-private fun FinanceChange.toDisplay(
-    period: FinancePeriod,
-    percentFormatter: NumberFormat,
-    increaseIsGood: Boolean
-): ChangeDisplay {
-    val previousLabel = period.previousLabelRes
-    val previousText = stringResource(previousLabel)
-    val percentValue = abs(percent)
-    val formattedPercent = percentFormatter.format(percentValue)
-    val text = when {
-        percent > 0 -> stringResource(
-            R.string.finance_change_positive,
-            formattedPercent,
-            previousText
-        )
-
-        percent < 0 -> stringResource(
-            R.string.finance_change_negative,
-            formattedPercent,
-            previousText
-        )
-
-        else -> stringResource(R.string.finance_change_neutral, previousText)
-    }
-
-    val (icon, color) = when {
-        percent > 0 -> Icons.Outlined.TrendingUp to if (increaseIsGood) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.error
+private fun FinanceDebtorRow(
+    debtor: FinanceDebtor,
+    currencyFormatter: NumberFormat,
+    dateFormatter: DateTimeFormatter,
+    onOpenStudent: (Long) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = debtor.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(R.string.finance_debtors_last_debt, dateFormatter.format(debtor.lastDueDate)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = currencyFormatter.format(debtor.amount),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
         }
-
-        percent < 0 -> Icons.Outlined.TrendingDown to if (increaseIsGood) {
-            MaterialTheme.colorScheme.error
-        } else {
-            MaterialTheme.colorScheme.primary
+        TextButton(onClick = { onOpenStudent(debtor.studentId) }) {
+            Text(text = stringResource(R.string.finance_debtors_open_profile))
         }
-
-        else -> Icons.Outlined.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
     }
-
-    return ChangeDisplay(icon = icon, tint = color, text = text)
 }
 
 @Composable
@@ -447,21 +542,8 @@ private fun rememberCurrencyFormatter(): NumberFormat {
 }
 
 @Composable
-private fun rememberPercentFormatter(): NumberFormat {
+private fun rememberDateFormatter(): DateTimeFormatter {
     return remember {
-        NumberFormat.getPercentInstance(Locale.getDefault()).apply {
-            maximumFractionDigits = 1
-            minimumFractionDigits = 0
-        }
-    }
-}
-
-@Composable
-private fun rememberNumberFormatter(): NumberFormat {
-    return remember {
-        NumberFormat.getNumberInstance(Locale.getDefault()).apply {
-            maximumFractionDigits = 1
-            minimumFractionDigits = 0
-        }
+        DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
     }
 }

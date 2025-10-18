@@ -94,6 +94,40 @@ interface PaymentDao {
         status: PaymentStatus
     ): Flow<Long>
 
+    @Query(
+        """
+        SELECT * FROM payments
+        WHERE at >= :from AND at < :to AND status = :status
+        ORDER BY at
+        """
+    )
+    fun observePaymentsInRange(
+        from: Instant,
+        to: Instant,
+        status: PaymentStatus
+    ): Flow<List<Payment>>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
+        WHERE lessonId IS NULL AND status = :status
+        """
+    )
+    fun observeTotalPrepaymentDeposits(status: PaymentStatus): Flow<Long>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0)
+        FROM payments
+        WHERE lessonId IS NOT NULL AND status = :status AND method = :method
+        """
+    )
+    fun observeTotalPrepaymentAllocations(
+        status: PaymentStatus,
+        method: String
+    ): Flow<Long>
+
     @Query("SELECT * FROM payments WHERE lessonId = :lessonId LIMIT 1")
     suspend fun findByLesson(lessonId: Long): Payment?
 

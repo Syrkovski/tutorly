@@ -12,6 +12,7 @@ interface LessonsRepository {
     fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>>
     fun observeTodayLessons(dayStart: Instant, dayEnd: Instant): Flow<List<LessonForToday>>
     fun observeOutstandingLessons(before: Instant): Flow<List<LessonForToday>>
+    fun observeOutstandingLessonDetails(before: Instant): Flow<List<LessonDetails>>
     fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats>
     fun observeLessonDetails(id: Long): Flow<LessonDetails?>
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
