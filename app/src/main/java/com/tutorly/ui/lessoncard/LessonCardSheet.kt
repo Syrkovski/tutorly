@@ -75,6 +75,7 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
+import com.tutorly.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -350,14 +351,14 @@ private fun LessonHeader(
         Surface(
             modifier = Modifier.size(48.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            color = MaterialTheme.extendedColors.chipSelected
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = initials.ifBlank { "?" },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
