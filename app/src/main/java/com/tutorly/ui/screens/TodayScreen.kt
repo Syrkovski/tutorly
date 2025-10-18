@@ -32,6 +32,9 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -625,7 +628,8 @@ private fun ClosedDayLessonsSection(
                 lesson = lesson,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onLessonOpen(lesson.id) }
+                    .clickable { onLessonOpen(lesson.id) },
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             )
         }
     }
@@ -662,7 +666,8 @@ private fun PastDebtorsCollapsible(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
-                onOpenStudentProfile = onOpenStudentProfile
+                onOpenStudentProfile = onOpenStudentProfile,
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             )
         }
         if (hasMore) {
@@ -732,7 +737,8 @@ private fun LessonsList(
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
-    onOpenStudentProfile: (Long) -> Unit
+    onOpenStudentProfile: (Long) -> Unit,
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -743,7 +749,8 @@ private fun LessonsList(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onClick = { onLessonOpen(lesson.id) },
-                onLongPress = { onOpenStudentProfile(lesson.studentId) }
+                onLongPress = { onOpenStudentProfile(lesson.studentId) },
+                cardElevation = cardElevation
             )
         }
     }
@@ -756,7 +763,8 @@ private fun TodayLessonRow(
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -784,7 +792,8 @@ private fun TodayLessonRow(
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongPress
-                )
+                ),
+            cardElevation = cardElevation
         )
     }
 }
@@ -831,7 +840,9 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
 @Composable
 private fun LessonCard(
     lesson: LessonForToday,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cardColors: CardColors = TutorlyCardDefaults.colors(containerColor = Color.White),
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
 ) {
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -851,8 +862,8 @@ private fun LessonCard(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+        colors = cardColors,
+        elevation = cardElevation
     ) {
         Column(
             modifier = Modifier
