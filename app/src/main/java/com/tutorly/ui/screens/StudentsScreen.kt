@@ -162,7 +162,7 @@ fun StudentsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.extendedColors.accent,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(

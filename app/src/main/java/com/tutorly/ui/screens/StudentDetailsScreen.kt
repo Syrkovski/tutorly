@@ -284,7 +284,7 @@ fun StudentDetailsScreen(
                 FloatingActionButton(
                     onClick = { openLessonCreation(profile.student.id) },
                     modifier = Modifier.navigationBarsPadding(),
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.extendedColors.accent,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Icon(imageVector = Icons.Outlined.CalendarToday, contentDescription = null)

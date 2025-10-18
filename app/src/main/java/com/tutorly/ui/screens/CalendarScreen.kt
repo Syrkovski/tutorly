@@ -231,7 +231,7 @@ fun CalendarScreen(
                         )
                     )
                 },
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.extendedColors.accent,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
