@@ -28,7 +28,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -68,8 +67,7 @@ fun SettingsScreen(
                 title = stringResource(id = R.string.settings_title),
                 navigationIcon = {
                     IconButton(
-                        onClick = onBack,
-                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                        onClick = onBack
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,

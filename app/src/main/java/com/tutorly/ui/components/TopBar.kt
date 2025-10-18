@@ -32,8 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
-import com.tutorly.ui.theme.TopBarGradientEnd
-import com.tutorly.ui.theme.TopBarGradientStart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +58,7 @@ fun AppTopBar(
                         title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             },
@@ -70,7 +68,9 @@ fun AppTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
             ),
             windowInsets = WindowInsets(0, 0, 0, 0),
             actions = {
@@ -97,6 +97,9 @@ fun AppTopBar(
 @Composable
 fun GradientTopBarContainer(content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(0.dp)
+    val colorScheme = MaterialTheme.colorScheme
+    val startColor = colorScheme.primary
+    val endColor = colorScheme.primaryContainer
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -111,7 +114,7 @@ fun GradientTopBarContainer(content: @Composable () -> Unit) {
                 .fillMaxWidth()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(TopBarGradientStart, TopBarGradientEnd)
+                        colors = listOf(startColor, endColor)
                     )
                 )
                 .statusBarsPadding()

@@ -65,7 +65,7 @@ class PreferencesUserProfileRepository @Inject constructor(
             ?: emptySet()
         val theme = this[Keys.THEME]
             ?.let { value -> runCatching { AppThemePreset.valueOf(value) }.getOrNull() }
-            ?: AppThemePreset.OCEAN
+            ?: AppThemePreset.ORIGINAL
         return UserProfile(
             workDayStartMinutes = sanitizedStart,
             workDayEndMinutes = sanitizedEnd,

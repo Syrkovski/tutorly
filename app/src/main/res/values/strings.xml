@@ -259,6 +259,7 @@
     <string name="settings_work_end">Окончание дня</string>
     <string name="settings_weekends">Выходные</string>
     <string name="settings_theme">Цвет темы</string>
+    <string name="settings_theme_original">Фирменная</string>
     <string name="settings_theme_ocean">Океан</string>
     <string name="settings_theme_forest">Лес</string>
     <string name="settings_theme_sunset">Закат</string>

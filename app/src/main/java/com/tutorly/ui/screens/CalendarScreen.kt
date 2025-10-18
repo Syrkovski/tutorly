@@ -208,8 +208,7 @@ fun CalendarScreen(
                 title = calendarTitle,
                 actions = {
                     IconButton(
-                        onClick = onOpenSettings,
-                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                        onClick = onOpenSettings
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,

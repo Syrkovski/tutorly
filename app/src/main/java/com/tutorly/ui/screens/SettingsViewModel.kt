@@ -106,7 +106,7 @@ data class SettingsUiState(
     val workDayStart: LocalTime = LocalTime.of(9, 0),
     val workDayEnd: LocalTime = LocalTime.of(22, 0),
     val weekendDays: Set<DayOfWeek> = emptySet(),
-    val selectedTheme: AppThemePreset = AppThemePreset.OCEAN,
+    val selectedTheme: AppThemePreset = AppThemePreset.ORIGINAL,
     val availableThemes: List<ThemeOption> = ThemeOption.defaults()
 )
 
@@ -117,6 +117,11 @@ data class ThemeOption(
 ) {
     companion object {
         fun defaults(): List<ThemeOption> = listOf(
+            ThemeOption(
+                preset = AppThemePreset.ORIGINAL,
+                labelRes = R.string.settings_theme_original,
+                previewColor = 0xFF3B7D72
+            ),
             ThemeOption(
                 preset = AppThemePreset.OCEAN,
                 labelRes = R.string.settings_theme_ocean,

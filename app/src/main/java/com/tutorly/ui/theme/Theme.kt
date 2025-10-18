@@ -121,7 +121,7 @@ private val LightColors = lightColorScheme(
 
 @Composable
 fun AppTheme(
-    preset: AppThemePreset = AppThemePreset.OCEAN,
+    preset: AppThemePreset = AppThemePreset.ORIGINAL,
     content: @Composable () -> Unit
 ) {
     val colorScheme = remember(preset) { colorSchemeForPreset(preset) }
@@ -134,6 +134,7 @@ fun AppTheme(
 }
 
 private fun colorSchemeForPreset(preset: AppThemePreset) = when (preset) {
+    AppThemePreset.ORIGINAL -> LightColors.copy()
     AppThemePreset.OCEAN -> LightColors.copy(
         primary = Color(0xFF1E88E5),
         onPrimary = Color.White,
