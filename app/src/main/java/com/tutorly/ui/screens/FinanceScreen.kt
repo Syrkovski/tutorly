@@ -541,7 +541,7 @@ private fun buildChartLabels(
 
         FinancePeriod.MONTH -> {
             val lastDay = points.maxOfOrNull { it.date.dayOfMonth } ?: 1
-            val labeledDays = setOf(1, 7, 15, 21, lastDay)
+            val labeledDays = setOf(1, 7, 14, 21, lastDay)
             points.map { point ->
                 val day = point.date.dayOfMonth
                 if (day in labeledDays) day.toString() else ""
