@@ -269,16 +269,6 @@ fun CalendarScreen(
             onSwipeRight = prevPeriod
         )
 
-        if (!uiState.hasStudents) {
-            CalendarOnboardingHint(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 12.dp, bottom = 8.dp),
-                message = stringResource(id = R.string.calendar_onboarding_no_students),
-                onAddStudent = onAddStudent
-            )
-        }
-
         // Контент занимает остаток экрана и скроллится внутри
         Box(
             Modifier
@@ -367,6 +357,23 @@ fun CalendarScreen(
                     )
                 }
             }
+
+            if (!uiState.hasStudents) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CalendarOnboardingHint(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 360.dp),
+                        message = stringResource(id = R.string.calendar_onboarding_no_students),
+                        onAddStudent = onAddStudent
+                    )
+                }
+            }
         }
     }
     }
@@ -379,7 +386,7 @@ private fun CalendarOnboardingHint(
     onAddStudent: () -> Unit
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
         tonalElevation = 0.dp,
