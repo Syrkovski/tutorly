@@ -31,8 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -42,6 +40,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
@@ -70,7 +69,6 @@ import com.tutorly.models.PaymentStatus
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -105,7 +103,6 @@ internal fun LessonCardSheet(
     var showPriceDialog by remember { mutableStateOf(false) }
     var showNoteDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var statusMenuExpanded by remember { mutableStateOf(false) }
 
     val locale = state.locale
     val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
@@ -132,13 +129,6 @@ internal fun LessonCardSheet(
             if (char.isLowerCase()) char.titlecase(locale) else char.toString()
         }
     }
-    val startDateTime = remember(state.date, state.time, state.zoneId) {
-        ZonedDateTime.of(state.date, state.time, state.zoneId)
-    }
-    val statusDisplay = remember(state.paymentStatus, startDateTime) {
-        paymentStatusDisplay(state.paymentStatus, startDateTime)
-    }
-
     val snackbarText = when (val message = state.snackbarMessage) {
         is LessonCardMessage.Error -> message.message ?: stringResource(R.string.lesson_card_snackbar_error)
         null -> null
@@ -172,11 +162,6 @@ internal fun LessonCardSheet(
     }
     val onDurationClick: () -> Unit = { showDurationDialog = true }
     val onPriceClick: () -> Unit = { showPriceDialog = true }
-    val onStatusClick: () -> Unit = {
-        if (!state.isPaymentActionRunning) {
-            statusMenuExpanded = true
-        }
-    }
     val onNoteClick: () -> Unit = { showNoteDialog = true }
 
     ModalBottomSheet(
@@ -237,13 +222,8 @@ internal fun LessonCardSheet(
 
                         PriceRow(
                             price = priceText,
-                            statusLabel = stringResource(id = statusDisplay.labelRes),
-                            statusSymbol = statusDisplay.symbol,
-                            startDateTime = startDateTime,
-                            statusMenuExpanded = statusMenuExpanded,
+                            paymentStatus = state.paymentStatus,
                             onPriceClick = onPriceClick,
-                            onStatusClick = onStatusClick,
-                            onStatusDismiss = { statusMenuExpanded = false },
                             onStatusSelect = onStatusSelect,
                             isStatusBusy = state.isPaymentActionRunning
                         )
@@ -520,13 +500,8 @@ private fun TimeCard(
 @Composable
 private fun PriceRow(
     price: String,
-    statusLabel: String,
-    statusSymbol: String,
-    startDateTime: ZonedDateTime,
-    statusMenuExpanded: Boolean,
+    paymentStatus: PaymentStatus,
     onPriceClick: () -> Unit,
-    onStatusClick: () -> Unit,
-    onStatusDismiss: () -> Unit,
     onStatusSelect: (PaymentStatus) -> Unit,
     isStatusBusy: Boolean,
 ) {
@@ -550,46 +525,39 @@ private fun PriceRow(
                 style = MaterialTheme.typography.titleLarge
             )
         }
-        Box {
-            Card(
-                onClick = onStatusClick,
-                enabled = !isStatusBusy,
-                shape = RoundedCornerShape(20.dp),
-                colors = TutorlyCardDefaults.colors(),
-                elevation = TutorlyCardDefaults.elevation(),
-                modifier = Modifier.padding(vertical = 4.dp)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = TutorlyCardDefaults.colors(),
+            elevation = TutorlyCardDefaults.elevation(),
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (isStatusBusy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(text = statusSymbol, style = MaterialTheme.typography.titleMedium)
-                    }
-                    Text(
-                        text = statusLabel,
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                val isPaid = paymentStatus == PaymentStatus.PAID
+                val statusText = if (isPaid) {
+                    stringResource(id = R.string.lesson_status_paid)
+                } else {
+                    stringResource(id = R.string.lesson_status_due)
                 }
-            }
-            DropdownMenu(
-                expanded = statusMenuExpanded,
-                onDismissRequest = onStatusDismiss
-            ) {
-                listOf(PaymentStatus.UNPAID, PaymentStatus.PAID, PaymentStatus.DUE).forEach { status ->
-                    val display = paymentStatusDisplay(status, startDateTime)
-                    DropdownMenuItem(
-                        text = { Text("${display.symbol} ${stringResource(id = display.labelRes)}") },
-                        onClick = {
-                            onStatusSelect(status)
-                            onStatusDismiss()
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                if (isStatusBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Switch(
+                        checked = isPaid,
+                        onCheckedChange = { checked ->
+                            val newStatus = if (checked) PaymentStatus.PAID else PaymentStatus.DUE
+                            onStatusSelect(newStatus)
                         }
                     )
                 }
@@ -870,21 +838,3 @@ private fun DeleteLessonDialog(
     )
 }
 
-private data class PaymentStatusDisplay(val symbol: String, val labelRes: Int)
-
-private fun paymentStatusDisplay(status: PaymentStatus, start: ZonedDateTime): PaymentStatusDisplay {
-    val isFuture = start.isAfter(ZonedDateTime.now(start.zone))
-    val labelRes = when (status) {
-        PaymentStatus.UNPAID -> R.string.lesson_card_status_planned
-        PaymentStatus.PAID -> if (isFuture) R.string.lesson_card_status_prepaid else R.string.lesson_status_paid
-        PaymentStatus.DUE -> R.string.lesson_status_due
-        PaymentStatus.CANCELLED -> R.string.lesson_status_cancelled
-    }
-    val symbol = when (status) {
-        PaymentStatus.UNPAID -> "•"
-        PaymentStatus.PAID -> if (isFuture) "◎" else "✓"
-        PaymentStatus.DUE -> "–"
-        PaymentStatus.CANCELLED -> "×"
-    }
-    return PaymentStatusDisplay(symbol, labelRes)
-}
