@@ -7,6 +7,8 @@ import com.tutorly.models.PaymentStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import java.time.Instant
 
 @Singleton
 class RoomPaymentsRepository @Inject constructor(
@@ -28,6 +30,15 @@ class RoomPaymentsRepository @Inject constructor(
 
     override fun observeTotalDebt(studentId: Long): Flow<Long> =
         paymentDao.observeTotalDebt(studentId, PaymentStatus.outstandingStatuses)
+
+    override fun observePaymentsInRange(from: Instant, to: Instant): Flow<List<Payment>> =
+        paymentDao.observePaymentsInRange(from, to, PaymentStatus.PAID)
+
+    override fun observePrepaymentBalance(): Flow<Long> =
+        combine(
+            paymentDao.observeTotalPrepaymentDeposits(PaymentStatus.PAID),
+            paymentDao.observeTotalPrepaymentAllocations(PaymentStatus.PAID, PREPAYMENT_METHOD)
+        ) { deposits, allocations -> deposits - allocations }
 
     override suspend fun insert(payment: Payment): Long =
         paymentDao.insert(payment)

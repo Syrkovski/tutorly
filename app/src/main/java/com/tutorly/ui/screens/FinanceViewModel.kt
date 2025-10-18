@@ -4,23 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.repo.LessonsRepository
-import com.tutorly.models.PaymentStatus
+import com.tutorly.domain.repo.PaymentsRepository
+import com.tutorly.models.Payment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlin.math.roundToLong
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
-import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.WeekFields
 
 @HiltViewModel
 class FinanceViewModel @Inject constructor(
-    lessonsRepository: LessonsRepository
+    private val lessonsRepository: LessonsRepository,
+    private val paymentsRepository: PaymentsRepository
 ) : ViewModel() {
 
     private val zoneId: ZoneId = ZoneId.systemDefault()
@@ -28,156 +28,77 @@ class FinanceViewModel @Inject constructor(
 
     private val observationBounds: ObservationBounds = buildObservationBounds()
 
-    val uiState: StateFlow<FinanceUiState> = lessonsRepository
-        .observeLessons(observationBounds.start, observationBounds.end)
-        .map { lessons ->
-            val now = ZonedDateTime.now(zoneId)
-            val periodBounds = FinancePeriod.entries.associateWith { it.bounds(now, weekFields) }
-            val summaries = periodBounds.mapValues { (_, bounds) ->
-                computeSummary(lessons, bounds)
-            }
-            val averages = computeAverages(lessons)
-            FinanceUiState.Content(summaries = summaries, averages = averages)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FinanceUiState.Loading)
+    private val lessonsFlow = lessonsRepository.observeLessons(observationBounds.start, observationBounds.end)
+    private val outstandingLessonsFlow = lessonsRepository.observeOutstandingLessonDetails(observationBounds.end)
+    private val paymentsFlow = paymentsRepository.observePaymentsInRange(observationBounds.start, observationBounds.end)
+    private val prepaymentsFlow = paymentsRepository.observePrepaymentBalance()
 
-    private fun computeSummary(
-        lessons: List<LessonDetails>,
-        bounds: FinancePeriodBounds
-    ): FinanceSummary {
-        val currentLessons = lessons.filter { it.isWithin(bounds.currentStart, bounds.currentEnd) }
-        val previousLessons = lessons.filter { it.isWithin(bounds.previousStart, bounds.previousEnd) }
-
-        val incomeCurrentCents = currentLessons.sumOf { it.paidCents.toLong() }
-        val incomePreviousCents = previousLessons.sumOf { it.paidCents.toLong() }
-        val debtCurrentCents = currentLessons.sumOf { lesson ->
-            if (lesson.paymentStatus in PaymentStatus.outstandingStatuses) {
-                (lesson.priceCents - lesson.paidCents).coerceAtLeast(0).toLong()
-            } else {
-                0L
-            }
+    val uiState: StateFlow<FinanceUiState> = combine(
+        lessonsFlow,
+        outstandingLessonsFlow,
+        paymentsFlow,
+        prepaymentsFlow
+    ) { lessons, outstandingLessons, payments, prepaymentBalanceCents ->
+        val now = ZonedDateTime.now(zoneId)
+        val temporalContext = FinanceTemporalContext(
+            now = now,
+            zoneId = zoneId,
+            weekFields = weekFields
+        )
+        val currentOutstanding = outstandingLessons.filter { lesson ->
+            !lesson.startAt.isAfter(now.toInstant())
         }
-        val debtPreviousCents = previousLessons.sumOf { lesson ->
-            if (lesson.paymentStatus in PaymentStatus.outstandingStatuses) {
-                (lesson.priceCents - lesson.paidCents).coerceAtLeast(0).toLong()
-            } else {
-                0L
-            }
-        }
+        val accountsReceivableRubles = centsToRubles(
+            currentOutstanding.sumOf { lesson -> lesson.outstandingAmountCents() }
+        )
+        val prepaymentsRubles = centsToRubles(prepaymentBalanceCents.coerceAtLeast(0))
 
-        val totalMinutes = currentLessons.sumOf { it.duration.toMinutes() }
-        val hours = totalMinutes.toDouble() / 60.0
-        val topStudents = currentLessons
+        val debtors = computeDebtors(currentOutstanding)
+
+        FinanceUiState.Content(
+            lessons = lessons,
+            payments = payments,
+            debtors = debtors,
+            accountsReceivable = accountsReceivableRubles,
+            prepayments = prepaymentsRubles,
+            temporalContext = temporalContext
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FinanceUiState.Loading)
+
+    private fun computeDebtors(outstandingLessons: List<LessonDetails>): List<FinanceDebtor> {
+        return outstandingLessons
             .groupBy { it.studentId }
-            .map { (id, items) ->
-                val name = items.firstOrNull()?.studentName.orEmpty()
-                val amountCents = items.sumOf { it.paidCents.toLong() }
-                StudentEarning(
-                    studentId = id,
+            .mapNotNull { (studentId, lessons) ->
+                val totalOutstandingCents = lessons.sumOf { it.outstandingAmountCents() }
+                if (totalOutstandingCents <= 0) return@mapNotNull null
+                val name = lessons.firstOrNull()?.studentName.orEmpty()
+                val lastDate = lessons.maxOfOrNull { it.startAt.atZone(zoneId).toLocalDate() }
+                    ?: ZonedDateTime.now(zoneId).toLocalDate()
+                FinanceDebtor(
+                    studentId = studentId,
                     name = name,
-                    amount = centsToRubles(amountCents)
+                    amount = centsToRubles(totalOutstandingCents),
+                    lastDueDate = lastDate
                 )
             }
-            .filter { it.amount > 0 }
             .sortedWith(
-                compareByDescending<StudentEarning> { it.amount }
+                compareByDescending<FinanceDebtor> { it.amount }
+                    .thenByDescending { it.lastDueDate }
                     .thenBy { it.name }
             )
-
-        return FinanceSummary(
-            income = centsToRubles(incomeCurrentCents),
-            incomeChange = FinanceChange.from(incomeCurrentCents, incomePreviousCents),
-            debt = centsToRubles(debtCurrentCents),
-            debtChange = FinanceChange.from(debtCurrentCents, debtPreviousCents),
-            hours = hours,
-            lessons = currentLessons.size,
-            topStudents = topStudents
-        )
-    }
-
-    private fun computeAverages(lessons: List<LessonDetails>): FinanceAverages {
-        if (lessons.isEmpty()) return FinanceAverages.ZERO
-
-        val paidByDay = lessons
-            .groupBy { it.startAt.atZone(zoneId).toLocalDate() }
-            .mapValues { (_, items) -> items.sumOf { it.paidCents.toLong() } }
-        val paidByWeek = lessons
-            .groupBy { lesson ->
-                val date = lesson.startAt.atZone(zoneId).toLocalDate()
-                val week = date.get(weekFields.weekOfWeekBasedYear())
-                val year = date.get(weekFields.weekBasedYear())
-                year to week
-            }
-            .mapValues { (_, items) -> items.sumOf { it.paidCents.toLong() } }
-        val paidByMonth = lessons
-            .groupBy { lesson -> YearMonth.from(lesson.startAt.atZone(zoneId)) }
-            .mapValues { (_, items) -> items.sumOf { it.paidCents.toLong() } }
-
-        return FinanceAverages(
-            day = averageRubles(paidByDay.values),
-            week = averageRubles(paidByWeek.values),
-            month = averageRubles(paidByMonth.values)
-        )
-    }
-
-    private fun averageRubles(values: Collection<Long>): Long {
-        if (values.isEmpty()) return 0L
-        val avgCents = values.map { it.toDouble() }.average()
-        return centsToRubles(avgCents)
-    }
-
-    private fun centsToRubles(value: Long): Long = centsToRubles(value.toDouble())
-
-    private fun centsToRubles(value: Double): Long = (value / 100.0).roundToLong()
-
-    private fun LessonDetails.isWithin(start: Instant, end: Instant): Boolean {
-        val instant = startAt
-        return !instant.isBefore(start) && instant.isBefore(end)
-    }
-
-    private fun FinancePeriod.bounds(
-        now: ZonedDateTime,
-        weekFields: WeekFields
-    ): FinancePeriodBounds {
-        val zone = now.zone
-        return when (this) {
-            FinancePeriod.DAY -> {
-                val currentStart = now.toLocalDate().atStartOfDay(zone)
-                FinancePeriodBounds(
-                    previousStart = currentStart.minusDays(1).toInstant(),
-                    previousEnd = currentStart.toInstant(),
-                    currentStart = currentStart.toInstant(),
-                    currentEnd = currentStart.plusDays(1).toInstant()
-                )
-            }
-            FinancePeriod.WEEK -> {
-                val currentStartDate = now.toLocalDate().with(weekFields.dayOfWeek(), 1)
-                val currentStart = currentStartDate.atStartOfDay(zone)
-                FinancePeriodBounds(
-                    previousStart = currentStart.minusWeeks(1).toInstant(),
-                    previousEnd = currentStart.toInstant(),
-                    currentStart = currentStart.toInstant(),
-                    currentEnd = currentStart.plusWeeks(1).toInstant()
-                )
-            }
-            FinancePeriod.MONTH -> {
-                val currentStartDate = now.toLocalDate().withDayOfMonth(1)
-                val currentStart = currentStartDate.atStartOfDay(zone)
-                FinancePeriodBounds(
-                    previousStart = currentStart.minusMonths(1).toInstant(),
-                    previousEnd = currentStart.toInstant(),
-                    currentStart = currentStart.toInstant(),
-                    currentEnd = currentStart.plusMonths(1).toInstant()
-                )
-            }
-        }
+            .take(5)
     }
 
     private fun buildObservationBounds(): ObservationBounds {
         val now = ZonedDateTime.now(zoneId)
-        val periodBounds = FinancePeriod.entries.map { it.bounds(now, weekFields) }
-        val earliestPeriodStart = periodBounds.minOf { it.previousStart }
-        val latestPeriodEnd = periodBounds.maxOf { it.currentEnd }
+        val temporalContext = FinanceTemporalContext(
+            now = now,
+            zoneId = zoneId,
+            weekFields = weekFields
+        )
+        val periodBounds = FinancePeriod.entries.map { it.bounds(temporalContext) }
+        val earliestStart = periodBounds.minOf { it.start }
+        val latestEnd = periodBounds.maxOf { it.end }
 
         val oneYearAgoStart = now
             .minusMonths(12)
@@ -186,33 +107,29 @@ class FinanceViewModel @Inject constructor(
             .atStartOfDay(zoneId)
             .toInstant()
 
-        val start = if (oneYearAgoStart.isBefore(earliestPeriodStart)) {
+        val start = if (oneYearAgoStart.isBefore(earliestStart)) {
             oneYearAgoStart
         } else {
-            earliestPeriodStart
+            earliestStart
         }
 
-        return ObservationBounds(start = start, end = latestPeriodEnd)
+        return ObservationBounds(start = start, end = latestEnd)
     }
 }
 
 sealed interface FinanceUiState {
     data object Loading : FinanceUiState
     data class Content(
-        val summaries: Map<FinancePeriod, FinanceSummary>,
-        val averages: FinanceAverages
+        val lessons: List<LessonDetails>,
+        val payments: List<Payment>,
+        val debtors: List<FinanceDebtor>,
+        val accountsReceivable: Long,
+        val prepayments: Long,
+        val temporalContext: FinanceTemporalContext
     ) : FinanceUiState
 }
-
-private data class FinancePeriodBounds(
-    val previousStart: Instant,
-    val previousEnd: Instant,
-    val currentStart: Instant,
-    val currentEnd: Instant
-)
 
 private data class ObservationBounds(
     val start: Instant,
     val end: Instant
 )
-
