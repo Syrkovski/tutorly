@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_background_top">#2B5E55</color>
-    <color name="splash_background_bottom">#214840</color>
+    <color name="splash_background_top">#214840</color>
+    <color name="splash_background_bottom">#2B5E55</color>
 </resources>
