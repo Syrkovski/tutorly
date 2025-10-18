@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,7 +50,6 @@ import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.time.temporal.WeekFields
 import java.util.Currency
 import java.util.Locale
 
@@ -59,8 +57,7 @@ import java.util.Locale
 fun FinanceScreen(
     modifier: Modifier = Modifier,
     viewModel: FinanceViewModel = hiltViewModel(),
-    onOpenStudent: (Long) -> Unit = {},
-    onViewAllDebtors: () -> Unit = {}
+    onOpenStudent: (Long) -> Unit = {}
 ) {
     var selectedPeriod by rememberSaveable { mutableStateOf(FinancePeriod.WEEK) }
     val state by viewModel.uiState.collectAsState()
@@ -72,8 +69,7 @@ fun FinanceScreen(
             selectedPeriod = selectedPeriod,
             onSelectPeriod = { selectedPeriod = it },
             state = uiState,
-            onOpenStudent = onOpenStudent,
-            onViewAllDebtors = onViewAllDebtors
+            onOpenStudent = onOpenStudent
         )
     }
 }
@@ -96,8 +92,7 @@ private fun FinanceContent(
     selectedPeriod: FinancePeriod,
     onSelectPeriod: (FinancePeriod) -> Unit,
     state: FinanceUiState.Content,
-    onOpenStudent: (Long) -> Unit,
-    onViewAllDebtors: () -> Unit
+    onOpenStudent: (Long) -> Unit
 ) {
     val currencyFormatter = rememberCurrencyFormatter()
     val dateFormatter = rememberDateFormatter()
@@ -198,8 +193,7 @@ private fun FinanceContent(
             debtors = debtors,
             currencyFormatter = currencyFormatter,
             dateFormatter = dateFormatter,
-            onOpenStudent = onOpenStudent,
-            onViewAllDebtors = onViewAllDebtors
+            onOpenStudent = onOpenStudent
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -439,8 +433,7 @@ private fun FinanceDebtorsSection(
     debtors: List<FinanceDebtor>,
     currencyFormatter: NumberFormat,
     dateFormatter: DateTimeFormatter,
-    onOpenStudent: (Long) -> Unit,
-    onViewAllDebtors: () -> Unit
+    onOpenStudent: (Long) -> Unit
 ) {
     Card(
         modifier = modifier,
@@ -454,19 +447,10 @@ private fun FinanceDebtorsSection(
                 .padding(horizontal = 20.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.finance_debtors_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                TextButton(onClick = onViewAllDebtors) {
-                    Text(text = stringResource(R.string.finance_debtors_all))
-                }
-            }
+            Text(
+                text = stringResource(R.string.finance_debtors_title),
+                style = MaterialTheme.typography.titleMedium
+            )
 
             if (debtors.isEmpty()) {
                 Text(
@@ -499,14 +483,13 @@ private fun FinanceDebtorRow(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onOpenStudent(debtor.studentId) },
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
+                    modifier = Modifier.clickable { onOpenStudent(debtor.studentId) },
                     text = debtor.name,
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
@@ -536,18 +519,13 @@ private fun buildChartLabels(
 ): List<String> {
     if (points.isEmpty()) return emptyList()
     val locale = Locale.getDefault()
-    val firstDayOfWeek = WeekFields.ISO.firstDayOfWeek
     return when (period) {
         FinancePeriod.WEEK -> points.map { point ->
             point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
         }
 
-        FinancePeriod.MONTH -> points.mapIndexed { index, point ->
-            if (point.date.dayOfWeek == firstDayOfWeek || index == 0) {
-                dateFormatter.format(point.date)
-            } else {
-                ""
-            }
+        FinancePeriod.MONTH -> points.map { point ->
+            dateFormatter.format(point.date)
         }
     }
 }

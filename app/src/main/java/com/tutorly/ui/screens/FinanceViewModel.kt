@@ -19,6 +19,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
 
 @HiltViewModel
@@ -63,8 +64,8 @@ class FinanceViewModel @Inject constructor(
             )
         }
 
-        val chart = periodBounds.mapValues { (_, bounds) ->
-            buildChart(payments, bounds)
+        val chart = periodBounds.mapValues { (period, bounds) ->
+            buildChart(payments, bounds, period)
         }
 
         val debtors = computeDebtors(currentOutstanding)
@@ -109,30 +110,64 @@ class FinanceViewModel @Inject constructor(
         )
     }
 
-    private fun buildChart(payments: List<Payment>, bounds: FinancePeriodBounds): List<FinanceChartPoint> {
-        val byDate = payments
+    private fun buildChart(
+        payments: List<Payment>,
+        bounds: FinancePeriodBounds,
+        period: FinancePeriod
+    ): List<FinanceChartPoint> {
+        val paidByDate = payments
             .filter { it.status == PaymentStatus.PAID && it.at.isWithin(bounds.start, bounds.end) }
             .groupBy { payment -> payment.at.atZone(zoneId).toLocalDate() }
             .mapValues { (_, items) -> centsToRubles(items.sumOf { it.amountCents.toLong() }) }
 
         val startDate = bounds.start.atZone(zoneId).toLocalDate()
         val endExclusive = bounds.end.atZone(zoneId).toLocalDate()
-        val dates = mutableListOf<LocalDate>()
-        var cursor = startDate
-        while (cursor.isBefore(endExclusive)) {
-            dates.add(cursor)
-            cursor = cursor.plusDays(1)
-        }
 
-        if (dates.isEmpty()) {
-            dates.add(startDate)
-        }
+        return when (period) {
+            FinancePeriod.WEEK -> {
+                val dates = mutableListOf<LocalDate>()
+                var cursor = startDate
+                while (cursor.isBefore(endExclusive)) {
+                    dates.add(cursor)
+                    cursor = cursor.plusDays(1)
+                }
+                if (dates.isEmpty()) {
+                    dates.add(startDate)
+                }
+                dates.map { date ->
+                    FinanceChartPoint(
+                        date = date,
+                        amount = paidByDate[date] ?: 0
+                    )
+                }
+            }
 
-        return dates.map { date ->
-            FinanceChartPoint(
-                date = date,
-                amount = byDate[date] ?: 0
-            )
+            FinancePeriod.MONTH -> {
+                val weeks = mutableListOf<LocalDate>()
+                var cursor = startDate
+                while (cursor.isBefore(endExclusive)) {
+                    weeks.add(cursor)
+                    cursor = cursor.plusWeeks(1)
+                }
+                if (weeks.isEmpty()) {
+                    weeks.add(startDate)
+                }
+
+                val totalsByWeekStart = mutableMapOf<LocalDate, Long>()
+                paidByDate.forEach { (date, amount) ->
+                    val daysFromStart = ChronoUnit.DAYS.between(startDate, date)
+                    val weekIndex = (daysFromStart / 7).toInt()
+                    val weekStart = startDate.plusWeeks(weekIndex.toLong())
+                    totalsByWeekStart[weekStart] = (totalsByWeekStart[weekStart] ?: 0) + amount
+                }
+
+                weeks.map { weekStart ->
+                    FinanceChartPoint(
+                        date = weekStart,
+                        amount = totalsByWeekStart[weekStart] ?: 0
+                    )
+                }
+            }
         }
     }
 
