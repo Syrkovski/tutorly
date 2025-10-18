@@ -50,6 +50,7 @@ import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.Currency
 import java.util.Locale
 
@@ -524,8 +525,18 @@ private fun buildChartLabels(
             point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
         }
 
-        FinancePeriod.MONTH -> points.map { point ->
-            dateFormatter.format(point.date)
+        FinancePeriod.MONTH -> {
+            val firstDayOfWeek = WeekFields.ISO.firstDayOfWeek
+            points.mapIndexed { index, point ->
+                val date = point.date
+                val isFirstPoint = index == 0
+                val isWeekStart = date.dayOfWeek == firstDayOfWeek
+                if (isFirstPoint || isWeekStart) {
+                    dateFormatter.format(date)
+                } else {
+                    ""
+                }
+            }
         }
     }
 }

@@ -19,7 +19,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
 
 @HiltViewModel
@@ -143,28 +142,20 @@ class FinanceViewModel @Inject constructor(
             }
 
             FinancePeriod.MONTH -> {
-                val weeks = mutableListOf<LocalDate>()
+                val dates = mutableListOf<LocalDate>()
                 var cursor = startDate
                 while (cursor.isBefore(endExclusive)) {
-                    weeks.add(cursor)
-                    cursor = cursor.plusWeeks(1)
+                    dates.add(cursor)
+                    cursor = cursor.plusDays(1)
                 }
-                if (weeks.isEmpty()) {
-                    weeks.add(startDate)
-                }
-
-                val totalsByWeekStart = mutableMapOf<LocalDate, Long>()
-                paidByDate.forEach { (date, amount) ->
-                    val daysFromStart = ChronoUnit.DAYS.between(startDate, date)
-                    val weekIndex = (daysFromStart / 7).toInt()
-                    val weekStart = startDate.plusWeeks(weekIndex.toLong())
-                    totalsByWeekStart[weekStart] = (totalsByWeekStart[weekStart] ?: 0) + amount
+                if (dates.isEmpty()) {
+                    dates.add(startDate)
                 }
 
-                weeks.map { weekStart ->
+                dates.map { date ->
                     FinanceChartPoint(
-                        date = weekStart,
-                        amount = totalsByWeekStart[weekStart] ?: 0
+                        date = date,
+                        amount = paidByDate[date] ?: 0
                     )
                 }
             }
