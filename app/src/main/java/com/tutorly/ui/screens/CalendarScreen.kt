@@ -574,6 +574,7 @@ private fun DayTimeline(
         ) {
             val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
             val spineColor = MaterialTheme.colorScheme.primary
+            val accent = MaterialTheme.extendedColors.accent
             Canvas(Modifier.matchParentSize()) {
                 val leftPad = LabelWidth.toPx()
                 val spineW = 2.dp.toPx()
@@ -594,7 +595,7 @@ private fun DayTimeline(
                 nowMinutesFromStart?.let { minutes ->
                     val y = minutes * minuteHeightPx
                     drawLine(
-                        color = MaterialTheme.extendedColors.accent,
+                        color = accent,
                         start = androidx.compose.ui.geometry.Offset(0f, y),
                         end = androidx.compose.ui.geometry.Offset(size.width, y),
                         strokeWidth = 2.dp.toPx()
