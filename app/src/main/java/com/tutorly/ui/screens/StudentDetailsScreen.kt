@@ -96,7 +96,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
-import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -421,29 +420,22 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     GradientTopBarContainer {
-        val actionCount = listOfNotNull(
+        val hasActions = listOfNotNull(
             onEditProfileClick,
             if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
             onDeleteClick
-        ).size
-        val titlePaddingEnd = if (actionCount > 0) {
-            val buttonWidth = 48.dp
-            val buttonSpacing = 4.dp
-            val spacingBetweenTitleAndButtons = 12.dp
-            (buttonWidth * actionCount) + (buttonSpacing * max(0, actionCount - 1)) + spacingBetweenTitleAndButtons
-        } else {
-            0.dp
-        }
+        ).isNotEmpty()
 
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Top
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = titlePaddingEnd)
+                    .weight(1f)
+                    .padding(end = if (hasActions) 12.dp else 0.dp)
             ) {
                 Text(
                     text = title,
@@ -456,7 +448,7 @@ private fun StudentProfileTopBar(
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         text = subtitle,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         color = Color.White.copy(alpha = 0.75f),
                         style = MaterialTheme.typography.bodyMedium,
@@ -465,12 +457,12 @@ private fun StudentProfileTopBar(
                 }
             }
 
-            if (actionCount > 0) {
+            if (hasActions) {
                 val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
 
                 var isMenuExpanded by remember { mutableStateOf(false) }
 
-                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                Box {
                     IconButton(
                         onClick = { isMenuExpanded = true },
                         colors = buttonColors
