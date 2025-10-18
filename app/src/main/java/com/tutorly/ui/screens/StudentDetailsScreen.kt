@@ -17,9 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
@@ -65,7 +63,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -99,6 +96,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -259,7 +257,6 @@ fun StudentDetailsScreen(
             StudentProfileTopBar(
                 title = title,
                 subtitle = subtitle,
-                onStudentsClick = onBack,
                 onEditProfileClick = contentState?.let {
                     { openEditor(StudentEditTarget.PROFILE) }
                 },
@@ -416,7 +413,6 @@ fun StudentDetailsScreen(
 private fun StudentProfileTopBar(
     title: String,
     subtitle: String?,
-    onStudentsClick: (() -> Unit)? = null,
     onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
     onArchiveClick: (() -> Unit)? = null,
@@ -425,47 +421,30 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     GradientTopBarContainer {
-        val hasActions = listOfNotNull(
+        val actionCount = listOfNotNull(
             onEditProfileClick,
             if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
             onDeleteClick
-        ).isNotEmpty()
+        ).size
+        val titlePaddingEnd = if (actionCount > 0) {
+            val buttonWidth = 48.dp
+            val buttonSpacing = 4.dp
+            val spacingBetweenTitleAndButtons = 12.dp
+            (buttonWidth * actionCount) + (buttonSpacing * max(0, actionCount - 1)) + spacingBetweenTitleAndButtons
+        } else {
+            0.dp
+        }
 
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.Top
+                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(end = if (hasActions) 12.dp else 0.dp)
+                    .fillMaxWidth()
+                    .padding(end = titlePaddingEnd)
             ) {
-                if (onStudentsClick != null) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable(onClick = onStudentsClick)
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = stringResource(id = R.string.student_details_students_link),
-                            tint = Color.White.copy(alpha = 0.75f)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(id = R.string.student_details_students_link),
-                            color = Color.White.copy(alpha = 0.75f),
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
                 Text(
                     text = title,
                     maxLines = 2,
@@ -477,7 +456,7 @@ private fun StudentProfileTopBar(
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         text = subtitle,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = Color.White.copy(alpha = 0.75f),
                         style = MaterialTheme.typography.bodyMedium,
@@ -486,12 +465,12 @@ private fun StudentProfileTopBar(
                 }
             }
 
-            if (hasActions) {
+            if (actionCount > 0) {
                 val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
 
                 var isMenuExpanded by remember { mutableStateOf(false) }
 
-                Box {
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
                     IconButton(
                         onClick = { isMenuExpanded = true },
                         colors = buttonColors
