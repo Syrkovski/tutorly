@@ -5,18 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.PaymentsRepository
-import com.tutorly.models.LessonStatus
 import com.tutorly.models.Payment
-import com.tutorly.models.PaymentStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlin.math.roundToLong
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.WeekFields
@@ -44,7 +40,11 @@ class FinanceViewModel @Inject constructor(
         prepaymentsFlow
     ) { lessons, outstandingLessons, payments, prepaymentBalanceCents ->
         val now = ZonedDateTime.now(zoneId)
-        val periodBounds = FinancePeriod.entries.associateWith { it.bounds(now, weekFields) }
+        val temporalContext = FinanceTemporalContext(
+            now = now,
+            zoneId = zoneId,
+            weekFields = weekFields
+        )
         val currentOutstanding = outstandingLessons.filter { lesson ->
             !lesson.startAt.isAfter(now.toInstant())
         }
@@ -53,120 +53,17 @@ class FinanceViewModel @Inject constructor(
         )
         val prepaymentsRubles = centsToRubles(prepaymentBalanceCents.coerceAtLeast(0))
 
-        val summaries = periodBounds.mapValues { (_, bounds) ->
-            computeSummary(
-                lessons = lessons,
-                payments = payments,
-                bounds = bounds,
-                accountsReceivableRubles = accountsReceivableRubles,
-                prepaymentsRubles = prepaymentsRubles
-            )
-        }
-
-        val chart = periodBounds.mapValues { (period, bounds) ->
-            buildChart(lessons, bounds, period)
-        }
-
         val debtors = computeDebtors(currentOutstanding)
 
         FinanceUiState.Content(
-            summaries = summaries,
-            chart = chart,
-            debtors = debtors
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FinanceUiState.Loading)
-
-    private fun computeSummary(
-        lessons: List<LessonDetails>,
-        payments: List<Payment>,
-        bounds: FinancePeriodBounds,
-        accountsReceivableRubles: Long,
-        prepaymentsRubles: Long
-    ): FinanceSummary {
-        val periodLessons = lessons.filter { it.isWithin(bounds.start, bounds.end) }
-        val accruedCents = periodLessons
-            .filter { it.paymentStatus != PaymentStatus.CANCELLED }
-            .sumOf { it.priceCents.toLong() }
-
-        val cashInCents = payments
-            .filter { payment -> payment.at.isWithin(bounds.start, bounds.end) && payment.status == PaymentStatus.PAID }
-            .sumOf { it.amountCents.toLong() }
-
-        val totalLessons = periodLessons.size
-        val conducted = periodLessons.count { it.lessonStatus == LessonStatus.DONE }
-        val cancelled = periodLessons.count { it.lessonStatus == LessonStatus.CANCELED }
-
-        return FinanceSummary(
-            cashIn = centsToRubles(cashInCents),
-            accrued = centsToRubles(accruedCents),
+            lessons = lessons,
+            payments = payments,
+            debtors = debtors,
             accountsReceivable = accountsReceivableRubles,
             prepayments = prepaymentsRubles,
-            lessons = FinanceLessonsSummary(
-                total = totalLessons,
-                conducted = conducted,
-                cancelled = cancelled
-            )
+            temporalContext = temporalContext
         )
-    }
-
-    private fun buildChart(
-        lessons: List<LessonDetails>,
-        bounds: FinancePeriodBounds,
-        period: FinancePeriod
-    ): List<FinanceChartPoint> {
-        val now = ZonedDateTime.now(zoneId).toInstant()
-        val accruedByDate = lessons
-            .filter { lesson ->
-                lesson.startAt.isWithin(bounds.start, bounds.end) &&
-                    !lesson.startAt.isAfter(now) &&
-                    lesson.paymentStatus != PaymentStatus.CANCELLED &&
-                    lesson.lessonStatus != LessonStatus.CANCELED
-            }
-            .groupBy { lesson -> lesson.startAt.atZone(zoneId).toLocalDate() }
-            .mapValues { (_, items) -> centsToRubles(items.sumOf { it.priceCents.toLong() }) }
-
-        val startDate = bounds.start.atZone(zoneId).toLocalDate()
-        val endExclusive = bounds.end.atZone(zoneId).toLocalDate()
-
-        return when (period) {
-            FinancePeriod.WEEK -> {
-                val dates = mutableListOf<LocalDate>()
-                var cursor = startDate
-                while (cursor.isBefore(endExclusive)) {
-                    dates.add(cursor)
-                    cursor = cursor.plusDays(1)
-                }
-                if (dates.isEmpty()) {
-                    dates.add(startDate)
-                }
-                dates.map { date ->
-                    FinanceChartPoint(
-                        date = date,
-                        amount = accruedByDate[date] ?: 0
-                    )
-                }
-            }
-
-            FinancePeriod.MONTH -> {
-                val dates = mutableListOf<LocalDate>()
-                var cursor = startDate
-                while (cursor.isBefore(endExclusive)) {
-                    dates.add(cursor)
-                    cursor = cursor.plusDays(1)
-                }
-                if (dates.isEmpty()) {
-                    dates.add(startDate)
-                }
-
-                dates.map { date ->
-                    FinanceChartPoint(
-                        date = date,
-                        amount = accruedByDate[date] ?: 0
-                    )
-                }
-            }
-        }
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FinanceUiState.Loading)
 
     private fun computeDebtors(outstandingLessons: List<LessonDetails>): List<FinanceDebtor> {
         return outstandingLessons
@@ -175,7 +72,8 @@ class FinanceViewModel @Inject constructor(
                 val totalOutstandingCents = lessons.sumOf { it.outstandingAmountCents() }
                 if (totalOutstandingCents <= 0) return@mapNotNull null
                 val name = lessons.firstOrNull()?.studentName.orEmpty()
-                val lastDate = lessons.maxOfOrNull { it.startAt.atZone(zoneId).toLocalDate() } ?: LocalDate.now(zoneId)
+                val lastDate = lessons.maxOfOrNull { it.startAt.atZone(zoneId).toLocalDate() }
+                    ?: ZonedDateTime.now(zoneId).toLocalDate()
                 FinanceDebtor(
                     studentId = studentId,
                     name = name,
@@ -191,48 +89,14 @@ class FinanceViewModel @Inject constructor(
             .take(5)
     }
 
-    private fun LessonDetails.outstandingAmountCents(): Long {
-        if (paymentStatus !in PaymentStatus.outstandingStatuses) return 0
-        return (priceCents - paidCents).coerceAtLeast(0).toLong()
-    }
-
-    private fun LessonDetails.isWithin(start: Instant, end: Instant): Boolean {
-        return !startAt.isBefore(start) && startAt.isBefore(end)
-    }
-
-    private fun Instant.isWithin(start: Instant, end: Instant): Boolean {
-        return !isBefore(start) && isBefore(end)
-    }
-
-    private fun FinancePeriod.bounds(
-        now: ZonedDateTime,
-        weekFields: WeekFields
-    ): FinancePeriodBounds {
-        val zone = now.zone
-        return when (this) {
-            FinancePeriod.WEEK -> {
-                val startDate = now.toLocalDate().with(weekFields.dayOfWeek(), 1)
-                val start = startDate.atStartOfDay(zone)
-                FinancePeriodBounds(
-                    start = start.toInstant(),
-                    end = start.plusWeeks(1).toInstant()
-                )
-            }
-
-            FinancePeriod.MONTH -> {
-                val startDate = now.toLocalDate().withDayOfMonth(1)
-                val start = startDate.atStartOfDay(zone)
-                FinancePeriodBounds(
-                    start = start.toInstant(),
-                    end = start.plusMonths(1).toInstant()
-                )
-            }
-        }
-    }
-
     private fun buildObservationBounds(): ObservationBounds {
         val now = ZonedDateTime.now(zoneId)
-        val periodBounds = FinancePeriod.entries.map { it.bounds(now, weekFields) }
+        val temporalContext = FinanceTemporalContext(
+            now = now,
+            zoneId = zoneId,
+            weekFields = weekFields
+        )
+        val periodBounds = FinancePeriod.entries.map { it.bounds(temporalContext) }
         val earliestStart = periodBounds.minOf { it.start }
         val latestEnd = periodBounds.maxOf { it.end }
 
@@ -251,25 +115,19 @@ class FinanceViewModel @Inject constructor(
 
         return ObservationBounds(start = start, end = latestEnd)
     }
-
-    private fun centsToRubles(value: Long): Long = centsToRubles(value.toDouble())
-
-    private fun centsToRubles(value: Double): Long = (value / 100.0).roundToLong()
 }
 
 sealed interface FinanceUiState {
     data object Loading : FinanceUiState
     data class Content(
-        val summaries: Map<FinancePeriod, FinanceSummary>,
-        val chart: Map<FinancePeriod, List<FinanceChartPoint>>,
-        val debtors: List<FinanceDebtor>
+        val lessons: List<LessonDetails>,
+        val payments: List<Payment>,
+        val debtors: List<FinanceDebtor>,
+        val accountsReceivable: Long,
+        val prepayments: Long,
+        val temporalContext: FinanceTemporalContext
     ) : FinanceUiState
 }
-
-private data class FinancePeriodBounds(
-    val start: Instant,
-    val end: Instant
-)
 
 private data class ObservationBounds(
     val start: Instant,

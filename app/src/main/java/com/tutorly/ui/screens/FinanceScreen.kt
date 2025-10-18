@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -43,12 +45,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
-import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Currency
 import java.util.Locale
+import kotlin.math.abs
 
 @Composable
 fun FinanceTopBar(
@@ -121,6 +123,8 @@ private fun FinancePeriodToggle(
 @Composable
 fun FinanceScreen(
     selectedPeriod: FinancePeriod,
+    periodOffset: Int,
+    onPeriodOffsetChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FinanceViewModel = hiltViewModel(),
     onOpenStudent: (Long) -> Unit = {}
@@ -132,7 +136,9 @@ fun FinanceScreen(
         is FinanceUiState.Content -> FinanceContent(
             modifier = modifier,
             selectedPeriod = selectedPeriod,
+            periodOffset = periodOffset,
             state = uiState,
+            onPeriodOffsetChange = onPeriodOffsetChange,
             onOpenStudent = onOpenStudent
         )
     }
@@ -154,15 +160,36 @@ private fun FinanceLoading(modifier: Modifier) {
 private fun FinanceContent(
     modifier: Modifier,
     selectedPeriod: FinancePeriod,
+    periodOffset: Int,
     state: FinanceUiState.Content,
+    onPeriodOffsetChange: (Int) -> Unit,
     onOpenStudent: (Long) -> Unit
 ) {
     val currencyFormatter = rememberCurrencyFormatter()
     val dateFormatter = rememberDateFormatter()
     val scrollState = rememberScrollState()
 
-    val summary = state.summaries[selectedPeriod] ?: FinanceSummary.EMPTY
-    val chartPoints = state.chart[selectedPeriod].orEmpty()
+    val temporalContext = state.temporalContext
+    val bounds = remember(temporalContext, selectedPeriod, periodOffset) {
+        selectedPeriod.bounds(temporalContext, periodOffset)
+    }
+    val summary = remember(state, bounds) {
+        calculateFinanceSummary(
+            lessons = state.lessons,
+            payments = state.payments,
+            bounds = bounds,
+            accountsReceivableRubles = state.accountsReceivable,
+            prepaymentsRubles = state.prepayments
+        )
+    }
+    val chartPoints = remember(state, bounds) {
+        calculateFinanceChart(
+            lessons = state.lessons,
+            bounds = bounds,
+            now = temporalContext.now.toInstant(),
+            zoneId = temporalContext.zoneId
+        )
+    }
     val debtors = state.debtors
 
     val periodLabel = stringResource(selectedPeriod.periodLabelRes)
@@ -175,10 +202,42 @@ private fun FinanceContent(
     val conductedText = stringResource(R.string.finance_lessons_badge_conducted, summary.lessons.conducted)
     val cancelledText = stringResource(R.string.finance_lessons_badge_cancelled, summary.lessons.cancelled)
 
+    val swipeModifier = Modifier.pointerInput(selectedPeriod, periodOffset) {
+        val threshold = 48.dp.toPx()
+        var totalDrag = 0f
+        var handled = false
+        detectHorizontalDragGestures(
+            onDragStart = {
+                totalDrag = 0f
+                handled = false
+            },
+            onDragEnd = {
+                totalDrag = 0f
+                handled = false
+            },
+            onDragCancel = {
+                totalDrag = 0f
+                handled = false
+            },
+            onHorizontalDrag = { change, dragAmount ->
+                if (handled) return@detectHorizontalDragGestures
+
+                totalDrag += dragAmount
+                if (abs(totalDrag) > threshold) {
+                    val newOffset = if (totalDrag < 0) periodOffset + 1 else periodOffset - 1
+                    onPeriodOffsetChange(newOffset)
+                    handled = true
+                    change.consume()
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .then(swipeModifier)
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

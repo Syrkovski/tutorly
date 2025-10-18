@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -90,6 +91,7 @@ fun AppNavRoot() {
     val extendedColors = MaterialTheme.extendedColors
 
     var financePeriod by rememberSaveable { mutableStateOf(FinancePeriod.WEEK) }
+    var financePeriodOffset by rememberSaveable { mutableIntStateOf(0) }
 
     Box(
         modifier = Modifier
@@ -106,7 +108,10 @@ fun AppNavRoot() {
                     ROUTE_STUDENTS -> StudentsTopBar(nav)
                     ROUTE_FINANCE -> FinanceTopBar(
                         selectedPeriod = financePeriod,
-                        onSelectPeriod = { financePeriod = it }
+                        onSelectPeriod = {
+                            financePeriod = it
+                            financePeriodOffset = 0
+                        }
                     )
                 }
             },
@@ -288,6 +293,8 @@ fun AppNavRoot() {
                 composable(ROUTE_FINANCE) {
                     FinanceScreen(
                         selectedPeriod = financePeriod,
+                        periodOffset = financePeriodOffset,
+                        onPeriodOffsetChange = { financePeriodOffset = it },
                         onOpenStudent = { studentId ->
                             nav.navigate(studentDetailsRoute(studentId)) {
                                 launchSingleTop = true
