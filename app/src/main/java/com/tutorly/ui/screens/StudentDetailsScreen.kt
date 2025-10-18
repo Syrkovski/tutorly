@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -39,6 +40,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -464,42 +467,70 @@ private fun StudentProfileTopBar(
             if (actionCount > 0) {
                 val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
 
-                Row(
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    if (onEditProfileClick != null) {
-                        IconButton(onClick = onEditProfileClick, colors = buttonColors) {
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = stringResource(id = R.string.student_details_edit)
+                var isMenuExpanded by remember { mutableStateOf(false) }
+
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                    IconButton(
+                        onClick = { isMenuExpanded = true },
+                        colors = buttonColors
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = stringResource(id = R.string.student_details_more_actions)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = isMenuExpanded,
+                        onDismissRequest = { isMenuExpanded = false }
+                    ) {
+                        if (onEditProfileClick != null) {
+                            DropdownMenuItem(
+                                text = { Text(text = stringResource(id = R.string.student_details_edit)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Edit,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    onEditProfileClick()
+                                }
                             )
                         }
-                    }
-                    if (onArchiveClick != null && isArchived != null) {
-                        IconButton(
-                            onClick = onArchiveClick,
-                            enabled = archiveEnabled,
-                            colors = buttonColors
-                        ) {
+
+                        if (onArchiveClick != null && isArchived != null) {
                             val (icon, description) = if (isArchived) {
                                 Icons.Outlined.Unarchive to stringResource(id = R.string.student_details_unarchive)
                             } else {
                                 Icons.Outlined.Archive to stringResource(id = R.string.student_details_archive)
                             }
-                            Icon(imageVector = icon, contentDescription = description)
+                            DropdownMenuItem(
+                                text = { Text(text = description) },
+                                leadingIcon = { Icon(imageVector = icon, contentDescription = null) },
+                                enabled = archiveEnabled,
+                                onClick = {
+                                    isMenuExpanded = false
+                                    onArchiveClick()
+                                }
+                            )
                         }
-                    }
-                    if (onDeleteClick != null) {
-                        IconButton(
-                            onClick = onDeleteClick,
-                            enabled = deleteEnabled,
-                            colors = buttonColors
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = stringResource(id = R.string.student_details_delete)
+
+                        if (onDeleteClick != null) {
+                            DropdownMenuItem(
+                                text = { Text(text = stringResource(id = R.string.student_details_delete)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Delete,
+                                        contentDescription = null
+                                    )
+                                },
+                                enabled = deleteEnabled,
+                                onClick = {
+                                    isMenuExpanded = false
+                                    onDeleteClick()
+                                }
                             )
                         }
                     }
