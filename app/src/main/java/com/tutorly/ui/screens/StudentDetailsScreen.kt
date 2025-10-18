@@ -96,7 +96,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
-import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -421,16 +420,15 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     GradientTopBarContainer {
-        val actionCount = listOfNotNull(
+        val hasActions = listOfNotNull(
             onEditProfileClick,
             if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
             onDeleteClick
-        ).size
-        val titlePaddingEnd = if (actionCount > 0) {
+        ).isNotEmpty()
+        val titlePaddingEnd = if (hasActions) {
             val buttonWidth = 48.dp
-            val buttonSpacing = 4.dp
             val spacingBetweenTitleAndButtons = 12.dp
-            (buttonWidth * actionCount) + (buttonSpacing * max(0, actionCount - 1)) + spacingBetweenTitleAndButtons
+            buttonWidth + spacingBetweenTitleAndButtons
         } else {
             0.dp
         }
@@ -465,7 +463,7 @@ private fun StudentProfileTopBar(
                 }
             }
 
-            if (actionCount > 0) {
+            if (hasActions) {
                 val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
 
                 var isMenuExpanded by remember { mutableStateOf(false) }

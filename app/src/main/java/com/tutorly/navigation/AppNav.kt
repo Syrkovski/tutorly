@@ -107,6 +107,13 @@ fun AppNavRoot() {
                 AppBottomBar(
                     currentRoute = route,
                     onSelect = { dest ->
+                        if (dest == ROUTE_STUDENTS) {
+                            val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
+                            if (returnedToList) {
+                                return@AppBottomBar
+                            }
+                        }
+
                         val target = when (dest) {
                             ROUTE_CALENDAR -> calendarRoute(nav)
                             ROUTE_STUDENTS -> studentsRoute()
