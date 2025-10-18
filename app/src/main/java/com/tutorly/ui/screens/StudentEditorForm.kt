@@ -54,21 +54,22 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import com.tutorly.R
+import com.tutorly.ui.theme.extendedColors
 import java.util.Locale
 
 @Composable
 private fun editorFieldColors(): TextFieldColors {
     val colorScheme = MaterialTheme.colorScheme
+    val accent = MaterialTheme.extendedColors.accent
     return OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        disabledContainerColor = Color.White,
-        errorContainerColor = Color.White,
-        focusedBorderColor = colorScheme.outline.copy(alpha = 0.24f),
-        unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.16f),
-        disabledBorderColor = colorScheme.outline.copy(alpha = 0.12f),
+        focusedContainerColor = colorScheme.surface,
+        unfocusedContainerColor = colorScheme.surface,
+        disabledContainerColor = colorScheme.surface,
+        errorContainerColor = colorScheme.surface,
+        focusedBorderColor = accent,
+        unfocusedBorderColor = accent.copy(alpha = 0.4f),
+        disabledBorderColor = accent.copy(alpha = 0.24f),
         errorBorderColor = colorScheme.error
     )
 }
@@ -367,7 +368,7 @@ private fun ProfileSection(
                 expanded = isSubjectDropdownExpanded,
                 onDismissRequest = { isSubjectDropdownExpanded = false },
                 modifier = subjectDropdownModifier,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 popularSubjects.forEach { option ->
                     val isSelected = selectedSubjects.contains(option)
@@ -507,7 +508,7 @@ private fun ProfileSection(
                 expanded = isGradeDropdownExpanded,
                 onDismissRequest = { onGradeDropdownExpandedChange(false) },
                 modifier = gradeDropdownModifier,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 gradeOptions.forEach { option ->
                     DropdownMenuItem(
@@ -595,7 +596,7 @@ private fun RateSection(
             expanded = isRateDropdownExpanded,
             onDismissRequest = { isRateDropdownExpanded = false },
             modifier = rateDropdownModifier,
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             rateOptions.forEach { option ->
                 DropdownMenuItem(
@@ -754,7 +755,7 @@ private fun MessengerSection(
             DropdownMenu(
                 expanded = isDropdownExpanded,
                 onDismissRequest = { isDropdownExpanded = false },
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 messengerOptions.forEach { option ->
                     DropdownMenuItem(

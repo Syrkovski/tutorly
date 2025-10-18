@@ -60,7 +60,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -76,6 +75,7 @@ import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyDialog
+import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
@@ -577,9 +577,10 @@ private fun StudentEditorDialogContent(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val accent = MaterialTheme.extendedColors.accent
             val actionColors = ButtonDefaults.textButtonColors(
-                contentColor = Color(0xFF4E998C),
-                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
+                contentColor = accent,
+                disabledContentColor = accent.copy(alpha = 0.5f)
             )
             TextButton(
                 onClick = onDismiss,

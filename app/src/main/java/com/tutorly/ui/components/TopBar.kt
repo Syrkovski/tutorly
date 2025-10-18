@@ -115,7 +115,7 @@ fun GradientTopBarContainer(content: @Composable () -> Unit) {
                 .fillMaxWidth()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(startColor, endColor)
+                        colors = listOf(endColor, startColor)
                     )
                 )
                 .statusBarsPadding()
