@@ -47,9 +47,11 @@ import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.screens.*
 import java.time.LocalDate
 import java.time.ZonedDateTime
+import com.tutorly.ui.splash.SplashRoute
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.R
 
+const val ROUTE_SPLASH = "splash"
 const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
 const val ROUTE_TODAY = "today"
@@ -109,28 +111,30 @@ fun AppNavRoot() {
                 }
             },
             bottomBar = {
-                AppBottomBar(
-                    currentRoute = route,
-                    onSelect = { dest ->
-                        if (dest == ROUTE_STUDENTS) {
-                            val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
-                            if (returnedToList) {
-                                return@AppBottomBar
+                if (route != ROUTE_SPLASH) {
+                    AppBottomBar(
+                        currentRoute = route,
+                        onSelect = { dest ->
+                            if (dest == ROUTE_STUDENTS) {
+                                val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
+                                if (returnedToList) {
+                                    return@AppBottomBar
+                                }
+                            }
+
+                            val target = when (dest) {
+                                ROUTE_CALENDAR -> calendarRoute(nav)
+                                ROUTE_STUDENTS -> studentsRoute()
+                                else -> dest
+                            }
+                            nav.navigate(target) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(nav.graph.startDestinationId) { saveState = true }
                             }
                         }
-
-                        val target = when (dest) {
-                            ROUTE_CALENDAR -> calendarRoute(nav)
-                            ROUTE_STUDENTS -> studentsRoute()
-                            else -> dest
-                        }
-                        nav.navigate(target) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(nav.graph.startDestinationId) { saveState = true }
-                        }
-                    }
-                )
+                    )
+                }
             },
             containerColor = Color.Transparent,
             // чтобы контент корректно учитывал статус/навигационные панели
@@ -138,9 +142,19 @@ fun AppNavRoot() {
         ) { innerPadding ->
             NavHost(
                 navController = nav,
-                startDestination = ROUTE_CALENDAR_PATTERN,
+                startDestination = ROUTE_SPLASH,
                 modifier = Modifier.padding(innerPadding)
             ) {
+                composable(ROUTE_SPLASH) {
+                    SplashRoute(
+                        onFinished = {
+                            nav.navigate(buildCalendarRoute(date = null, mode = null)) {
+                                popUpTo(ROUTE_SPLASH) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
                 composable(
                     route = ROUTE_CALENDAR_PATTERN,
                     arguments = listOf(

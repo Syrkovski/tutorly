@@ -4,10 +4,7 @@
     <style name="Theme.Tutorly" parent="android:Theme.Material.Light.NoActionBar" />
 
     <style name="Theme.Tutorly.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@drawable/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
-        <item name="windowSplashScreenAnimationDuration">400</item>
-        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="windowSplashScreenBackground">@color/splash_background_top</item>
         <item name="postSplashScreenTheme">@style/Theme.Tutorly</item>
     </style>
 </resources>
