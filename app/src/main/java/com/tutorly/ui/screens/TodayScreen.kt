@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -615,7 +616,7 @@ private fun ClosedDayLessonsSection(
         R.string.today_closed_lessons_section_subtitle,
         lessons.size
     )
-    CollapsibleCard(
+    CollapsibleSection(
         title = stringResource(R.string.today_closed_lessons_section_title),
         subtitle = subtitle
     ) {
@@ -645,7 +646,7 @@ private fun PastDebtorsCollapsible(
     } else {
         stringResource(R.string.today_debtors_past_subtitle, lessons.size)
     }
-    CollapsibleCard(
+    CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
         subtitle = subtitle
     ) {
@@ -673,62 +674,54 @@ private fun PastDebtorsCollapsible(
 }
 
 @Composable
-private fun CollapsibleCard(
+private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize()
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .animateContentSize()
+                .clickable { expanded = !expanded }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (subtitle != null) {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-            if (expanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    content = content
-                )
-            }
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (expanded) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content
+            )
         }
     }
 }
