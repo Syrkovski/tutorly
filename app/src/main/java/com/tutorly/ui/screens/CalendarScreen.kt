@@ -968,7 +968,7 @@ private fun DayTwoLineChip(
     modifier: Modifier = Modifier
 ) {
     val background = if (selected) {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+        Color.White
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
     }
