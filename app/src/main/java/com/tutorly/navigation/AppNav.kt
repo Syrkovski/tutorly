@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,14 +47,14 @@ import com.tutorly.ui.components.AppTopBar
 import com.tutorly.ui.screens.*
 import java.time.LocalDate
 import java.time.ZonedDateTime
-import com.tutorly.ui.theme.ScreenGradientEnd
-import com.tutorly.ui.theme.ScreenGradientStart
+import com.tutorly.ui.theme.extendedColors
 import com.tutorly.R
 
 const val ROUTE_CALENDAR = "calendar"
 private const val ROUTE_CALENDAR_PATTERN = "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}={${CalendarViewModel.ARG_ANCHOR_DATE}}&${CalendarViewModel.ARG_CALENDAR_MODE}={${CalendarViewModel.ARG_CALENDAR_MODE}}"
 const val ROUTE_TODAY = "today"
 const val ROUTE_STUDENTS = "students"
+const val ROUTE_SETTINGS = "settings"
 private const val ARG_STUDENT_EDITOR_ORIGIN = "studentEditorOrigin"
 private const val ROUTE_STUDENTS_PATTERN = "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN={$ARG_STUDENT_EDITOR_ORIGIN}"
 const val ROUTE_FINANCE = "finance"
@@ -82,12 +83,14 @@ fun AppNavRoot() {
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
 
+    val extendedColors = MaterialTheme.extendedColors
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(ScreenGradientStart, ScreenGradientEnd)
+                    colors = listOf(extendedColors.backgroundTop, extendedColors.backgroundBottom)
                 )
             )
     ) {
@@ -143,6 +146,11 @@ fun AppNavRoot() {
                     CalendarScreen(
                         onAddStudent = {
                             nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenSettings = {
+                            nav.navigate(ROUTE_SETTINGS) {
                                 launchSingleTop = true
                             }
                         },
@@ -261,6 +269,11 @@ fun AppNavRoot() {
                     )
                 }
                 composable(ROUTE_FINANCE) { FinanceScreen() }
+                composable(ROUTE_SETTINGS) {
+                    SettingsScreen(
+                        onBack = { nav.popBackStack() }
+                    )
+                }
             }
         }
     }

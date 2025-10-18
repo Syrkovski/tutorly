@@ -78,7 +78,7 @@ import com.tutorly.R
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
-import com.tutorly.ui.theme.AvatarFill
+import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import kotlinx.coroutines.launch
 
@@ -162,7 +162,7 @@ fun StudentsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.extendedColors.accent,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
@@ -564,7 +564,7 @@ fun StudentAvatar(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(AvatarFill),
+            .background(MaterialTheme.extendedColors.chipSelected),
         contentAlignment = Alignment.Center
     ) {
         Text(

@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -27,7 +28,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyDialog
+import com.tutorly.ui.theme.extendedColors
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,6 +52,7 @@ fun StudentPrepaymentDialog(
     val coroutineScope = rememberCoroutineScope()
     val amountFocusRequester = remember { FocusRequester() }
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = MaterialTheme.extendedColors.accent
     val context = LocalContext.current
 
     LaunchedEffect(state.isSaving) {
@@ -99,34 +101,44 @@ fun StudentPrepaymentDialog(
             style = MaterialTheme.typography.titleLarge
         )
 
-        OutlinedTextField(
-            value = state.amount,
-            onValueChange = vm::onAmountChange,
-            label = { Text(text = stringResource(id = R.string.student_prepayment_amount_label)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(amountFocusRequester),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.CurrencyRuble,
-                    contentDescription = null,
-                    tint = iconTint
+            OutlinedTextField(
+                value = state.amount,
+                onValueChange = vm::onAmountChange,
+                label = { Text(text = stringResource(id = R.string.student_prepayment_amount_label)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(amountFocusRequester),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.CurrencyRuble,
+                        contentDescription = null,
+                        tint = iconTint
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { attemptSave() }),
+                isError = state.amountError,
+                supportingText = {
+                    if (state.amountError) {
+                        Text(text = stringResource(id = R.string.student_prepayment_amount_error))
+                    }
+                },
+                singleLine = true,
+                enabled = !state.isSaving,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    errorContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = accent,
+                    unfocusedBorderColor = accent.copy(alpha = 0.4f),
+                    disabledBorderColor = accent.copy(alpha = 0.24f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
                 )
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(onDone = { attemptSave() }),
-            isError = state.amountError,
-            supportingText = {
-                if (state.amountError) {
-                    Text(text = stringResource(id = R.string.student_prepayment_amount_error))
-                }
-            },
-            singleLine = true,
-            enabled = !state.isSaving
-        )
+            )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -134,8 +146,8 @@ fun StudentPrepaymentDialog(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val actionColors = ButtonDefaults.textButtonColors(
-                contentColor = Color(0xFF4E998C),
-                disabledContentColor = Color(0xFF4E998C).copy(alpha = 0.5f)
+                contentColor = accent,
+                disabledContentColor = accent.copy(alpha = 0.5f)
             )
             TextButton(
                 onClick = {
@@ -158,7 +170,7 @@ fun StudentPrepaymentDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
-                        color = Color(0xFF4E998C)
+                        color = accent
                     )
                 } else {
                     Text(text = stringResource(id = R.string.student_editor_save))

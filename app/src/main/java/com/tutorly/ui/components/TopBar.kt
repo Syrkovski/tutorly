@@ -1,7 +1,5 @@
 package com.tutorly.ui.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -28,19 +28,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
-import com.tutorly.ui.theme.TopBarGradientEnd
-import com.tutorly.ui.theme.TopBarGradientStart
+import com.tutorly.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppTopBar(
     title: String,
     onAddClick: (() -> Unit)? = null,
-    actions: @Composable RowScope.() -> Unit = {}
+    actions: @Composable RowScope.() -> Unit = {},
+    navigationIcon: (@Composable () -> Unit)? = null
 ) {
     GradientTopBarContainer {
         TopAppBar(
@@ -59,30 +59,38 @@ fun AppTopBar(
                         title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
+            },
+            navigationIcon = {
+                navigationIcon?.invoke()
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
             ),
             windowInsets = WindowInsets(0, 0, 0, 0),
-            actions = {
-                actions()
-                onAddClick?.let {
-                    FilledTonalIconButton(
-                        onClick = it,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.add_student))
+                actions = {
+                    actions()
+                    onAddClick?.let {
+                        FilledTonalIconButton(
+                            onClick = it,
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.extendedColors.accent,
+                                contentColor = MaterialTheme.colorScheme.onSecondary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(id = R.string.add_student)
+                            )
+                        }
                     }
                 }
-            }
         )
     }
 }
@@ -90,6 +98,9 @@ fun AppTopBar(
 @Composable
 fun GradientTopBarContainer(content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(0.dp)
+    val extended = MaterialTheme.extendedColors
+    val startColor = extended.topBarStart
+    val endColor = extended.topBarEnd
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,7 +115,7 @@ fun GradientTopBarContainer(content: @Composable () -> Unit) {
                 .fillMaxWidth()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(TopBarGradientStart, TopBarGradientEnd)
+                        colors = listOf(endColor, startColor)
                     )
                 )
                 .statusBarsPadding()

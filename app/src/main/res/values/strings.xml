@@ -124,6 +124,7 @@
     <string name="lesson_status_unpaid">Не оплачено</string>
     <string name="lesson_status_cancelled">Отменено</string>
     <string name="calendar_title">Календарь</string>
+    <string name="calendar_open_settings">Открыть настройки</string>
     <string name="calendar_status_planned">Запланировано</string>
     <string name="calendar_status_prepaid">Предоплачено</string>
     <string name="calendar_status_in_progress">Идёт сейчас</string>
@@ -251,4 +252,14 @@
     <string name="finance_average_month">Средний доход в месяц</string>
     <string name="finance_top_students_title">Топ-3 прибыльных ученика</string>
     <string name="finance_top_student_item">%1$d. %2$s</string>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_back">Вернуться назад</string>
+    <string name="settings_work_hours">Рабочие часы</string>
+    <string name="settings_work_start">Начало дня</string>
+    <string name="settings_work_end">Окончание дня</string>
+    <string name="settings_weekends">Выходные</string>
+    <string name="settings_theme">Цвет темы</string>
+    <string name="settings_theme_original">Фирменная</string>
+    <string name="settings_theme_plum">Лиловая</string>
+    <string name="settings_theme_royal">Королевская</string>
 </resources>
