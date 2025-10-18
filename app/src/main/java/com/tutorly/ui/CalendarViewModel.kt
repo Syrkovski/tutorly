@@ -114,19 +114,19 @@ class CalendarViewModel @Inject constructor(
         _events.tryEmit(CalendarEvent.CreateLesson(start, duration, null))
     }
 
-    val uiState: StateFlow<CalendarUiState> = combine(
-        queryFlow,
-        lessonsFlow,
-        statsFlow,
-        currentDateTime,
-        userProfileFlow,
-        hasStudentsFlow
-    ) { query, lessons, stats, now, profile, hasStudents ->
+    private fun buildUiState(
+        query: CalendarQuery,
+        lessons: List<LessonDetails>,
+        stats: LessonsRangeStats,
+        now: ZonedDateTime,
+        profile: UserProfile,
+        hasStudents: Boolean
+    ): CalendarUiState {
         val calendarLessons = lessons
             .map { it.toCalendarLesson(zoneId) }
             .sortedBy { it.start }
         val groupedByDate = calendarLessons.groupBy { it.start.toLocalDate() }
-        CalendarUiState(
+        return CalendarUiState(
             anchor = query.anchor,
             mode = query.mode,
             zoneId = zoneId,
@@ -139,18 +139,43 @@ class CalendarViewModel @Inject constructor(
             weekendDays = profile.weekendDays,
             hasStudents = hasStudents
         )
+    }
+
+    private val contentStateFlow = combine(
+        queryFlow,
+        lessonsFlow,
+        statsFlow,
+        currentDateTime,
+        userProfileFlow
+    ) { query, lessons, stats, now, profile ->
+        buildUiState(
+            query = query,
+            lessons = lessons,
+            stats = stats,
+            now = now,
+            profile = profile,
+            hasStudents = true
+        )
+    }
+
+    val uiState: StateFlow<CalendarUiState> = combine(
+        contentStateFlow,
+        hasStudentsFlow
+    ) { state, hasStudents ->
+        state.copy(hasStudents = hasStudents)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = CalendarUiState(
-            anchor = anchor.value,
-            mode = mode.value,
-            zoneId = zoneId,
+        initialValue = buildUiState(
+            query = CalendarQuery(
+                anchor = anchor.value,
+                mode = mode.value,
+                range = mode.value.toRange(anchor.value, zoneId)
+            ),
+            lessons = emptyList(),
             stats = LessonsRangeStats.EMPTY,
-            currentDateTime = currentDateTime.value,
-            workDayStartMinutes = UserProfile.DEFAULT_WORK_DAY_START,
-            workDayEndMinutes = UserProfile.DEFAULT_WORK_DAY_END,
-            weekendDays = emptySet(),
+            now = currentDateTime.value,
+            profile = UserProfile(),
             hasStudents = true
         )
     )
