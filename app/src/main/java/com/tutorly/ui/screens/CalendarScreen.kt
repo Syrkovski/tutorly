@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -839,10 +838,9 @@ private fun MonthDayCell(
     val weekNumber = remember(date) { date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
     val containerColor = when {
         !enabled -> Color.Transparent
-        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+        isToday -> Color.White
         else -> Color.Transparent
     }
-    val border = if (isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
     val contentColor = when {
         !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
         else -> MaterialTheme.colorScheme.onSurface
@@ -862,7 +860,6 @@ private fun MonthDayCell(
     Surface(
         color = containerColor,
         shape = MaterialTheme.shapes.medium,
-        border = border,
         tonalElevation = if (isToday && enabled) 2.dp else 0.dp,
         shadowElevation = if (isToday && enabled) 4.dp else 0.dp,
         modifier = modifier
@@ -968,7 +965,7 @@ private fun DayTwoLineChip(
     modifier: Modifier = Modifier
 ) {
     val background = if (selected) {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+        Color.White
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
     }

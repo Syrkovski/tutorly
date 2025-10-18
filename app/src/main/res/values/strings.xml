@@ -86,15 +86,16 @@
     <string name="student_details_title_placeholder">Ученик</string>
     <string name="student_details_students_link">Ученики</string>
     <string name="student_details_archive">В архив</string>
-    <string name="student_details_unarchive">Вернуть из архива</string>
-    <string name="student_details_delete">Удалить ученика</string>
+    <string name="student_details_unarchive">Вернуть</string>
+    <string name="student_details_delete">Удалить</string>
     <string name="student_details_delete_title">Удалить ученика?</string>
     <string name="student_details_delete_message">Ученик «%1$s» будет удалён без возможности восстановления. Продолжить?</string>
     <string name="student_details_delete_confirm">Удалить</string>
     <string name="student_details_delete_cancel">Отмена</string>
     <string name="student_details_delete_error">Не удалось удалить ученика</string>
     <string name="student_details_archive_error">Не удалось обновить статус архива</string>
-    <string name="student_details_edit">Редактировать ученика</string>
+    <string name="student_details_edit">Редактировать</string>
+    <string name="student_details_more_actions">Дополнительные действия</string>
     <string name="student_details_missing">Ученик не найден</string>
     <string name="student_details_payments_title">Платежи</string>
     <string name="student_details_debt_amount">Долг: %1$s</string>
@@ -131,6 +132,7 @@
     <string name="lesson_card_subject_placeholder">Без предмета</string>
     <string name="lesson_card_duration_value">%1$d мин</string>
     <string name="lesson_card_price_label">Стоимость</string>
+    <string name="lesson_card_payment_label">Оплата</string>
     <string name="lesson_card_note_label">Заметка</string>
     <string name="lesson_card_note_placeholder">Добавьте комментарий</string>
     <string name="lesson_card_student_placeholder">Ученик</string>
@@ -195,6 +197,7 @@
     <string name="today_debtors_past_subtitle_more">Занятий: %1$d+</string>
     <string name="today_debtors_past_empty">За прошлые дни долгов нет — отличная работа!</string>
     <string name="today_topbar_closed">Итоги дня</string>
+    <string name="today_reopen_day_action">Открыть день</string>
     <string name="today_duration_format">%1$d мин</string>
     <string name="today_snackbar_paid">Отмечено: оплачено</string>
     <string name="today_snackbar_due">Отмечено: долг</string>

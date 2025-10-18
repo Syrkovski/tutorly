@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,14 +27,19 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -152,7 +158,7 @@ fun TodayScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { TodayTopBar(state = uiState) },
+        topBar = { TodayTopBar(state = uiState, onReopenDay = viewModel::onReopenDay) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = Color.Transparent
     ) { innerPadding ->
@@ -615,7 +621,7 @@ private fun ClosedDayLessonsSection(
         R.string.today_closed_lessons_section_subtitle,
         lessons.size
     )
-    CollapsibleCard(
+    CollapsibleSection(
         title = stringResource(R.string.today_closed_lessons_section_title),
         subtitle = subtitle
     ) {
@@ -624,7 +630,8 @@ private fun ClosedDayLessonsSection(
                 lesson = lesson,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onLessonOpen(lesson.id) }
+                    .clickable { onLessonOpen(lesson.id) },
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             )
         }
     }
@@ -645,7 +652,7 @@ private fun PastDebtorsCollapsible(
     } else {
         stringResource(R.string.today_debtors_past_subtitle, lessons.size)
     }
-    CollapsibleCard(
+    CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
         subtitle = subtitle
     ) {
@@ -661,7 +668,8 @@ private fun PastDebtorsCollapsible(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
-                onOpenStudentProfile = onOpenStudentProfile
+                onOpenStudentProfile = onOpenStudentProfile,
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             )
         }
         if (hasMore) {
@@ -673,62 +681,54 @@ private fun PastDebtorsCollapsible(
 }
 
 @Composable
-private fun CollapsibleCard(
+private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize()
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .animateContentSize()
+                .clickable { expanded = !expanded }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (subtitle != null) {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-            if (expanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    content = content
-                )
-            }
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (expanded) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content
+            )
         }
     }
 }
@@ -739,7 +739,8 @@ private fun LessonsList(
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
-    onOpenStudentProfile: (Long) -> Unit
+    onOpenStudentProfile: (Long) -> Unit,
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -750,7 +751,8 @@ private fun LessonsList(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onClick = { onLessonOpen(lesson.id) },
-                onLongPress = { onOpenStudentProfile(lesson.studentId) }
+                onLongPress = { onOpenStudentProfile(lesson.studentId) },
+                cardElevation = cardElevation
             )
         }
     }
@@ -763,7 +765,8 @@ private fun TodayLessonRow(
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -791,7 +794,8 @@ private fun TodayLessonRow(
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongPress
-                )
+                ),
+            cardElevation = cardElevation
         )
     }
 }
@@ -838,7 +842,9 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
 @Composable
 private fun LessonCard(
     lesson: LessonForToday,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cardColors: CardColors = TutorlyCardDefaults.colors(containerColor = Color.White),
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
 ) {
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -858,8 +864,8 @@ private fun LessonCard(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+        colors = cardColors,
+        elevation = cardElevation
     ) {
         Column(
             modifier = Modifier
@@ -985,7 +991,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TodayTopBar(state: TodayUiState) {
+private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
     GradientTopBarContainer {
         val titleRes = when (state) {
             is TodayUiState.DayClosed -> R.string.today_topbar_closed
@@ -999,7 +1005,6 @@ private fun TodayTopBar(state: TodayUiState) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth()
                         .padding(start = 30.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
@@ -1007,6 +1012,17 @@ private fun TodayTopBar(state: TodayUiState) {
                         text = stringResource(titleRes),
                         color = Color.White
                     )
+                }
+            },
+            actions = {
+                if (state is TodayUiState.DayClosed) {
+                    IconButton(onClick = onReopenDay) {
+                        Icon(
+                            imageVector = Icons.Outlined.LockOpen,
+                            contentDescription = stringResource(R.string.today_reopen_day_action),
+                            tint = Color.White
+                        )
+                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
