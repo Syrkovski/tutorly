@@ -269,6 +269,16 @@ fun CalendarScreen(
             onSwipeRight = prevPeriod
         )
 
+        if (!uiState.hasStudents) {
+            CalendarOnboardingHint(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 12.dp, bottom = 8.dp),
+                message = stringResource(id = R.string.calendar_onboarding_no_students),
+                onAddStudent = onAddStudent
+            )
+        }
+
         // Контент занимает остаток экрана и скроллится внутри
         Box(
             Modifier
@@ -357,15 +367,6 @@ fun CalendarScreen(
                     )
                 }
             }
-            if (!uiState.hasStudents) {
-                CalendarOnboardingHint(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp),
-                    message = stringResource(id = R.string.calendar_onboarding_no_students),
-                    onAddStudent = onAddStudent
-                )
-            }
         }
     }
     }
@@ -380,8 +381,9 @@ private fun CalendarOnboardingHint(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 6.dp,
-        shadowElevation = 0.dp
+        color = Color.White,
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
@@ -394,7 +396,14 @@ private fun CalendarOnboardingHint(
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
-            OutlinedButton(onClick = onAddStudent) {
+            val accent = MaterialTheme.extendedColors.accent
+            Button(
+                onClick = onAddStudent,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = accent,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
                 Text(text = stringResource(id = R.string.add_student))
             }
         }
