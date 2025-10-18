@@ -163,7 +163,16 @@ fun TodayScreen(
         ) {
             when (val state = uiState) {
                 TodayUiState.Loading -> LoadingState()
-                TodayUiState.Empty -> EmptyState()
+                is TodayUiState.Empty -> EmptyState(
+                    state = state,
+                    onSwipeRight = viewModel::onSwipeRight,
+                    onSwipeLeft = viewModel::onSwipeLeft,
+                    onLessonOpen = { lessonId ->
+                        lessonCardViewModel.open(lessonId)
+                    },
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    onOpenDebtors = onOpenDebtors
+                )
                 is TodayUiState.DayInProgress -> DayInProgressContent(
                     state = state,
                     onSwipeRight = viewModel::onSwipeRight,
@@ -171,6 +180,8 @@ fun TodayScreen(
                     onLessonOpen = { lessonId ->
                         lessonCardViewModel.open(lessonId)
                     },
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    onOpenDebtors = onOpenDebtors,
                     onRequestCloseDay = { showCloseDayDialog = true }
                 )
                 is TodayUiState.DayClosed -> DayClosedContent(
@@ -196,31 +207,57 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun EmptyState() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 64.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+private fun EmptyState(
+    state: TodayUiState.Empty,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit,
+    onOpenDebtors: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Icon(
-            imageVector = Icons.Outlined.CalendarMonth,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = stringResource(R.string.today_empty_title),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = stringResource(R.string.today_empty_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        item(key = "empty_state_header") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp, vertical = 48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.today_empty_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = stringResource(R.string.today_empty_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        item(key = "past_debtors") {
+            PastDebtorsCollapsible(
+                lessons = state.pastDueLessonsPreview,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile,
+                onOpenDebtors = onOpenDebtors,
+                hasMore = state.hasMorePastDueLessons
+            )
+        }
     }
 }
 
@@ -231,6 +268,8 @@ private fun DayInProgressContent(
     onSwipeRight: (Long) -> Unit,
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit,
+    onOpenDebtors: () -> Unit,
     onRequestCloseDay: () -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -284,6 +323,17 @@ private fun DayInProgressContent(
                     onLongPress = { onLessonOpen(lesson.id) }
                 )
             }
+        }
+        item(key = "past_debtors") {
+            PastDebtorsCollapsible(
+                lessons = state.pastDueLessonsPreview,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile,
+                onOpenDebtors = onOpenDebtors,
+                hasMore = state.hasMorePastDueLessons
+            )
         }
     }
 }
@@ -465,12 +515,8 @@ private fun DayClosedSummary(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(R.string.today_closed_summary_title),
-                style = MaterialTheme.typography.titleMedium
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -941,6 +987,10 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun TodayTopBar(state: TodayUiState) {
     GradientTopBarContainer {
+        val titleRes = when (state) {
+            is TodayUiState.DayClosed -> R.string.today_topbar_closed
+            else -> R.string.today_title
+        }
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
@@ -954,7 +1004,7 @@ private fun TodayTopBar(state: TodayUiState) {
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = stringResource(R.string.today_title),
+                        text = stringResource(titleRes),
                         color = Color.White
                     )
                 }

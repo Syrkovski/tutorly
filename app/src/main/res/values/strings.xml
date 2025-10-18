@@ -174,7 +174,6 @@
     <string name="today_empty_subtitle">Проверьте расписание на сегодня</string>
     <string name="today_progress_summary">Проведено %1$d из %2$d занятий</string>
     <string name="today_progress_all_done">Все уроки прошли</string>
-    <string name="today_closed_summary_title">Итоги дня</string>
     <string name="today_closed_income_label">Доход</string>
     <string name="today_closed_debt_label">Долг</string>
     <string name="today_marked_section_title">Отмечено</string>
@@ -194,7 +193,7 @@
     <string name="today_debtors_past_subtitle">Занятий: %1$d</string>
     <string name="today_debtors_past_subtitle_more">Занятий: %1$d+</string>
     <string name="today_debtors_past_empty">За прошлые дни долгов нет — отличная работа!</string>
-    <string name="today_topbar_closed">День закрыт</string>
+    <string name="today_topbar_closed">Итоги дня</string>
     <string name="today_duration_format">%1$d мин</string>
     <string name="today_snackbar_paid">Отмечено: оплачено</string>
     <string name="today_snackbar_due">Отмечено: долг</string>

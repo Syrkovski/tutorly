@@ -127,11 +127,20 @@ class TodayViewModel @Inject constructor(
         now: Instant,
         isDayClosed: Boolean
     ): TodayUiState {
+        val outstanding = outstandingLessons
+            .filter { it.paymentStatus in PaymentStatus.outstandingStatuses }
+            .sortedByDescending { it.priceCents }
+        val pastDueLessonsPreview = outstanding.take(3)
+        val hasMorePastLessons = outstanding.size > pastDueLessonsPreview.size
+
         if (todayLessons.isEmpty()) {
             if (dayClosedState.value) {
                 setDayClosed(false)
             }
-            return TodayUiState.Empty
+            return TodayUiState.Empty(
+                pastDueLessonsPreview = pastDueLessonsPreview,
+                hasMorePastDueLessons = hasMorePastLessons
+            )
         }
 
         val todaySorted = todayLessons.sortedBy { it.startAt }
@@ -155,11 +164,6 @@ class TodayViewModel @Inject constructor(
                 .filter { it.paymentStatus == PaymentStatus.DUE }
                 .sumOf { it.priceCents.toLong() }
             val todayDueLessons = todaySorted.filter { it.paymentStatus == PaymentStatus.DUE }
-            val outstanding = outstandingLessons
-                .filter { it.paymentStatus in PaymentStatus.outstandingStatuses }
-                .sortedByDescending { it.priceCents }
-            val pastDueLessonsPreview = outstanding.take(3)
-            val hasMorePastLessons = outstanding.size > pastDueLessonsPreview.size
 
             return TodayUiState.DayClosed(
                 paidAmountCents = paidAmountCents,
@@ -178,7 +182,9 @@ class TodayViewModel @Inject constructor(
             completedLessons = completedLessons,
             totalLessons = todaySorted.size,
             remainingLessons = remainingLessons,
-            showCloseDayCallout = allLessonsCompleted && allMarked
+            showCloseDayCallout = allLessonsCompleted && allMarked,
+            pastDueLessonsPreview = pastDueLessonsPreview,
+            hasMorePastDueLessons = hasMorePastLessons
         )
     }
 
@@ -192,13 +198,18 @@ class TodayViewModel @Inject constructor(
 
 sealed interface TodayUiState {
     data object Loading : TodayUiState
-    data object Empty : TodayUiState
+    data class Empty(
+        val pastDueLessonsPreview: List<LessonForToday>,
+        val hasMorePastDueLessons: Boolean
+    ) : TodayUiState
     data class DayInProgress(
         val lessons: List<LessonForToday>,
         val completedLessons: Int,
         val totalLessons: Int,
         val remainingLessons: Int,
-        val showCloseDayCallout: Boolean
+        val showCloseDayCallout: Boolean,
+        val pastDueLessonsPreview: List<LessonForToday>,
+        val hasMorePastDueLessons: Boolean
     ) : TodayUiState
 
     data class DayClosed(
