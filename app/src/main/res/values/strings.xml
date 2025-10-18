@@ -131,6 +131,7 @@
     <string name="lesson_card_subject_placeholder">Без предмета</string>
     <string name="lesson_card_duration_value">%1$d мин</string>
     <string name="lesson_card_price_label">Стоимость</string>
+    <string name="lesson_card_payment_label">Оплата</string>
     <string name="lesson_card_note_label">Заметка</string>
     <string name="lesson_card_note_placeholder">Добавьте комментарий</string>
     <string name="lesson_card_student_placeholder">Ученик</string>

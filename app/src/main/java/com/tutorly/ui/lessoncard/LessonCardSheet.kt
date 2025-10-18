@@ -41,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
@@ -525,15 +526,16 @@ private fun PriceRow(
                 style = MaterialTheme.typography.titleLarge
             )
         }
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = TutorlyCardDefaults.colors(),
-            elevation = TutorlyCardDefaults.elevation(),
-            modifier = Modifier.padding(vertical = 4.dp)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.End
         ) {
+            Text(
+                text = stringResource(id = R.string.lesson_card_payment_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Row(
-                modifier = Modifier
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -558,7 +560,17 @@ private fun PriceRow(
                         onCheckedChange = { checked ->
                             val newStatus = if (checked) PaymentStatus.PAID else PaymentStatus.DUE
                             onStatusSelect(newStatus)
-                        }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onError,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.error,
+                            uncheckedBorderColor = Color.Transparent,
+                            checkedBorderColor = Color.Transparent,
+                            uncheckedIconColor = MaterialTheme.colorScheme.onError,
+                            checkedIconColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
                 }
             }
