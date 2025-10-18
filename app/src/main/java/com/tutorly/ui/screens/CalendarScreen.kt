@@ -50,7 +50,7 @@ import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
-import com.tutorly.ui.theme.NowAccent
+import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
@@ -594,7 +594,7 @@ private fun DayTimeline(
                 nowMinutesFromStart?.let { minutes ->
                     val y = minutes * minuteHeightPx
                     drawLine(
-                        color = NowAccent,
+                        color = MaterialTheme.extendedColors.accent,
                         start = androidx.compose.ui.geometry.Offset(0f, y),
                         end = androidx.compose.ui.geometry.Offset(size.width, y),
                         strokeWidth = 2.dp.toPx()
