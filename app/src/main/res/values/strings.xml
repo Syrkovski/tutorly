@@ -196,6 +196,7 @@
     <string name="today_debtors_past_subtitle_more">Занятий: %1$d+</string>
     <string name="today_debtors_past_empty">За прошлые дни долгов нет — отличная работа!</string>
     <string name="today_topbar_closed">Итоги дня</string>
+    <string name="today_reopen_day_action">Открыть день</string>
     <string name="today_duration_format">%1$d мин</string>
     <string name="today_snackbar_paid">Отмечено: оплачено</string>
     <string name="today_snackbar_due">Отмечено: долг</string>

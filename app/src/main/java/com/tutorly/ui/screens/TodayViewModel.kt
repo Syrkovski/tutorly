@@ -101,6 +101,12 @@ class TodayViewModel @Inject constructor(
         }
     }
 
+    fun onReopenDay() {
+        if (uiState.value is TodayUiState.DayClosed) {
+            setDayClosed(false)
+        }
+    }
+
     private fun markLesson(lessonId: Long, status: PaymentStatus) {
         viewModelScope.launch {
             val result = runCatching {

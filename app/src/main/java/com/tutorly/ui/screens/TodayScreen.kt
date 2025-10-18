@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -38,6 +40,7 @@ import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -156,7 +159,7 @@ fun TodayScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { TodayTopBar(state = uiState) },
+        topBar = { TodayTopBar(state = uiState, onReopenDay = viewModel::onReopenDay) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = Color.Transparent
     ) { innerPadding ->
@@ -989,7 +992,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TodayTopBar(state: TodayUiState) {
+private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
     GradientTopBarContainer {
         val titleRes = when (state) {
             is TodayUiState.DayClosed -> R.string.today_topbar_closed
@@ -1003,7 +1006,7 @@ private fun TodayTopBar(state: TodayUiState) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth()
+                        .weight(1f)
                         .padding(start = 30.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
@@ -1011,6 +1014,17 @@ private fun TodayTopBar(state: TodayUiState) {
                         text = stringResource(titleRes),
                         color = Color.White
                     )
+                }
+            },
+            actions = {
+                if (state is TodayUiState.DayClosed) {
+                    IconButton(onClick = onReopenDay) {
+                        Icon(
+                            imageVector = Icons.Outlined.LockOpen,
+                            contentDescription = stringResource(R.string.today_reopen_day_action),
+                            tint = Color.White
+                        )
+                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
