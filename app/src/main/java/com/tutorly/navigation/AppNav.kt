@@ -63,6 +63,8 @@ private const val ROUTE_STUDENT_EDIT_BASE = "student/{studentId}/edit"
 private const val ARG_STUDENT_EDIT_TARGET = "editTarget"
 const val ROUTE_STUDENT_EDIT = "$ROUTE_STUDENT_EDIT_BASE?$ARG_STUDENT_EDIT_TARGET={$ARG_STUDENT_EDIT_TARGET}"
 private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
+private fun studentsRoute(origin: StudentEditorOrigin = StudentEditorOrigin.NONE) =
+    "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${origin.name}"
 private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null): String {
     val base = ROUTE_STUDENT_EDIT_BASE.replace("{studentId}", studentId.toString())
     return if (target != null) {
@@ -105,10 +107,17 @@ fun AppNavRoot() {
                 AppBottomBar(
                     currentRoute = route,
                     onSelect = { dest ->
-                        val target = if (dest == ROUTE_CALENDAR) {
-                            calendarRoute(nav)
-                        } else {
-                            dest
+                        if (dest == ROUTE_STUDENTS) {
+                            val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
+                            if (returnedToList) {
+                                return@AppBottomBar
+                            }
+                        }
+
+                        val target = when (dest) {
+                            ROUTE_CALENDAR -> calendarRoute(nav)
+                            ROUTE_STUDENTS -> studentsRoute()
+                            else -> dest
                         }
                         nav.navigate(target) {
                             launchSingleTop = true
@@ -145,7 +154,7 @@ fun AppNavRoot() {
                     val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
                     CalendarScreen(
                         onAddStudent = {
-                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                            nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
                                 launchSingleTop = true
                             }
                         },
@@ -160,7 +169,7 @@ fun AppNavRoot() {
                 composable(ROUTE_TODAY) {
                     TodayScreen(
                         onAddStudent = {
-                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                            nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
                                 launchSingleTop = true
                             }
                         },
@@ -243,7 +252,7 @@ fun AppNavRoot() {
                     StudentDetailsScreen(
                         onBack = { nav.popBackStack() },
                         onAddStudentFromCreation = {
-                            nav.navigate("$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${StudentEditorOrigin.LESSON_CREATION.name}") {
+                            nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
                                 launchSingleTop = true
                             }
                         },
