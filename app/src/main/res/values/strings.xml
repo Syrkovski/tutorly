@@ -244,10 +244,10 @@
     <string name="finance_debtors_title">Должники</string>
     <string name="finance_debtors_empty">Должников нет — отличная работа!</string>
     <string name="finance_debtors_last_debt">Последняя дата долга: %1$s</string>
-    <string name="finance_debtors_open_profile">Открыть профиль</string>
     <string name="finance_debtors_all">Все должники</string>
     <string name="finance_chart_title">Получено по дням</string>
     <string name="finance_chart_empty">Нет оплат за выбранный период</string>
+    <string name="finance_chart_total">Итого: %1$s</string>
     <string name="settings_title">Настройки</string>
     <string name="settings_back">Вернуться назад</string>
     <string name="settings_work_hours">Рабочие часы</string>

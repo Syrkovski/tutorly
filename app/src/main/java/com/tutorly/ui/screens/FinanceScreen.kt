@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +50,8 @@ import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.Currency
 import java.util.Locale
 
@@ -174,8 +178,8 @@ private fun FinanceContent(
                     )
                     FinanceBadge(
                         text = cancelledText,
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        color = Color(0xFFD05E6E),
+                        contentColor = Color.White
                     )
                 }
             }
@@ -184,6 +188,7 @@ private fun FinanceContent(
         FinanceChartCard(
             modifier = Modifier.fillMaxWidth(),
             points = chartPoints,
+            period = selectedPeriod,
             currencyFormatter = currencyFormatter,
             dateFormatter = dateFormatter
         )
@@ -314,12 +319,10 @@ private fun FinanceBadge(
 private fun FinanceChartCard(
     modifier: Modifier,
     points: List<FinanceChartPoint>,
+    period: FinancePeriod,
     currencyFormatter: NumberFormat,
     dateFormatter: DateTimeFormatter
 ) {
-    val firstDate = points.firstOrNull()?.date
-    val lastDate = points.lastOrNull()?.date
-
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -346,40 +349,23 @@ private fun FinanceChartCard(
             } else {
                 FinanceBarChart(
                     points = points,
+                    period = period,
+                    dateFormatter = dateFormatter,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp)
                 )
-                Row(
+                val total = points.sumOf { it.amount }
+                Text(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        firstDate?.let { date ->
-                            Text(
-                                text = dateFormatter.format(date),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        val total = points.sumOf { it.amount }
-                        Text(
-                            text = currencyFormatter.format(total),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        lastDate?.let { date ->
-                            Text(
-                                text = dateFormatter.format(date),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+                    text = stringResource(
+                        R.string.finance_chart_total,
+                        currencyFormatter.format(total)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
@@ -388,31 +374,63 @@ private fun FinanceChartCard(
 @Composable
 private fun FinanceBarChart(
     points: List<FinanceChartPoint>,
+    period: FinancePeriod,
+    dateFormatter: DateTimeFormatter,
     modifier: Modifier = Modifier
 ) {
     val maxValue = remember(points) { points.maxOfOrNull { it.amount } ?: 0L }
     val barColor = MaterialTheme.colorScheme.primary
-    Canvas(modifier = modifier) {
-        if (points.isEmpty()) return@Canvas
-        val max = maxValue.toFloat().coerceAtLeast(1f)
-        val height = size.height
-        val width = size.width
-        val bars = points.size
-        val barWidth = width / (bars * 1.6f)
-        val stepX = width / bars
+    val labels = remember(points, period, dateFormatter) {
+        buildChartLabels(points, period, dateFormatter)
+    }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+        ) {
+            if (points.isEmpty()) return@Canvas
+            val max = maxValue.toFloat().coerceAtLeast(1f)
+            val height = size.height
+            val width = size.width
+            val bars = points.size
+            val barWidth = width / (bars * 1.6f)
+            val stepX = width / bars
 
-        points.forEachIndexed { index, point ->
-            val ratio = point.amount.toFloat() / max
-            val barHeight = ratio * height
-            val left = stepX * index + (stepX - barWidth) / 2f
-            drawRoundRect(
-                color = barColor,
-                topLeft = Offset(x = left, y = height - barHeight),
-                size = Size(width = barWidth, height = barHeight),
-                cornerRadius = CornerRadius(x = 12.dp.toPx(), y = 12.dp.toPx())
-            )
+            points.forEachIndexed { index, point ->
+                val ratio = point.amount.toFloat() / max
+                val barHeight = ratio * height
+                val left = stepX * index + (stepX - barWidth) / 2f
+                drawRoundRect(
+                    color = barColor,
+                    topLeft = Offset(x = left, y = height - barHeight),
+                    size = Size(width = barWidth, height = barHeight),
+                    cornerRadius = CornerRadius(x = 12.dp.toPx(), y = 12.dp.toPx())
+                )
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            labels.forEach { label ->
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
+                }
+            }
         }
     }
+}
 }
 
 @Composable
@@ -481,7 +499,9 @@ private fun FinanceDebtorRow(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenStudent(debtor.studentId) },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -506,8 +526,28 @@ private fun FinanceDebtorRow(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        TextButton(onClick = { onOpenStudent(debtor.studentId) }) {
-            Text(text = stringResource(R.string.finance_debtors_open_profile))
+    }
+}
+
+private fun buildChartLabels(
+    points: List<FinanceChartPoint>,
+    period: FinancePeriod,
+    dateFormatter: DateTimeFormatter
+): List<String> {
+    if (points.isEmpty()) return emptyList()
+    val locale = Locale.getDefault()
+    val firstDayOfWeek = WeekFields.ISO.firstDayOfWeek
+    return when (period) {
+        FinancePeriod.WEEK -> points.map { point ->
+            point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+        }
+
+        FinancePeriod.MONTH -> points.mapIndexed { index, point ->
+            if (point.date.dayOfWeek == firstDayOfWeek || index == 0) {
+                dateFormatter.format(point.date)
+            } else {
+                ""
+            }
         }
     }
 }
