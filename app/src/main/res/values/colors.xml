@@ -7,6 +7,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="splash_background_top">#3B7D72</color>
-    <color name="splash_background_bottom">#4E998C</color>
+    <color name="splash_background_top">#0E73B9</color>
+    <color name="splash_background_bottom">#2DD9C5</color>
 </resources>
