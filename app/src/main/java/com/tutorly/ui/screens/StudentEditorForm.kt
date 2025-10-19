@@ -1,6 +1,5 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -35,7 +33,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -50,18 +47,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.ui.theme.extendedColors
@@ -251,50 +244,38 @@ private fun SubjectInputField(
     val parts = remember(value, locale) { parseSubjectInput(value, locale) }
     val tokens = parts.tokens
     val query = parts.query
-    val interactionSource = remember { MutableInteractionSource() }
-    val colors = editorFieldColors()
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val textStyle = MaterialTheme.typography.bodyLarge.merge(TextStyle(color = textColor))
-
-    fun updateValue(updatedTokens: List<String>, updatedQuery: String, keepSeparator: Boolean = false) {
-        val sanitizedTokens = updatedTokens.filter { it.isNotBlank() }
-        val normalizedQuery = enforceCapitalized(updatedQuery, locale)
-        onValueChange(
-            buildSubjectInput(
-                sanitizedTokens,
-                normalizedQuery,
-                forceSeparator = keepSeparator || (parts.hasSeparator && normalizedQuery.isEmpty() && sanitizedTokens.isNotEmpty())
-            )
-        )
+    val displayValue = remember(parts) {
+        buildSubjectInput(tokens, query, forceSeparator = parts.hasSeparator)
     }
+    val colors = editorFieldColors()
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        BasicTextField(
-            value = query,
+        OutlinedTextField(
+            value = displayValue,
             onValueChange = { raw ->
-                val sanitized = enforceCapitalized(raw, locale)
-                val commaIndex = sanitized.indexOf(',')
-                if (commaIndex >= 0) {
-                    val newToken = sanitized.substring(0, commaIndex).trim()
-                    val remainder = sanitized.substring(commaIndex + 1).trimStart()
-                    val merged = mergeSubjectToken(tokens, newToken, locale)
-                    updateValue(merged, remainder, keepSeparator = remainder.isEmpty())
-                } else {
-                    updateValue(tokens, sanitized)
+                val parsed = parseSubjectInput(raw, locale)
+                val sanitized = buildSubjectInput(
+                    parsed.tokens,
+                    parsed.query,
+                    forceSeparator = parsed.hasSeparator
+                )
+                if (sanitized != value) {
+                    onValueChange(sanitized)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            textStyle = textStyle,
-            cursorBrush = SolidColor(MaterialTheme.extendedColors.accent),
             singleLine = true,
+            label = label,
+            placeholder = placeholder,
+            supportingText = supportingText,
+            leadingIcon = leadingIcon,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(onNext = { onSubmit?.invoke() }),
-            decorationBox = { innerTextField ->
-            }
+            colors = colors
         )
 
         if (suggestions.isNotEmpty()) {
