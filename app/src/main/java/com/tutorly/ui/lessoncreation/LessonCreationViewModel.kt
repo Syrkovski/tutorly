@@ -176,7 +176,7 @@ class LessonCreationViewModel @Inject constructor(
         pendingNewStudentName = null
         val currentState = _uiState.value
         val selected = currentState.selectedStudent
-        val enforced = enforceCapitalized(query, currentState.locale)
+        val enforced = query
         val keepSelection = selected?.name?.equals(enforced, ignoreCase = true) == true
         val availableSubjects = if (keepSelection) {
             currentState.availableSubjects
@@ -335,7 +335,7 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onSubjectInputChanged(value: String) {
         val state = _uiState.value
-        val enforced = enforceCapitalized(value, state.locale)
+        val enforced =value
         val normalized = enforced.trim()
         if (normalized.isEmpty()) {
             _uiState.update { it.copy(subjectInput = enforced, selectedSubjectId = null) }
@@ -440,7 +440,7 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onNoteChanged(value: String) {
         val locale = _uiState.value.locale
-        _uiState.update { it.copy(note = enforceCapitalized(value, locale)) }
+        _uiState.update { it.copy(note = value) }
     }
 
     fun submit() {
@@ -895,16 +895,16 @@ private fun formatTimeInput(digits: String): String {
     return "$hours:$minutes"
 }
 
-private fun enforceCapitalized(value: String, locale: Locale): String {
-    val index = value.indexOfFirst { it.isLetter() }
-    if (index == -1) return value
-    val current = value[index]
-    val titleCased = current.titlecase(locale)
-    if (current == titleCased) return value
-    val chars = value.toCharArray()
-    chars[index] = titleCased
-    return String(chars)
-}
+//private fun enforceCapitalized(value: String, locale: Locale): String {
+//    val index = value.indexOfFirst { it.isLetter() }
+//    if (index == -1) return value
+//    val current = value[index]
+//    val titleCased = current.titlecase(locale)
+//    if (current == titleCased) return value
+//    val chars = value.toCharArray()
+//    chars[index] = titleCased
+//    return String(chars)
+//}
 
 private fun gcd(a: Int, b: Int): Int {
     var x = kotlin.math.abs(a)

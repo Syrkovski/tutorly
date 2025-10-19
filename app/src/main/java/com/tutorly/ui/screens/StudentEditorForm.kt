@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -17,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Close
@@ -53,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -291,54 +294,6 @@ private fun SubjectInputField(
             ),
             keyboardActions = KeyboardActions(onNext = { onSubmit?.invoke() }),
             decorationBox = { innerTextField ->
-                OutlinedTextFieldDefaults.DecorationBox(
-                    value = if (tokens.isNotEmpty() || query.isNotEmpty()) " " else "",
-                    innerTextField = {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            tokens.forEach { token ->
-                                InputChip(
-                                    selected = true,
-                                    onClick = {
-                                        val updatedTokens = tokens.filterNot { it.equals(token, ignoreCase = true) }
-                                        updateValue(updatedTokens, query, keepSeparator = updatedTokens.isNotEmpty())
-                                    },
-                                    label = { Text(text = token) },
-                                    trailingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Filled.Close,
-                                            contentDescription = stringResource(
-                                                id = R.string.student_editor_subject_remove,
-                                                token
-                                            )
-                                        )
-                                    },
-                                    enabled = enabled
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .defaultMinSize(minWidth = 24.dp)
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                innerTextField()
-                            }
-                        }
-                    },
-                    label = label,
-                    placeholder = if (tokens.isEmpty() && query.isEmpty()) placeholder else null,
-                    leadingIcon = leadingIcon,
-                    supportingText = supportingText,
-                    trailingIcon = null,
-                    singleLine = true,
-                    enabled = enabled,
-                    isError = false,
-                    interactionSource = interactionSource,
-                    colors = colors,
-                    contentPadding = OutlinedTextFieldDefaults.contentPadding()
-                )
             }
         )
 
