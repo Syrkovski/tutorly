@@ -3,8 +3,6 @@ package com.tutorly.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,14 +27,11 @@ import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
@@ -55,6 +50,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.ui.theme.extendedColors
@@ -93,7 +89,6 @@ fun StudentEditorForm(
     enableScrolling: Boolean = true,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
-    subjectSuggestions: List<String> = emptyList(),
 ) {
     val nameFocusRequester = remember { FocusRequester() }
     val gradeFocusRequester = remember { FocusRequester() }
@@ -102,10 +97,6 @@ fun StudentEditorForm(
     val messengerFocusRequester = remember { FocusRequester() }
     val noteFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
-    val gradeNumbers = remember { (9..11).toList() }
-    val gradeOptions = gradeNumbers.map { number ->
-        stringResource(id = R.string.student_editor_grade_option, number)
-    }
 
     LaunchedEffect(initialFocus, enabled) {
         if (enabled) {
@@ -161,10 +152,8 @@ fun StudentEditorForm(
                 enabled = enabled,
                 nameFocusRequester = nameFocusRequester,
                 gradeFocusRequester = gradeFocusRequester,
-                gradeOptions = gradeOptions,
                 isStandalone = !showFullForm && editTarget == StudentEditTarget.PROFILE,
-                onSubmit = onSubmit,
-                subjectSuggestions = subjectSuggestions
+                onSubmit = onSubmit
             )
         }
 
@@ -225,7 +214,6 @@ fun StudentEditorForm(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SubjectInputField(
     value: String,
@@ -237,8 +225,6 @@ private fun SubjectInputField(
     leadingIcon: @Composable (() -> Unit)?,
     onSubmit: (() -> Unit)?,
     locale: Locale,
-    suggestions: List<String>,
-    onSuggestionSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val parts = remember(value, locale) { parseSubjectInput(value, locale) }
@@ -249,50 +235,33 @@ private fun SubjectInputField(
     }
     val colors = editorFieldColors()
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = displayValue,
-            onValueChange = { raw ->
-                val parsed = parseSubjectInput(raw, locale)
-                val sanitized = buildSubjectInput(
-                    parsed.tokens,
-                    parsed.query,
-                    forceSeparator = parsed.hasSeparator
-                )
-                if (sanitized != value) {
-                    onValueChange(sanitized)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = enabled,
-            singleLine = true,
-            label = label,
-            placeholder = placeholder,
-            supportingText = supportingText,
-            leadingIcon = leadingIcon,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Sentences,
-                imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(onNext = { onSubmit?.invoke() }),
-            colors = colors
-        )
-
-        if (suggestions.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                suggestions.forEach { suggestion ->
-                    SuggestionChip(
-                        onClick = { onSuggestionSelected(suggestion) },
-                        label = { Text(text = suggestion) },
-                        enabled = enabled
-                    )
-                }
+    OutlinedTextField(
+        value = displayValue,
+        onValueChange = { raw ->
+            val parsed = parseSubjectInput(raw, locale)
+            val sanitized = buildSubjectInput(
+                parsed.tokens,
+                parsed.query,
+                forceSeparator = parsed.hasSeparator
+            )
+            if (sanitized != value) {
+                onValueChange(sanitized)
             }
-        }
-    }
+        },
+        modifier = modifier.fillMaxWidth(),
+        enabled = enabled,
+        singleLine = true,
+        label = label,
+        placeholder = placeholder,
+        supportingText = supportingText,
+        leadingIcon = leadingIcon,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Sentences,
+            imeAction = ImeAction.Next
+        ),
+        keyboardActions = KeyboardActions(onNext = { onSubmit?.invoke() }),
+        colors = colors
+    )
 }
 
 private data class SubjectInputParts(
@@ -350,7 +319,6 @@ private fun enforceCapitalized(value: String, locale: Locale): String {
     return first + trimmed.drop(1)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileSection(
     state: StudentEditorFormState,
@@ -360,35 +328,11 @@ private fun ProfileSection(
     enabled: Boolean,
     nameFocusRequester: FocusRequester,
     gradeFocusRequester: FocusRequester,
-    gradeOptions: List<String>,
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
-    subjectSuggestions: List<String>,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     val locale = remember { Locale.getDefault() }
-    val normalizedSuggestions = remember(subjectSuggestions, locale) {
-        subjectSuggestions
-            .map { enforceCapitalized(it, locale) }
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinctBy { it.lowercase(locale) }
-    }
-    val inputParts = remember(state.subject) { parseSubjectInput(state.subject, locale) }
-    val normalizedSelected = remember(inputParts.tokens, locale) {
-        inputParts.tokens.associateBy { it.lowercase(locale) }
-    }
-    val filteredSuggestions = remember(normalizedSuggestions, inputParts, locale) {
-        val query = inputParts.query
-        normalizedSuggestions.filter { suggestion ->
-            val normalized = suggestion.lowercase(locale)
-            if (normalizedSelected.containsKey(normalized)) {
-                false
-            } else {
-                query.isBlank() || suggestion.contains(query, ignoreCase = true)
-            }
-        }
-    }
     val textFieldColors = editorFieldColors()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -432,15 +376,6 @@ private fun ProfileSection(
             },
             onSubmit = { gradeFocusRequester.tryRequestFocus() },
             locale = locale,
-            suggestions = filteredSuggestions,
-            onSuggestionSelected = { suggestion ->
-                val updated = buildSubjectInput(
-                    mergeSubjectToken(inputParts.tokens, suggestion, locale),
-                    query = "",
-                    forceSeparator = true
-                )
-                onSubjectChange(updated)
-            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -470,33 +405,9 @@ private fun ProfileSection(
             },
             colors = textFieldColors
         )
-
-        if (gradeOptions.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                gradeOptions.forEach { option ->
-                    val selected = state.grade.equals(option, ignoreCase = true)
-                    FilterChip(
-                        selected = selected,
-                        onClick = {
-                            val value = if (selected) "" else option
-                            onGradeChange(value)
-                        },
-                        label = { Text(text = option) },
-                        enabled = enabled,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.extendedColors.accent.copy(alpha = 0.16f)
-                        )
-                    )
-                }
-            }
-        }
     }
 }
-
-@OptIn(ExperimentalLayoutApi::class)
+ 
 @Composable
 private fun RateSection(
     rate: String,
@@ -507,9 +418,7 @@ private fun RateSection(
     onSubmit: (() -> Unit)?,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
-    val rateOptions = remember { listOf(1500, 2000, 2500, 3000) }
     val textFieldColors = editorFieldColors()
-    val normalizedRate = remember(rate) { rate.filter { it.isDigit() } }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -543,27 +452,6 @@ private fun RateSection(
             colors = textFieldColors
         )
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            rateOptions.forEach { option ->
-                val formatted = stringResource(id = R.string.student_editor_rate_option_value, option)
-                val selected = normalizedRate == option.toString()
-                FilterChip(
-                    selected = selected,
-                    onClick = {
-                        val newValue = if (selected) "" else option.toString()
-                        onRateChange(newValue)
-                    },
-                    label = { Text(text = formatted) },
-                    enabled = enabled,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.extendedColors.accent.copy(alpha = 0.16f)
-                    )
-                )
-            }
-        }
     }
 }
 

@@ -401,8 +401,7 @@ fun StudentDetailsScreen(
             onDismiss = closeEditor,
             editTarget = pendingEditTarget,
             initialFocus = focusTarget,
-            snackbarHostState = editorSnackbarHostState,
-            subjectSuggestions = editorViewModel.subjectSuggestions
+            snackbarHostState = editorSnackbarHostState
         )
     }
 }
@@ -556,7 +555,6 @@ private fun StudentEditorDialogContent(
     editTarget: StudentEditTarget?,
     initialFocus: StudentEditTarget?,
     snackbarHostState: SnackbarHostState,
-    subjectSuggestions: List<String>,
 ) {
     val titleRes = when {
         state.studentId == null -> R.string.add_student
@@ -602,8 +600,7 @@ private fun StudentEditorDialogContent(
             initialFocus = initialFocus,
             enableScrolling = true,
             enabled = !state.isSaving,
-            onSubmit = onSave,
-            subjectSuggestions = subjectSuggestions
+            onSubmit = onSave
         )
 
         Row(

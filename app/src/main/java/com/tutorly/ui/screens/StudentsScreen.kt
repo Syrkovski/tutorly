@@ -97,7 +97,6 @@ fun StudentsScreen(
     val query by vm.query.collectAsState()
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
-    val subjectSuggestions by vm.subjectSuggestions.collectAsState()
     val isArchiveMode by vm.isArchiveMode.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -247,7 +246,6 @@ fun StudentsScreen(
                     closeEditor()
                 }
             },
-            subjectSuggestions = subjectSuggestions
         )
     }
 }
@@ -269,7 +267,6 @@ fun StudentEditorSheet(
     editTarget: StudentEditTarget? = null,
     initialFocus: StudentEditTarget? = StudentEditTarget.PROFILE,
     snackbarHostState: SnackbarHostState? = null,
-    subjectSuggestions: List<String> = emptyList(),
 ) {
     val isEditing = state.studentId != null
     val titleRes = when {
@@ -337,8 +334,7 @@ fun StudentEditorSheet(
                     initialFocus = initialFocus,
                     enableScrolling = false,
                     enabled = !state.isSaving,
-                    onSubmit = onSave,
-                    subjectSuggestions = subjectSuggestions
+                    onSubmit = onSave
                 )
 
                 if (snackbarHostState != null) {

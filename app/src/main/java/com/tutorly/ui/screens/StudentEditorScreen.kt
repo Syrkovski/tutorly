@@ -14,7 +14,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
-import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.models.Student
 import java.util.Locale
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +26,6 @@ import kotlinx.coroutines.launch
 class StudentEditorVM @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repo: StudentsRepository,
-    private val subjectPresetsRepository: SubjectPresetsRepository
 ) : ViewModel() {
     private val id: Long? = savedStateHandle.get<Long>("studentId")
     private val editTargetName: String? = savedStateHandle.get<String>("editTarget")
@@ -40,10 +38,6 @@ class StudentEditorVM @Inject constructor(
     var formState by mutableStateOf(StudentEditorFormState())
         private set
     private var loadedStudent: Student? = null
-    var subjectSuggestions by mutableStateOf(listOf<String>())
-        private set
-    private val suggestionLocale = Locale.getDefault()
-
     init {
         id?.let {
             viewModelScope.launch {
@@ -55,8 +49,6 @@ class StudentEditorVM @Inject constructor(
                 }
             }
         }
-
-        refreshSubjectSuggestions()
     }
 
     fun resetFormToLoadedStudent() {
@@ -168,35 +160,12 @@ class StudentEditorVM @Inject constructor(
                 .onSuccess { newId ->
                     loadedStudent = student.copy(id = newId)
                     formState = formState.copy(isSaving = false)
-                    refreshSubjectSuggestions()
                     onSaved(newId)
                 }
                 .onFailure { throwable ->
                     formState = formState.copy(isSaving = false)
                     onError(throwable.message ?: "")
                 }
-        }
-    }
-
-    private fun refreshSubjectSuggestions() {
-        viewModelScope.launch {
-            val presets = runCatching { subjectPresetsRepository.all() }.getOrDefault(emptyList())
-            val presetNames = presets
-                .map { formatSubjectName(it.name, suggestionLocale) }
-                .filter { it.isNotEmpty() }
-            val studentSubjects = runCatching { repo.allActive() }
-                .getOrDefault(emptyList())
-                .flatMap { parseSubjectNames(it.subject, suggestionLocale) }
-            val merged = (presetNames + studentSubjects)
-            val seen = mutableSetOf<String>()
-            val deduped = mutableListOf<String>()
-            merged.forEach { name ->
-                val key = name.lowercase(suggestionLocale)
-                if (name.isNotEmpty() && seen.add(key)) {
-                    deduped += name
-                }
-            }
-            subjectSuggestions = deduped
         }
     }
 
@@ -233,8 +202,6 @@ fun StudentEditorDialog(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val subjectSuggestions = vm.subjectSuggestions
-
     val currentOnDismiss by androidx.compose.runtime.rememberUpdatedState(onDismiss)
     val currentOnSaved by androidx.compose.runtime.rememberUpdatedState(onSaved)
 
@@ -273,7 +240,6 @@ fun StudentEditorDialog(
         },
         editTarget = editTarget,
         initialFocus = editTarget,
-        snackbarHostState = snackbarHostState,
-        subjectSuggestions = subjectSuggestions
+        snackbarHostState = snackbarHostState
     )
 }
