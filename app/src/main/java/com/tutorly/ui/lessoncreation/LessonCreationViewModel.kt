@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.collections.ArrayDeque
 import kotlin.math.max
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +55,7 @@ class LessonCreationViewModel @Inject constructor(
     private var conflictRequest: LessonCreateRequest? = null
     private var pendingStudentConfig: LessonCreationConfig? = null
     private var pendingNewStudentName: String? = null
+    private val snackbarQueue: ArrayDeque<SnackbarPayload> = ArrayDeque()
     private val rateHistoryCache: MutableMap<Long, List<RateUsage>> = mutableMapOf()
     private var currentRateHistory: List<RateUsage> = emptyList()
     private var currentStudentBaseRateCents: Int? = null
@@ -142,6 +144,7 @@ class LessonCreationViewModel @Inject constructor(
         }
         conflictRequest = null
         pendingNewStudentName = null
+        snackbarQueue.clear()
     }
 
     fun prepareForStudentCreation() {
@@ -403,7 +406,17 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun consumeSnackbar() {
-        _uiState.update { it.copy(snackbarMessage = null, snackbarActionLabel = null) }
+        val next = if (snackbarQueue.isEmpty()) null else snackbarQueue.removeFirst()
+        if (next == null) {
+            _uiState.update { it.copy(snackbarMessage = null, snackbarActionLabel = null) }
+        } else {
+            _uiState.update {
+                it.copy(
+                    snackbarMessage = next.message,
+                    snackbarActionLabel = next.actionLabel
+                )
+            }
+        }
     }
 
     private suspend fun attemptSubmit(force: Boolean) {
@@ -450,7 +463,7 @@ class LessonCreationViewModel @Inject constructor(
                 return
             }
 
-            val created = createStudentFromInput(trimmedName) ?: return
+            val created = createStudentFromInput(trimmedName, state) ?: return
             _uiState.update { it.copy(studentDuplicatePrompt = null) }
             selectStudent(created.id, applyDefaults = false)
             state = _uiState.value
@@ -515,7 +528,7 @@ class LessonCreationViewModel @Inject constructor(
     fun createDuplicateStudent() {
         val prompt = _uiState.value.studentDuplicatePrompt ?: return
         viewModelScope.launch {
-            val created = createStudentFromInput(prompt.enteredName) ?: return@launch
+            val created = createStudentFromInput(prompt.enteredName, _uiState.value) ?: return@launch
             _uiState.update { it.copy(studentDuplicatePrompt = null) }
             selectStudent(created.id, applyDefaults = false)
             attemptSubmit(prompt.forceSubmission)
@@ -549,17 +562,11 @@ class LessonCreationViewModel @Inject constructor(
             val formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm", _uiState.value.locale)
             val baseMessage = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
             val newStudentName = pendingNewStudentName
-            val message = if (newStudentName != null) {
-                "$baseMessage. Новый ученик \"$newStudentName\" сохранён."
-            } else {
-                baseMessage
-            }
             _uiState.update {
                 it.copy(
                     isSubmitting = false,
                     isVisible = false,
-                    snackbarMessage = message,
-                    snackbarActionLabel = if (newStudentName != null) "Отменить" else null,
+                    errors = emptyMap(),
                     showConflictDialog = null,
                     selectedStudent = null,
                     studentQuery = "",
@@ -570,6 +577,10 @@ class LessonCreationViewModel @Inject constructor(
             currentStudentBaseRateCents = null
             currentStudentBaseRateDuration = null
             conflictRequest = null
+            if (newStudentName != null) {
+                enqueueSnackbar("Новый ученик \"$newStudentName\" сохранён.", actionLabel = "Отменить")
+            }
+            enqueueSnackbar(baseMessage)
             pendingNewStudentName = null
             _events.tryEmit(
                 LessonCreationEvent.Created(
@@ -588,10 +599,21 @@ class LessonCreationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createStudentFromInput(rawName: String): StudentOption? {
+    private suspend fun createStudentFromInput(
+        rawName: String,
+        sourceState: LessonCreationUiState
+    ): StudentOption? {
         val trimmed = rawName.trim()
         val name = trimmed.ifEmpty { DEFAULT_NEW_STUDENT_NAME }
-        val newStudent = Student(name = name)
+        val subjectName = resolveStudentSubject(sourceState)
+        val grade = resolveStudentGrade(sourceState)
+        val rateCents = sourceState.priceCents.takeIf { it > 0 }
+        val newStudent = Student(
+            name = name,
+            rateCents = rateCents,
+            subject = subjectName,
+            grade = grade
+        )
         val newId = runCatching { studentsRepository.upsert(newStudent) }
             .onFailure { error ->
                 _uiState.update {
@@ -604,6 +626,39 @@ class LessonCreationViewModel @Inject constructor(
             .getOrNull() ?: return null
         pendingNewStudentName = name
         return studentsRepository.getByIdSafe(newId)?.toOption() ?: newStudent.copy(id = newId).toOption()
+    }
+
+    private fun resolveStudentSubject(state: LessonCreationUiState): String? {
+        val selectedSubject = state.selectedSubjectId?.let { id ->
+            state.subjects.firstOrNull { it.id == id }?.name
+        }
+        val manualSubject = state.subjectInput.trim().takeIf { it.isNotEmpty() }
+        return (selectedSubject ?: manualSubject)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun resolveStudentGrade(state: LessonCreationUiState): String? {
+        return extractGrade(state.note) ?: extractGrade(state.subjectInput)
+    }
+
+    private fun extractGrade(source: String?): String? {
+        if (source.isNullOrBlank()) return null
+        val match = GRADE_REGEX.find(source)
+        val gradeNumber = match?.groups?.get(2)?.value
+        return gradeNumber?.let { "$it класс" }
+    }
+
+    private fun enqueueSnackbar(message: String, actionLabel: String? = null) {
+        val current = _uiState.value
+        if (current.snackbarMessage == null) {
+            _uiState.update {
+                it.copy(
+                    snackbarMessage = message,
+                    snackbarActionLabel = actionLabel
+                )
+            }
+        } else {
+            snackbarQueue.addLast(SnackbarPayload(message, actionLabel))
+        }
     }
 
     private suspend fun findSimilarStudent(name: String): StudentOption? {
@@ -827,3 +882,9 @@ private fun levenshteinDistance(a: String, b: String): Int {
 private const val DEFAULT_NEW_STUDENT_NAME = "Ученик"
 private val NON_WORD_REGEX = Regex("[^\\p{L}\\p{Nd}]")
 private val WHITESPACE_REGEX = Regex("\\s+")
+private val GRADE_REGEX = Regex("""(?i)(\n|^|\s)(\d{1,2})\s*(класс|кл\\.?)""")
+
+private data class SnackbarPayload(
+    val message: String,
+    val actionLabel: String?
+)
