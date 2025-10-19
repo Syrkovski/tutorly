@@ -429,7 +429,7 @@ private fun ProfileSection(
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     val locale = remember { Locale.getDefault() }
-    val subjectSuggestions = remember { stringArrayResource(id = R.array.student_editor_subject_suggestions).toList() }
+    val subjectSuggestions = stringArrayResource(id = R.array.student_editor_subject_suggestions).toList()
     val inputParts = remember(state.subject) { parseSubjectInput(state.subject, locale) }
     val normalizedSelected = remember(inputParts.tokens, locale) {
         inputParts.tokens.associateBy { it.lowercase(locale) }
