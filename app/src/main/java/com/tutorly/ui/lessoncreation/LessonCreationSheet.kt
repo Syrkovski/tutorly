@@ -1,7 +1,6 @@
 package com.tutorly.ui.lessoncreation
 
 import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CurrencyRuble
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
@@ -64,6 +63,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -75,7 +76,6 @@ import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -91,7 +91,7 @@ fun LessonCreationSheet(
     onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long?) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
-    onTimeSelect: (LocalTime) -> Unit,
+    onTimeInputChange: (String) -> Unit,
     onDurationChange: (Int) -> Unit,
     onPriceChange: (Int) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -135,7 +135,11 @@ fun LessonCreationSheet(
                     onSubjectInputChange = onSubjectInputChange,
                     onSubjectSelect = onSubjectSelect
                 )
-                TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
+                TimeSection(
+                    state = state,
+                    onDateSelect = onDateSelect,
+                    onTimeInputChange = onTimeInputChange
+                )
                 DurationSection(state = state, onDurationChange = onDurationChange)
                 PriceSection(state = state, onPriceChange = onPriceChange)
                 NoteSection(state = state, onNoteChange = onNoteChange)
@@ -210,11 +214,15 @@ private fun StudentSection(
                         if (!focusState.isFocused) {
                             expanded = false
                         }
-                    },
+                },
                 singleLine = true,
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Person, contentDescription = null)
                 },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
+                ),
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -350,6 +358,10 @@ private fun SubjectSection(
             leadingIcon = {
                 Icon(imageVector = Icons.Filled.Book, contentDescription = null)
             },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Next
+            ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -394,12 +406,11 @@ private fun SubjectSection(
 private fun TimeSection(
     state: LessonCreationUiState,
     onDateSelect: (LocalDate) -> Unit,
-    onTimeSelect: (LocalTime) -> Unit
+    onTimeInputChange: (String) -> Unit
 ) {
     val context = LocalContext.current
     val locale = state.locale
     val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM", locale) }
-    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
 
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedButton(
@@ -425,27 +436,30 @@ private fun TimeSection(
                 Text(text = state.date.format(dateFormatter), textAlign = TextAlign.Center)
             }
         }
-        OutlinedButton(
-            onClick = {
-                TimePickerDialog(
-                    context,
-                    { _, hour, minute -> onTimeSelect(LocalTime.of(hour, minute)) },
-                    state.time.hour,
-                    state.time.minute,
-                    true
-                ).show()
-            },
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(imageVector = Icons.Outlined.Schedule, contentDescription = null)
-                Text(text = state.time.format(timeFormatter), textAlign = TextAlign.Center)
-            }
-        }
+        OutlinedTextField(
+            value = state.timeInput,
+            onValueChange = onTimeInputChange,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            label = { Text(text = stringResource(id = R.string.lesson_create_time_label)) },
+            placeholder = { Text(text = stringResource(id = R.string.lesson_create_time_placeholder)) },
+            leadingIcon = { Icon(imageVector = Icons.Filled.Schedule, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Next
+            ),
+            isError = state.errors.containsKey(LessonCreationField.TIME),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
+        )
     }
     state.errors[LessonCreationField.TIME]?.let { ErrorText(it) }
 }
@@ -460,7 +474,7 @@ private fun DurationSection(
         mutableStateOf(state.durationMinutes.takeIf { it > 0 }?.toString().orEmpty())
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
+    Column {
         OutlinedTextField(
             value = customDurationInput,
             onValueChange = { value ->
@@ -487,37 +501,30 @@ private fun DurationSection(
                 errorBorderColor = MaterialTheme.colorScheme.error
             )
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             presets.forEach { minutes ->
                 val selected = state.durationMinutes == minutes
-                Box(modifier = Modifier.weight(1f)) {
-                    FilterChip(
-                        selected = selected,
-                        onClick = {
-                            customDurationInput = minutes.toString()
-                            onDurationChange(minutes)
-                        },
-                        label = {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(id = R.string.lesson_create_duration_chip, minutes),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                FilterChip(
+                    selected = selected,
+                    onClick = {
+                        customDurationInput = minutes.toString()
+                        onDurationChange(minutes)
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(id = R.string.lesson_create_duration_chip, minutes),
+                            textAlign = TextAlign.Center
                         )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
                     )
-                }
+                )
             }
         }
         state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
@@ -536,7 +543,7 @@ private fun PriceSection(
         NumberFormat.getIntegerInstance(state.locale).apply { maximumFractionDigits = 0 }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
+    Column {
         OutlinedTextField(
             value = priceInput,
             onValueChange = { value ->
@@ -563,6 +570,7 @@ private fun PriceSection(
             )
         )
         if (state.pricePresets.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -605,6 +613,9 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
         leadingIcon = {
             Icon(imageVector = Icons.Filled.Description, contentDescription = null)
         },
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Sentences
+        ),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,

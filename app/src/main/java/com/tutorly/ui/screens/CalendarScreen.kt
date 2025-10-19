@@ -159,7 +159,7 @@ fun CalendarScreen(
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onDateSelect = creationViewModel::onDateSelected,
-        onTimeSelect = creationViewModel::onTimeSelected,
+        onTimeInputChange = creationViewModel::onTimeInputChanged,
         onDurationChange = creationViewModel::onDurationChanged,
         onPriceChange = creationViewModel::onPriceChanged,
         onNoteChange = creationViewModel::onNoteChanged,
@@ -397,17 +397,9 @@ private fun CalendarTopBar(
                 .fillMaxWidth()
                 .height(80.dp)
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(id = R.string.calendar_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically

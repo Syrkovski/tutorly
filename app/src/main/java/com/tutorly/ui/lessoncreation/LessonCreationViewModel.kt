@@ -24,7 +24,6 @@ import java.util.Currency
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.collections.ArrayDeque
-import kotlin.math.max
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +32,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.max
+
+private const val TIME_INPUT_INVALID_MESSAGE = "Введите время в формате ЧЧ:ММ"
 
 @HiltViewModel
 class LessonCreationViewModel @Inject constructor(
@@ -92,8 +94,9 @@ class LessonCreationViewModel @Inject constructor(
             val zone = config.zoneId ?: config.start?.zone ?: ZoneId.systemDefault()
             val start = config.start ?: ZonedDateTime.now(zone)
             currentZone = zone
-            val slotStep = max(5, settings.slotStepMinutes)
+            val slotStep = gcd(settings.slotStepMinutes, 5).coerceAtLeast(5)
             val roundedStart = roundToStep(start, slotStep)
+            val startTime = roundedStart.toLocalTime()
             val baseDuration = config.duration?.toMinutes()?.toInt()
                 ?: settings.defaultLessonDurationMinutes
             val basePrice = settings.defaultLessonPriceCents
@@ -116,7 +119,8 @@ class LessonCreationViewModel @Inject constructor(
                 availableSubjects = subjectOptions,
                 selectedSubjectId = null,
                 date = roundedStart.toLocalDate(),
-                time = roundedStart.toLocalTime(),
+                time = startTime,
+                timeInput = formatTime(startTime, locale),
                 durationMinutes = baseDuration,
                 priceCents = basePrice,
                 note = config.note.orEmpty(),
@@ -172,7 +176,8 @@ class LessonCreationViewModel @Inject constructor(
         pendingNewStudentName = null
         val currentState = _uiState.value
         val selected = currentState.selectedStudent
-        val keepSelection = selected?.name?.equals(query, ignoreCase = true) == true
+        val enforced = enforceCapitalized(query, currentState.locale)
+        val keepSelection = selected?.name?.equals(enforced, ignoreCase = true) == true
         val availableSubjects = if (keepSelection) {
             currentState.availableSubjects
         } else {
@@ -181,7 +186,7 @@ class LessonCreationViewModel @Inject constructor(
         val pricePresets = if (keepSelection) currentState.pricePresets else emptyList()
         _uiState.update {
             it.copy(
-                studentQuery = query,
+                studentQuery = enforced,
                 selectedStudent = if (keepSelection) selected else null,
                 availableSubjects = availableSubjects,
                 pricePresets = pricePresets,
@@ -194,9 +199,9 @@ class LessonCreationViewModel @Inject constructor(
             currentStudentBaseRateDuration = null
         }
         viewModelScope.launch {
-            val students = loadStudents(query)
+            val students = loadStudents(enforced)
             _uiState.update { current ->
-                if (current.studentQuery == query) {
+                if (current.studentQuery == enforced) {
                     current.copy(students = students)
                 } else {
                     current
@@ -330,9 +335,10 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onSubjectInputChanged(value: String) {
         val state = _uiState.value
-        val normalized = value.trim()
+        val enforced = enforceCapitalized(value, state.locale)
+        val normalized = enforced.trim()
         if (normalized.isEmpty()) {
-            _uiState.update { it.copy(subjectInput = value, selectedSubjectId = null) }
+            _uiState.update { it.copy(subjectInput = enforced, selectedSubjectId = null) }
             return
         }
         val match = state.availableSubjects.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
@@ -342,7 +348,7 @@ class LessonCreationViewModel @Inject constructor(
         } else {
             _uiState.update {
                 it.copy(
-                    subjectInput = value,
+                    subjectInput = enforced,
                     selectedSubjectId = null
                 )
             }
@@ -368,8 +374,52 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onTimeSelected(time: LocalTime) {
-        val rounded = roundTimeToStep(time, _uiState.value.slotStepMinutes)
-        _uiState.update { it.copy(time = rounded) }
+        val state = _uiState.value
+        val aligned = alignTimeToStep(time, state.slotStepMinutes)
+        _uiState.update {
+            it.copy(
+                time = aligned,
+                timeInput = formatTime(aligned, it.locale),
+                errors = it.errors - LessonCreationField.TIME
+            )
+        }
+    }
+
+    fun onTimeInputChanged(rawValue: String) {
+        val state = _uiState.value
+        val digits = rawValue.filter { it.isDigit() }.take(4)
+        val formatted = formatTimeInput(digits)
+        if (digits.length < 3) {
+            _uiState.update {
+                it.copy(
+                    timeInput = formatted,
+                    errors = it.errors - LessonCreationField.TIME
+                )
+            }
+            return
+        }
+
+        val padded = digits.padStart(4, '0')
+        val hours = padded.substring(0, 2).toInt()
+        val minutes = padded.substring(2, 4).toInt()
+        if (hours !in 0..23 || minutes !in 0..59) {
+            _uiState.update {
+                it.copy(
+                    timeInput = formatted,
+                    errors = it.errors + (LessonCreationField.TIME to TIME_INPUT_INVALID_MESSAGE)
+                )
+            }
+            return
+        }
+
+        val aligned = alignTimeToStep(LocalTime.of(hours, minutes), state.slotStepMinutes)
+        _uiState.update {
+            it.copy(
+                time = aligned,
+                timeInput = formatTime(aligned, it.locale),
+                errors = it.errors - LessonCreationField.TIME
+            )
+        }
     }
 
     fun onDurationChanged(value: Int) {
@@ -389,7 +439,8 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onNoteChanged(value: String) {
-        _uiState.update { it.copy(note = value) }
+        val locale = _uiState.value.locale
+        _uiState.update { it.copy(note = enforceCapitalized(value, locale)) }
     }
 
     fun submit() {
@@ -819,11 +870,53 @@ private fun roundToStep(start: ZonedDateTime, stepMinutes: Int): ZonedDateTime {
     return start.plusMinutes(adjust.toLong()).withSecond(0).withNano(0)
 }
 
-private fun roundTimeToStep(time: LocalTime, stepMinutes: Int): LocalTime {
+private fun alignTimeToStep(time: LocalTime, stepMinutes: Int): LocalTime {
     val remainder = time.minute % stepMinutes
-    val adjust = if (remainder == 0) 0 else stepMinutes - remainder
-    val adjusted = time.plusMinutes(adjust.toLong())
+    val adjusted = if (remainder == 0) {
+        time
+    } else {
+        time.minusMinutes(remainder.toLong())
+    }
     return adjusted.withSecond(0).withNano(0)
+}
+
+private fun formatTime(time: LocalTime, locale: Locale): String {
+    return time.format(DateTimeFormatter.ofPattern("HH:mm", locale))
+}
+
+private fun formatTimeInput(digits: String): String {
+    if (digits.isEmpty()) return ""
+    if (digits.length <= 2) return digits
+    val padded = digits.padStart(4, '0')
+    val hours = padded.substring(0, 2)
+    val minuteDigits = (digits.length - 2).coerceIn(0, 2)
+    if (minuteDigits == 0) return hours
+    val minutes = padded.substring(2, 2 + minuteDigits)
+    return "$hours:$minutes"
+}
+
+private fun enforceCapitalized(value: String, locale: Locale): String {
+    val index = value.indexOfFirst { it.isLetter() }
+    if (index == -1) return value
+    val current = value[index]
+    val titleCased = current.titlecase(locale)
+    if (current == titleCased) return value
+    val chars = value.toCharArray()
+    chars[index] = titleCased
+    return String(chars)
+}
+
+private fun gcd(a: Int, b: Int): Int {
+    var x = kotlin.math.abs(a)
+    var y = kotlin.math.abs(b)
+    if (x == 0) return y
+    if (y == 0) return x
+    while (y != 0) {
+        val temp = y
+        y = x % y
+        x = temp
+    }
+    return x
 }
 
 private suspend fun StudentsRepository.getByIdSafe(id: Long): Student? = runCatching { getById(id) }.getOrNull()

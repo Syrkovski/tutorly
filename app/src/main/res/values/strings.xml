@@ -123,7 +123,6 @@
     <string name="lesson_status_due">Долг</string>
     <string name="lesson_status_unpaid">Не оплачено</string>
     <string name="lesson_status_cancelled">Отменено</string>
-    <string name="calendar_title">Календарь</string>
     <string name="calendar_open_settings">Открыть настройки</string>
     <string name="calendar_mode_day">День</string>
     <string name="calendar_mode_week">Неделя</string>
@@ -161,7 +160,7 @@
     <string name="lesson_create_student_placeholder">Начните вводить имя</string>
     <string name="lesson_create_student_new_hint">Новый ученик</string>
     <string name="lesson_create_subject_label">Предмет</string>
-    <string name="lesson_create_subject_placeholder">Выберите ученика, чтобы выбрать предмет</string>
+    <string name="lesson_create_subject_placeholder">Введите предмет</string>
     <string name="lesson_create_subject_empty">Для ученика не найдены предметы</string>
     <string name="lesson_create_duration_label">Длительность</string>
     <string name="lesson_create_duration_chip">%1$d</string>
@@ -267,4 +266,6 @@
     <string name="settings_theme_original">Фирменная</string>
     <string name="settings_theme_plum">Лиловая</string>
     <string name="settings_theme_royal">Королевская</string>
+    <string name="lesson_create_time_label">Время</string>
+    <string name="lesson_create_time_placeholder">ЧЧ:ММ</string>
 </resources>

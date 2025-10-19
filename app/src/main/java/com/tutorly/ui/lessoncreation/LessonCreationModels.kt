@@ -19,6 +19,7 @@ data class LessonCreationUiState(
     val subjectInput: String = "",
     val date: LocalDate = LocalDate.now(),
     val time: LocalTime = LocalTime.now(),
+    val timeInput: String = "",
     val durationMinutes: Int = 60,
     val priceCents: Int = 0,
     val pricePresets: List<Int> = emptyList(),
