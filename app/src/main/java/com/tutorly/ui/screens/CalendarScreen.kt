@@ -23,7 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -237,7 +237,7 @@ fun CalendarScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.DateRange,
+                    imageVector = Icons.Outlined.Add,
                     contentDescription = stringResource(id = R.string.lesson_create_title)
                 )
             }
@@ -358,62 +358,8 @@ fun CalendarScreen(
                 }
             }
 
-            if (!uiState.hasStudents) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CalendarOnboardingHint(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 360.dp),
-                        message = stringResource(id = R.string.calendar_onboarding_no_students),
-                        onAddStudent = onAddStudent
-                    )
-                }
-            }
         }
     }
-    }
-}
-
-@Composable
-private fun CalendarOnboardingHint(
-    modifier: Modifier = Modifier,
-    message: String,
-    onAddStudent: () -> Unit
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        tonalElevation = 0.dp,
-        shadowElevation = 8.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-            val accent = MaterialTheme.extendedColors.accent
-            Button(
-                onClick = onAddStudent,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = accent,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(text = stringResource(id = R.string.add_student))
-            }
-        }
     }
 }
 
