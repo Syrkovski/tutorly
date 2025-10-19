@@ -53,6 +53,7 @@ class LessonCreationViewModel @Inject constructor(
     private var currentZone: ZoneId = ZoneId.systemDefault()
     private var conflictRequest: LessonCreateRequest? = null
     private var pendingStudentConfig: LessonCreationConfig? = null
+    private var pendingNewStudentName: String? = null
     private val rateHistoryCache: MutableMap<Long, List<RateUsage>> = mutableMapOf()
     private var currentRateHistory: List<RateUsage> = emptyList()
     private var currentStudentBaseRateCents: Int? = null
@@ -79,6 +80,7 @@ class LessonCreationViewModel @Inject constructor(
 
     fun start(config: LessonCreationConfig) {
         pendingStudentConfig = null
+        pendingNewStudentName = null
         viewModelScope.launch {
             cachedSubjects = subjectPresetsRepository.all()
             val settings = userSettingsRepository.get()
@@ -129,8 +131,17 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun dismiss() {
-        _uiState.update { it.copy(isVisible = false, snackbarMessage = null, showConflictDialog = null) }
+        _uiState.update {
+            it.copy(
+                isVisible = false,
+                snackbarMessage = null,
+                snackbarActionLabel = null,
+                showConflictDialog = null,
+                studentDuplicatePrompt = null
+            )
+        }
         conflictRequest = null
+        pendingNewStudentName = null
     }
 
     fun prepareForStudentCreation() {
@@ -155,7 +166,30 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentQueryChange(query: String) {
-        _uiState.update { it.copy(studentQuery = query) }
+        pendingNewStudentName = null
+        val currentState = _uiState.value
+        val selected = currentState.selectedStudent
+        val keepSelection = selected?.name?.equals(query, ignoreCase = true) == true
+        val availableSubjects = if (keepSelection) {
+            currentState.availableSubjects
+        } else {
+            resolveAvailableSubjects(null, currentState.locale, currentState.selectedSubjectId)
+        }
+        val pricePresets = if (keepSelection) currentState.pricePresets else emptyList()
+        _uiState.update {
+            it.copy(
+                studentQuery = query,
+                selectedStudent = if (keepSelection) selected else null,
+                availableSubjects = availableSubjects,
+                pricePresets = pricePresets,
+                studentDuplicatePrompt = null
+            )
+        }
+        if (!keepSelection) {
+            currentRateHistory = emptyList()
+            currentStudentBaseRateCents = null
+            currentStudentBaseRateDuration = null
+        }
         viewModelScope.launch {
             val students = loadStudents(query)
             _uiState.update { current ->
@@ -169,6 +203,7 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentSelected(studentId: Long) {
+        pendingNewStudentName = null
         viewModelScope.launch {
             selectStudent(studentId, applyDefaults = true)
         }
@@ -368,15 +403,16 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun consumeSnackbar() {
-        _uiState.update { it.copy(snackbarMessage = null) }
+        _uiState.update { it.copy(snackbarMessage = null, snackbarActionLabel = null) }
     }
 
     private suspend fun attemptSubmit(force: Boolean) {
-        val state = _uiState.value
+        var state = _uiState.value
         val errors = mutableMapOf<LessonCreationField, String>()
-        val student = state.selectedStudent
-        if (student == null) {
-            errors[LessonCreationField.STUDENT] = "Выберите ученика"
+        val trimmedName = state.studentQuery.trim()
+        var student = state.selectedStudent
+        if (student == null && trimmedName.isBlank()) {
+            errors[LessonCreationField.STUDENT] = "Укажите ученика"
         }
         if (state.durationMinutes <= 0) {
             errors[LessonCreationField.DURATION] = "Длительность должна быть больше 0"
@@ -398,6 +434,37 @@ class LessonCreationViewModel @Inject constructor(
             return
         }
 
+        if (student == null) {
+            val similar = findSimilarStudent(trimmedName)
+            if (similar != null && !force) {
+                _uiState.update {
+                    it.copy(
+                        errors = emptyMap(),
+                        studentDuplicatePrompt = StudentDuplicatePrompt(
+                            existingStudent = similar,
+                            enteredName = trimmedName,
+                            forceSubmission = force
+                        )
+                    )
+                }
+                return
+            }
+
+            val created = createStudentFromInput(trimmedName) ?: return
+            _uiState.update { it.copy(studentDuplicatePrompt = null) }
+            selectStudent(created.id, applyDefaults = false)
+            state = _uiState.value
+            student = state.selectedStudent
+        } else {
+            pendingNewStudentName = null
+        }
+
+        if (student == null) {
+            errors[LessonCreationField.STUDENT] = "Укажите ученика"
+            _uiState.update { it.copy(errors = errors) }
+            return
+        }
+
         val normalizedSubjectInput = state.subjectInput.trim()
         val selectedSubjectName = state.subjects.firstOrNull { it.id == state.selectedSubjectId }?.name
         val title = normalizedSubjectInput.takeUnless {
@@ -405,7 +472,7 @@ class LessonCreationViewModel @Inject constructor(
         }
 
         val request = LessonCreateRequest(
-            studentId = student!!.id,
+            studentId = student.id,
             subjectId = state.selectedSubjectId,
             title = title,
             startAt = start.toInstant(),
@@ -435,6 +502,30 @@ class LessonCreationViewModel @Inject constructor(
         createLesson(request)
     }
 
+    fun useDuplicateStudent() {
+        val prompt = _uiState.value.studentDuplicatePrompt ?: return
+        viewModelScope.launch {
+            pendingNewStudentName = null
+            _uiState.update { it.copy(studentDuplicatePrompt = null) }
+            selectStudent(prompt.existingStudent.id, applyDefaults = true)
+            attemptSubmit(prompt.forceSubmission)
+        }
+    }
+
+    fun createDuplicateStudent() {
+        val prompt = _uiState.value.studentDuplicatePrompt ?: return
+        viewModelScope.launch {
+            val created = createStudentFromInput(prompt.enteredName) ?: return@launch
+            _uiState.update { it.copy(studentDuplicatePrompt = null) }
+            selectStudent(created.id, applyDefaults = false)
+            attemptSubmit(prompt.forceSubmission)
+        }
+    }
+
+    fun dismissDuplicateStudent() {
+        _uiState.update { it.copy(studentDuplicatePrompt = null) }
+    }
+
     private suspend fun createLesson(request: LessonCreateRequest) {
         _uiState.update { it.copy(isSubmitting = true, errors = emptyMap()) }
         runCatching {
@@ -456,12 +547,19 @@ class LessonCreationViewModel @Inject constructor(
                 }
             }
             val formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm", _uiState.value.locale)
-            val message = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            val baseMessage = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            val newStudentName = pendingNewStudentName
+            val message = if (newStudentName != null) {
+                "$baseMessage. Новый ученик \"$newStudentName\" сохранён."
+            } else {
+                baseMessage
+            }
             _uiState.update {
                 it.copy(
                     isSubmitting = false,
                     isVisible = false,
                     snackbarMessage = message,
+                    snackbarActionLabel = if (newStudentName != null) "Отменить" else null,
                     showConflictDialog = null,
                     selectedStudent = null,
                     studentQuery = "",
@@ -472,6 +570,7 @@ class LessonCreationViewModel @Inject constructor(
             currentStudentBaseRateCents = null
             currentStudentBaseRateDuration = null
             conflictRequest = null
+            pendingNewStudentName = null
             _events.tryEmit(
                 LessonCreationEvent.Created(
                     start = start,
@@ -482,10 +581,56 @@ class LessonCreationViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isSubmitting = false,
-                    snackbarMessage = error.message ?: "Не удалось сохранить занятие"
+                    snackbarMessage = error.message ?: "Не удалось сохранить занятие",
+                    snackbarActionLabel = null
                 )
             }
         }
+    }
+
+    private suspend fun createStudentFromInput(rawName: String): StudentOption? {
+        val trimmed = rawName.trim()
+        val name = trimmed.ifEmpty { DEFAULT_NEW_STUDENT_NAME }
+        val newStudent = Student(name = name)
+        val newId = runCatching { studentsRepository.upsert(newStudent) }
+            .onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        snackbarMessage = error.message ?: "Не удалось сохранить ученика",
+                        snackbarActionLabel = null
+                    )
+                }
+            }
+            .getOrNull() ?: return null
+        pendingNewStudentName = name
+        return studentsRepository.getByIdSafe(newId)?.toOption() ?: newStudent.copy(id = newId).toOption()
+    }
+
+    private suspend fun findSimilarStudent(name: String): StudentOption? {
+        val locale = _uiState.value.locale
+        val normalizedQuery = normalizeNameForComparison(name, locale)
+        if (normalizedQuery.isEmpty()) return null
+        val candidates = runCatching { studentsRepository.allActive() }.getOrDefault(emptyList())
+        var bestOption: StudentOption? = null
+        var bestScore = Int.MAX_VALUE
+        candidates.forEach { candidate ->
+            val option = candidate.toOption()
+            val normalizedCandidate = normalizeNameForComparison(option.name, locale)
+            if (normalizedCandidate.isEmpty()) return@forEach
+            val contains = normalizedCandidate.contains(normalizedQuery) || normalizedQuery.contains(normalizedCandidate)
+            val score = if (contains) {
+                0
+            } else {
+                tokenDistance(normalizedQuery, normalizedCandidate)
+            }
+            if (contains || score <= 2) {
+                if (score < bestScore) {
+                    bestScore = score
+                    bestOption = option
+                }
+            }
+        }
+        return bestOption
     }
 
     private suspend fun loadStudents(query: String): List<StudentOption> {
@@ -632,3 +777,53 @@ private fun mergeStudentOption(options: List<StudentOption>, selected: StudentOp
     val filtered = options.filterNot { it.id == selected.id }
     return listOf(selected) + filtered
 }
+
+private fun normalizeNameForComparison(value: String, locale: Locale): String {
+    return value
+        .lowercase(locale)
+        .replace(NON_WORD_REGEX, " ")
+        .replace(WHITESPACE_REGEX, " ")
+        .trim()
+}
+
+private fun tokenDistance(query: String, candidate: String): Int {
+    var best = levenshteinDistance(query, candidate)
+    val queryTokens = query.split(' ').filter { it.isNotBlank() }
+    val candidateTokens = candidate.split(' ').filter { it.isNotBlank() }
+    for (source in queryTokens) {
+        for (target in candidateTokens) {
+            val distance = levenshteinDistance(source, target)
+            if (distance < best) {
+                best = distance
+            }
+        }
+    }
+    return best
+}
+
+private fun levenshteinDistance(a: String, b: String): Int {
+    if (a == b) return 0
+    if (a.isEmpty()) return b.length
+    if (b.isEmpty()) return a.length
+    var previous = IntArray(b.length + 1) { it }
+    var current = IntArray(b.length + 1)
+    for (i in 1..a.length) {
+        current[0] = i
+        for (j in 1..b.length) {
+            val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+            current[j] = minOf(
+                current[j - 1] + 1,
+                previous[j] + 1,
+                previous[j - 1] + cost
+            )
+        }
+        val temp = previous
+        previous = current
+        current = temp
+    }
+    return previous[b.length]
+}
+
+private const val DEFAULT_NEW_STUDENT_NAME = "Ученик"
+private val NON_WORD_REGEX = Regex("[^\\p{L}\\p{Nd}]")
+private val WHITESPACE_REGEX = Regex("\\s+")

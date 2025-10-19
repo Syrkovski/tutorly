@@ -182,11 +182,6 @@ fun StudentDetailsScreen(
         onDismiss = { creationViewModel.dismiss() },
         onStudentQueryChange = creationViewModel::onStudentQueryChange,
         onStudentSelect = creationViewModel::onStudentSelected,
-        onAddStudent = {
-            creationViewModel.prepareForStudentCreation()
-            creationViewModel.dismiss()
-            onAddStudentFromCreation()
-        },
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onDateSelect = creationViewModel::onDateSelected,
@@ -196,15 +191,20 @@ fun StudentDetailsScreen(
         onNoteChange = creationViewModel::onNoteChanged,
         onSubmit = creationViewModel::submit,
         onConfirmConflict = creationViewModel::confirmConflict,
-        onDismissConflict = creationViewModel::dismissConflict
+        onDismissConflict = creationViewModel::dismissConflict,
+        onUseDuplicateStudent = creationViewModel::useDuplicateStudent,
+        onCreateDuplicateStudent = creationViewModel::createDuplicateStudent,
+        onDismissDuplicateStudent = creationViewModel::dismissDuplicateStudent
     )
 
-    LaunchedEffect(creationState.snackbarMessage) {
-        val message = creationState.snackbarMessage
-        if (message != null) {
-            snackbarHostState.showSnackbar(message)
-            creationViewModel.consumeSnackbar()
-        }
+    LaunchedEffect(creationState.snackbarMessage, creationState.snackbarActionLabel) {
+        val message = creationState.snackbarMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = message,
+            actionLabel = creationState.snackbarActionLabel,
+            withDismissAction = creationState.snackbarActionLabel != null
+        )
+        creationViewModel.consumeSnackbar()
     }
 
     if (showPrepaymentDialog) {

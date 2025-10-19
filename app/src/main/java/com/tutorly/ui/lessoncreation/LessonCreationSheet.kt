@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,8 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
@@ -85,7 +88,6 @@ fun LessonCreationSheet(
     onDismiss: () -> Unit,
     onStudentQueryChange: (String) -> Unit,
     onStudentSelect: (Long) -> Unit,
-    onAddStudent: () -> Unit,
     onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long?) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
@@ -95,7 +97,10 @@ fun LessonCreationSheet(
     onNoteChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onConfirmConflict: () -> Unit,
-    onDismissConflict: () -> Unit
+    onDismissConflict: () -> Unit,
+    onUseDuplicateStudent: () -> Unit,
+    onCreateDuplicateStudent: () -> Unit,
+    onDismissDuplicateStudent: () -> Unit
 ) {
     if (!state.isVisible) return
 
@@ -123,16 +128,15 @@ fun LessonCreationSheet(
                 StudentSection(
                     state = state,
                     onQueryChange = onStudentQueryChange,
-                    onStudentSelect = onStudentSelect,
-                    onAddStudent = onAddStudent
+                    onStudentSelect = onStudentSelect
                 )
-                TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
-                DurationSection(state = state, onDurationChange = onDurationChange)
                 SubjectSection(
                     state = state,
                     onSubjectInputChange = onSubjectInputChange,
                     onSubjectSelect = onSubjectSelect
                 )
+                TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
+                DurationSection(state = state, onDurationChange = onDurationChange)
                 PriceSection(state = state, onPriceChange = onPriceChange)
                 NoteSection(state = state, onNoteChange = onNoteChange)
                 ActionButtons(state = state, onSubmit = onSubmit)
@@ -143,6 +147,14 @@ fun LessonCreationSheet(
     val conflict = state.showConflictDialog
     if (conflict != null) {
         ConflictDialog(conflict, onConfirm = onConfirmConflict, onDismiss = onDismissConflict)
+    }
+    state.studentDuplicatePrompt?.let { prompt ->
+        DuplicateStudentDialog(
+            prompt = prompt,
+            onUseExisting = onUseDuplicateStudent,
+            onCreateNew = onCreateDuplicateStudent,
+            onDismiss = onDismissDuplicateStudent
+        )
     }
 }
 
@@ -167,41 +179,41 @@ private fun SheetHeader(onDismiss: () -> Unit) {
 private fun StudentSection(
     state: LessonCreationUiState,
     onQueryChange: (String) -> Unit,
-    onStudentSelect: (Long) -> Unit,
-    onAddStudent: () -> Unit
+    onStudentSelect: (Long) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
-        val selectedName = state.selectedStudent?.name ?: state.studentQuery
-        var query by remember(selectedName) { mutableStateOf(selectedName) }
         var expanded by remember { mutableStateOf(false) }
         var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
         val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
         val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+        LaunchedEffect(state.students, state.studentQuery, state.selectedStudent?.id) {
+            if (state.selectedStudent != null || state.students.isEmpty() || state.studentQuery.isBlank()) {
+                expanded = false
+            }
+        }
         Box {
             OutlinedTextField(
-                value = query,
+                value = state.studentQuery,
                 onValueChange = {
-                    query = it
-                    expanded = true
                     onQueryChange(it)
+                    expanded = true
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_student_label)) },
                 placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .onGloballyPositioned { textFieldSize = it.size }
-                    .onFocusChanged { focusState -> expanded = focusState.isFocused },
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused && state.students.isNotEmpty()) {
+                            expanded = true
+                        }
+                        if (!focusState.isFocused) {
+                            expanded = false
+                        }
+                    },
                 singleLine = true,
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Person, contentDescription = null)
-                },
-                trailingIcon = {
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null
-                        )
-                    }
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -216,18 +228,12 @@ private fun StudentSection(
                 )
             )
             DropdownMenu(
-                expanded = expanded,
+                expanded = expanded && state.students.isNotEmpty(),
                 onDismissRequest = { expanded = false },
                 modifier = dropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface,
+                properties = PopupProperties(focusable = false)
             ) {
-                DropdownMenuItem(
-                    text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },
-                    onClick = {
-                        expanded = false
-                        onAddStudent()
-                    }
-                )
                 state.students.forEach { option ->
                     DropdownMenuItem(
                         text = {
@@ -256,13 +262,19 @@ private fun StudentSection(
                             }
                         },
                         onClick = {
-                            query = option.name
                             expanded = false
                             onStudentSelect(option.id)
                         }
                     )
                 }
             }
+        }
+        if (state.selectedStudent == null && state.studentQuery.isNotBlank()) {
+            Text(
+                text = stringResource(id = R.string.lesson_create_student_new_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         state.errors[LessonCreationField.STUDENT]?.let { message ->
             ErrorText(message)
@@ -299,6 +311,7 @@ private fun StudentAvatar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SubjectSection(
     state: LessonCreationUiState,
@@ -312,86 +325,64 @@ private fun SubjectSection(
     val additionalNames = studentSubjectNames.filter { name ->
         availableSubjects.none { option -> option.name.equals(name, ignoreCase = true) }
     }
-    val hasSuggestions = availableSubjects.isNotEmpty() || additionalNames.isNotEmpty()
-    var expanded by remember(state.selectedStudent, availableSubjects, additionalNames) { mutableStateOf(false) }
-    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
-    val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
-    val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+    val query = state.subjectInput
+    val filteredSubjects = if (query.isBlank()) {
+        availableSubjects
+    } else {
+        availableSubjects.filter { it.name.contains(query, ignoreCase = true) }
+    }
+    val filteredAdditional = if (query.isBlank()) {
+        additionalNames
+    } else {
+        additionalNames.filter { it.contains(query, ignoreCase = true) }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
-        Box {
-            OutlinedTextField(
-                value = state.subjectInput,
-                onValueChange = {
-                    onSubjectInputChange(it)
-                    expanded = hasSuggestions
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { textFieldSize = it.size },
-                label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
-                placeholder = {
-                    Text(text = stringResource(id = R.string.lesson_create_subject_placeholder))
-                },
-                singleLine = true,
-                leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Book, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (hasSuggestions) {
-                        IconButton(onClick = { expanded = !expanded }) {
-                            Icon(
-                                imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                                contentDescription = null
-                            )
-                        }
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surface,
-                    errorContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
-                    errorBorderColor = MaterialTheme.colorScheme.error
-                )
+        OutlinedTextField(
+            value = state.subjectInput,
+            onValueChange = onSubjectInputChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
+            placeholder = {
+                Text(text = stringResource(id = R.string.lesson_create_subject_placeholder))
+            },
+            singleLine = true,
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                errorBorderColor = MaterialTheme.colorScheme.error
             )
-            DropdownMenu(
-                expanded = expanded && hasSuggestions,
-                onDismissRequest = { expanded = false },
-                modifier = dropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
+        )
+        if (filteredSubjects.isNotEmpty() || filteredAdditional.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                availableSubjects.forEach { subject ->
-                    DropdownMenuItem(
-                        text = { Text(text = subject.name) },
+                filteredSubjects.forEach { subject ->
+                    AssistChip(
+                        onClick = { onSubjectSelect(subject.id) },
+                        label = { Text(text = subject.name) },
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
                                     .size(12.dp)
                                     .background(Color(subject.colorArgb), CircleShape)
                             )
-                        },
-                        trailingIcon = {
-                            if (state.selectedSubjectId == subject.id) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
-                            }
-                        },
-                        onClick = {
-                            expanded = false
-                            onSubjectSelect(subject.id)
                         }
                     )
                 }
-                additionalNames.forEach { subjectName ->
-                    DropdownMenuItem(
-                        text = { Text(text = subjectName) },
-                        onClick = {
-                            expanded = false
-                            onSubjectInputChange(subjectName)
-                        }
+                filteredAdditional.forEach { subjectName ->
+                    AssistChip(
+                        onClick = { onSubjectInputChange(subjectName) },
+                        label = { Text(text = subjectName) }
                     )
                 }
             }
@@ -572,37 +563,29 @@ private fun PriceSection(
             )
         )
         if (state.pricePresets.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 state.pricePresets.take(4).forEach { preset ->
                     val formatted = priceFormatter.format(preset / 100)
-                    Box(modifier = Modifier.weight(1f)) {
-                        FilterChip(
-                            selected = state.priceCents == preset,
-                            onClick = {
-                                priceInput = (preset / 100).toString()
-                                onPriceChange(preset)
-                            },
-                            label = {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$formatted ${state.currencySymbol}",
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                    FilterChip(
+                        selected = state.priceCents == preset,
+                        onClick = {
+                            priceInput = (preset / 100).toString()
+                            onPriceChange(preset)
+                        },
+                        label = {
+                            Text(
+                                text = "$formatted ${state.currencySymbol}",
+                                textAlign = TextAlign.Center
                             )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSurface
                         )
-                    }
+                    )
                 }
             }
         }
@@ -640,9 +623,10 @@ private fun ActionButtons(
     state: LessonCreationUiState,
     onSubmit: () -> Unit
 ) {
+    val canSubmit = !state.isSubmitting && (state.selectedStudent != null || state.studentQuery.isNotBlank())
     androidx.compose.material3.Button(
         onClick = onSubmit,
-        enabled = !state.isSubmitting && state.selectedStudent != null,
+        enabled = canSubmit,
         modifier = Modifier.fillMaxWidth()
     ) {
         if (state.isSubmitting) {
@@ -692,6 +676,44 @@ private fun ConflictDialog(conflict: ConflictInfo, onConfirm: () -> Unit, onDism
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.lesson_create_conflict_back))
+            }
+        }
+    )
+}
+
+
+@Composable
+private fun DuplicateStudentDialog(
+    prompt: StudentDuplicatePrompt,
+    onUseExisting: () -> Unit,
+    onCreateNew: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_create_duplicate_title)) },
+        text = {
+            Text(
+                text = stringResource(
+                    id = R.string.lesson_create_duplicate_message,
+                    prompt.existingStudent.name,
+                    prompt.enteredName
+                )
+            )
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onUseExisting) {
+                    Text(text = stringResource(id = R.string.lesson_create_duplicate_use_existing))
+                }
+                TextButton(onClick = onCreateNew) {
+                    Text(text = stringResource(id = R.string.lesson_create_duplicate_create_new))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_create_duplicate_cancel))
             }
         }
     )

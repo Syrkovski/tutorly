@@ -159,7 +159,7 @@
     <string name="lesson_create_title">Добавить занятие</string>
     <string name="lesson_create_student_label">Ученик</string>
     <string name="lesson_create_student_placeholder">Начните вводить имя</string>
-    <string name="lesson_create_new_student">+ Новый ученик</string>
+    <string name="lesson_create_student_new_hint">Новый ученик</string>
     <string name="lesson_create_subject_label">Предмет</string>
     <string name="lesson_create_subject_placeholder">Выберите ученика, чтобы выбрать предмет</string>
     <string name="lesson_create_subject_empty">Для ученика не найдены предметы</string>
@@ -175,6 +175,12 @@
     <string name="lesson_create_conflict_body">В выбранное время уже есть занятия:</string>
     <string name="lesson_create_conflict_proceed">Создать всё равно</string>
     <string name="lesson_create_conflict_back">Вернуться</string>
+    <string name="lesson_create_duplicate_title">Похожий ученик найден</string>
+    <string name="lesson_create_duplicate_message">Похоже, у вас уже есть ученик %1$s.
+Использовать его или добавить нового «%2$s»?</string>
+    <string name="lesson_create_duplicate_use_existing">Использовать существующего</string>
+    <string name="lesson_create_duplicate_create_new">Создать нового</string>
+    <string name="lesson_create_duplicate_cancel">Отмена</string>
     <string name="today_title">Сегодня</string>
     <string name="today_remaining_count">Осталось %1$d</string>
     <string name="today_empty_title">Сегодня прошедших занятий пока нет</string>
