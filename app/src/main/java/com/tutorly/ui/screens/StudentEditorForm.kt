@@ -3,6 +3,7 @@ package com.tutorly.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.outlined.CurrencyRuble
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,11 +49,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import com.tutorly.R
 import com.tutorly.ui.theme.extendedColors
 import java.util.Locale
@@ -214,6 +219,57 @@ fun StudentEditorForm(
     }
 }
 
+private val SubjectSuggestions = listOf(
+    "Математика",
+    "Алгебра",
+    "Геометрия",
+    "Русский язык",
+    "Литература",
+    "Английский язык",
+    "Немецкий язык",
+    "Французский язык",
+    "Испанский язык",
+    "Китайский язык",
+    "Информатика",
+    "Программирование",
+    "Физика",
+    "Химия",
+    "Биология",
+    "География",
+    "История",
+    "Обществознание",
+    "Экономика",
+    "Право",
+    "ЕГЭ по математике",
+    "ЕГЭ по русскому языку",
+    "ЕГЭ по английскому языку",
+    "ЕГЭ по физике",
+    "ЕГЭ по химии",
+    "ЕГЭ по биологии",
+    "ЕГЭ по информатике",
+    "ЕГЭ по истории",
+    "ЕГЭ по обществознанию",
+    "ЕГЭ по литературе",
+    "ОГЭ по математике",
+    "ОГЭ по русскому языку",
+    "ОГЭ по английскому языку",
+    "ОГЭ по обществознанию",
+    "ОГЭ по физике",
+    "ОГЭ по химии",
+    "ОГЭ по биологии",
+    "ОГЭ по истории",
+    "ОГЭ по географии",
+    "Олимпиада по математике",
+    "Олимпиада по информатике",
+    "Олимпиада по физике",
+    "Олимпиада по химии",
+    "Олимпиада по биологии",
+    "Олимпиада по русскому языку",
+    "Подготовка к олимпиадам",
+    "Подготовка к ВПР",
+    "Подготовка к ДВИ"
+)
+
 @Composable
 private fun SubjectInputField(
     value: String,
@@ -230,38 +286,144 @@ private fun SubjectInputField(
     val parts = remember(value, locale) { parseSubjectInput(value, locale) }
     val tokens = parts.tokens
     val query = parts.query
-    val displayValue = remember(parts) {
-        buildSubjectInput(tokens, query, forceSeparator = parts.hasSeparator)
-    }
     val colors = editorFieldColors()
-
-    OutlinedTextField(
-        value = displayValue,
-        onValueChange = { raw ->
-            val parsed = parseSubjectInput(raw, locale)
-            val sanitized = buildSubjectInput(
-                parsed.tokens,
-                parsed.query,
-                forceSeparator = parsed.hasSeparator
-            )
-            if (sanitized != value) {
-                onValueChange(sanitized)
+    val suggestions = remember(tokens, query) {
+        val normalizedQuery = query.trim()
+        val base = if (normalizedQuery.isEmpty()) {
+            SubjectSuggestions
+        } else {
+            SubjectSuggestions.filter { suggestion ->
+                suggestion.contains(normalizedQuery, ignoreCase = true)
             }
-        },
-        modifier = modifier.fillMaxWidth(),
-        enabled = enabled,
-        singleLine = true,
-        label = label,
-        placeholder = placeholder,
-        supportingText = supportingText,
-        leadingIcon = leadingIcon,
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Sentences,
-            imeAction = ImeAction.Next
-        ),
-        keyboardActions = KeyboardActions(onNext = { onSubmit?.invoke() }),
-        colors = colors
-    )
+        }
+        base.filterNot { suggestion ->
+            tokens.any { token -> token.equals(suggestion, ignoreCase = true) }
+        }.take(12)
+    }
+    var expanded by remember { mutableStateOf(false) }
+    var dropdownWidth by remember { mutableStateOf(0f) }
+    val shouldShowDropdown = expanded && enabled && suggestions.isNotEmpty()
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (tokens.isNotEmpty()) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                tokens.forEach { token ->
+                    AssistChip(
+                        onClick = {
+                            if (!enabled) return@AssistChip
+                            val remainingTokens = tokens.filterNot {
+                                it.equals(token, ignoreCase = true)
+                            }
+                            val nextValue = buildSubjectInput(remainingTokens, query)
+                            if (nextValue != value) {
+                                onValueChange(nextValue)
+                            }
+                            expanded = true
+                        },
+                        label = { Text(token) },
+                        enabled = enabled,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        Box {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { raw ->
+                    val sanitizedQuery = enforceCapitalized(raw, locale)
+                    val trimmed = sanitizedQuery.trimEnd(',', ' ')
+                    val shouldMerge = raw.endsWith(',')
+                    val updatedTokens = if (shouldMerge) {
+                        mergeSubjectToken(tokens, trimmed, locale)
+                    } else {
+                        tokens
+                    }
+                    val nextQuery = if (shouldMerge) "" else sanitizedQuery
+                    val nextValue = buildSubjectInput(updatedTokens, nextQuery)
+                    if (nextValue != value) {
+                        onValueChange(nextValue)
+                    }
+                    if (!expanded && enabled) {
+                        expanded = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coordinates ->
+                        dropdownWidth = coordinates.size.toSize().width
+                    }
+                    .onFocusChanged { focusState ->
+                        expanded = focusState.isFocused && suggestions.isNotEmpty()
+                    },
+                enabled = enabled,
+                singleLine = true,
+                label = label,
+                placeholder = if (tokens.isEmpty()) placeholder else null,
+                supportingText = supportingText,
+                leadingIcon = leadingIcon,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        val finalizedTokens = if (query.isNotBlank()) {
+                            mergeSubjectToken(tokens, query, locale)
+                        } else {
+                            tokens
+                        }
+                        val nextValue = buildSubjectInput(finalizedTokens, "")
+                        if (nextValue != value) {
+                            onValueChange(nextValue)
+                        }
+                        expanded = false
+                        onSubmit?.invoke()
+                    }
+                ),
+                colors = colors
+            )
+
+            val dropdownModifier = if (dropdownWidth > 0f) {
+                Modifier.width(with(LocalDensity.current) { dropdownWidth.toDp() })
+            } else {
+                Modifier
+            }
+
+            DropdownMenu(
+                expanded = shouldShowDropdown,
+                onDismissRequest = { expanded = false },
+                modifier = dropdownModifier
+            ) {
+                suggestions.forEach { suggestion ->
+                    DropdownMenuItem(
+                        text = { Text(suggestion) },
+                        onClick = {
+                            val mergedTokens = mergeSubjectToken(tokens, suggestion, locale)
+                            val nextValue = buildSubjectInput(mergedTokens, "")
+                            if (nextValue != value) {
+                                onValueChange(nextValue)
+                            }
+                            expanded = true
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
 
 private data class SubjectInputParts(
