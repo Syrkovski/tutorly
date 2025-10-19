@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -367,10 +368,11 @@ private fun SubjectInputField(
                     onNext = {
                         if (query.isNotBlank()) {
                             commitToken(query)
+                            focusRequester.tryRequestFocus()
                         } else {
                             emit(tokens, "", collapseDropdown = true)
+                            onSubmit?.invoke()
                         }
-                        onSubmit?.invoke()
                     }
                 ),
                 cursorBrush = SolidColor(MaterialTheme.extendedColors.accent),
@@ -383,9 +385,9 @@ private fun SubjectInputField(
                                 modifier = Modifier
                                     .defaultMinSize(minHeight = 56.dp)
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(start = 16.dp, top = 8.dp, end = 12.dp, bottom = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 tokens.forEach { token ->
                                     AssistChip(
@@ -437,7 +439,7 @@ private fun SubjectInputField(
                         visualTransformation = VisualTransformation.None,
                         interactionSource = interactionSource,
                         colors = colors,
-                        contentPadding = OutlinedTextFieldDefaults.contentPaddingWithLabel()
+                        contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 8.dp)
                     )
                 }
             )
@@ -587,10 +589,15 @@ private fun ProfileSection(
             onValueChange = onSubjectChange,
             enabled = enabled,
             label = { Text(text = stringResource(id = R.string.student_editor_subject)) },
-            placeholder = { Text(text = stringResource(id = R.string.student_editor_subject_placeholder)) },
+            placeholder = null,
             supportingText = { Text(text = stringResource(id = R.string.student_editor_subject_support)) },
             leadingIcon = {
-                Icon(imageVector = Icons.Filled.Book, contentDescription = null, tint = iconTint)
+                Icon(
+                    imageVector = Icons.Filled.Book,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             },
             onSubmit = { gradeFocusRequester.tryRequestFocus() },
             locale = locale,

@@ -39,8 +39,8 @@
     <string name="student_editor_rate">Ставка</string>
     <string name="student_editor_rate_support">Ставка за час</string>
     <string name="student_editor_rate_option_value">%1$d ₽</string>
-    <string name="student_editor_subject">Предмет</string>
-    <string name="student_editor_subject_placeholder">Введите предметы</string>
+    <string name="student_editor_subject">Предметы</string>
+    <string name="student_editor_subject_placeholder"></string>
     <string name="student_editor_subject_support">Можно выбрать несколько предметов</string>
     <string name="student_editor_subject_remove">Удалить %1$s</string>
     <string-array name="student_editor_subject_suggestions">
