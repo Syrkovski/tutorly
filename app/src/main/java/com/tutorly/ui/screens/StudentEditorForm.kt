@@ -1,5 +1,6 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -31,13 +33,15 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,12 +53,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.tutorly.R
@@ -240,34 +247,18 @@ private val SubjectSuggestions = listOf(
     "Обществознание",
     "Экономика",
     "Право",
-    "ЕГЭ по математике",
-    "ЕГЭ по русскому языку",
-    "ЕГЭ по английскому языку",
-    "ЕГЭ по физике",
-    "ЕГЭ по химии",
-    "ЕГЭ по биологии",
-    "ЕГЭ по информатике",
-    "ЕГЭ по истории",
-    "ЕГЭ по обществознанию",
-    "ЕГЭ по литературе",
-    "ОГЭ по математике",
-    "ОГЭ по русскому языку",
-    "ОГЭ по английскому языку",
-    "ОГЭ по обществознанию",
-    "ОГЭ по физике",
-    "ОГЭ по химии",
-    "ОГЭ по биологии",
-    "ОГЭ по истории",
-    "ОГЭ по географии",
-    "Олимпиада по математике",
-    "Олимпиада по информатике",
-    "Олимпиада по физике",
-    "Олимпиада по химии",
-    "Олимпиада по биологии",
-    "Олимпиада по русскому языку",
-    "Подготовка к олимпиадам",
+    "Музыка",
+    "Изобразительное искусство",
+    "Технология",
+    "Черчение",
+    "Физкультура",
+    "ЕГЭ",
+    "ОГЭ",
+    "Олимпиады",
     "Подготовка к ВПР",
-    "Подготовка к ДВИ"
+    "Подготовка к ДВИ",
+    "Подготовка к собеседованию",
+    "Подготовка к колледжу"
 )
 
 @Composable
@@ -290,7 +281,7 @@ private fun SubjectInputField(
     val suggestions = remember(tokens, query) {
         val normalizedQuery = query.trim()
         val base = if (normalizedQuery.isEmpty()) {
-            SubjectSuggestions
+            emptyList()
         } else {
             SubjectSuggestions.filter { suggestion ->
                 suggestion.contains(normalizedQuery, ignoreCase = true)
@@ -302,46 +293,14 @@ private fun SubjectInputField(
     }
     var expanded by remember { mutableStateOf(false) }
     var dropdownWidth by remember { mutableStateOf(0f) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val textStyle = MaterialTheme.typography.bodyLarge
+    val textColor = MaterialTheme.colorScheme.onSurface
     val shouldShowDropdown = expanded && enabled && suggestions.isNotEmpty()
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (tokens.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                tokens.forEach { token ->
-                    AssistChip(
-                        onClick = {
-                            if (!enabled) return@AssistChip
-                            val remainingTokens = tokens.filterNot {
-                                it.equals(token, ignoreCase = true)
-                            }
-                            val nextValue = buildSubjectInput(remainingTokens, query)
-                            if (nextValue != value) {
-                                onValueChange(nextValue)
-                            }
-                            expanded = true
-                        },
-                        label = { Text(token) },
-                        enabled = enabled,
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = null
-                            )
-                        }
-                    )
-                }
-            }
-        }
-
+    Column(modifier = modifier) {
         Box {
-            OutlinedTextField(
+            BasicTextField(
                 value = query,
                 onValueChange = { raw ->
                     val sanitizedQuery = enforceCapitalized(raw, locale)
@@ -371,10 +330,7 @@ private fun SubjectInputField(
                     },
                 enabled = enabled,
                 singleLine = true,
-                label = label,
-                placeholder = if (tokens.isEmpty()) placeholder else null,
-                supportingText = supportingText,
-                leadingIcon = leadingIcon,
+                textStyle = textStyle.copy(color = textColor),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,
                     imeAction = ImeAction.Next
@@ -394,7 +350,76 @@ private fun SubjectInputField(
                         onSubmit?.invoke()
                     }
                 ),
-                colors = colors
+                cursorBrush = SolidColor(MaterialTheme.extendedColors.accent),
+                interactionSource = interactionSource,
+                decorationBox = { innerTextField ->
+                    OutlinedTextFieldDefaults.DecorationBox(
+                        value = query,
+                        innerTextField = {
+                            FlowRow(
+                                modifier = Modifier
+                                    .defaultMinSize(minHeight = 56.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                tokens.forEach { token ->
+                                    AssistChip(
+                                        onClick = {
+                                            if (!enabled) return@AssistChip
+                                            val remainingTokens = tokens.filterNot {
+                                                it.equals(token, ignoreCase = true)
+                                            }
+                                            val nextValue = buildSubjectInput(remainingTokens, query)
+                                            if (nextValue != value) {
+                                                onValueChange(nextValue)
+                                            }
+                                            expanded = true
+                                        },
+                                        label = { Text(token) },
+                                        enabled = enabled,
+                                        trailingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Filled.Close,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .defaultMinSize(minHeight = 24.dp)
+                                ) {
+                                    if (tokens.isEmpty() && query.isEmpty()) {
+                                        CompositionLocalProvider(
+                                            LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant,
+                                            LocalTextStyle provides textStyle
+                                        ) {
+                                            placeholder?.invoke()
+                                        }
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        },
+                        label = label,
+                        placeholder = null,
+                        leadingIcon = leadingIcon,
+                        trailingIcon = null,
+                        prefix = null,
+                        suffix = null,
+                        supportingText = supportingText,
+                        singleLine = false,
+                        enabled = enabled,
+                        isError = false,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        colors = colors,
+                        contentPadding = OutlinedTextFieldDefaults.contentPaddingWithLabel()
+                    )
+                }
             )
 
             val dropdownModifier = if (dropdownWidth > 0f) {
