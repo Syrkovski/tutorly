@@ -274,59 +274,87 @@ private fun SubjectInputField(
     locale: Locale,
     modifier: Modifier = Modifier
 ) {
-    val parts = remember(value, locale) { parseSubjectInput(value, locale) }
-    val tokens = parts.tokens
-    val query = parts.query
-    val colors = editorFieldColors()
-    val suggestions = remember(tokens, query) {
-        val normalizedQuery = query.trim()
-        val base = if (normalizedQuery.isEmpty()) {
-            emptyList()
-        } else {
-            SubjectSuggestions.filter { suggestion ->
-                suggestion.contains(normalizedQuery, ignoreCase = true)
-            }
-        }
-        base.filterNot { suggestion ->
-            tokens.any { token -> token.equals(suggestion, ignoreCase = true) }
-        }.take(12)
-    }
+    var tokens by remember { mutableStateOf(parseSubjectInput(value, locale).tokens) }
+    var query by remember { mutableStateOf(parseSubjectInput(value, locale).query) }
     var expanded by remember { mutableStateOf(false) }
     var dropdownWidth by remember { mutableStateOf(0f) }
+    val focusRequester = remember { FocusRequester() }
     val interactionSource = remember { MutableInteractionSource() }
     val textStyle = MaterialTheme.typography.bodyLarge
     val textColor = MaterialTheme.colorScheme.onSurface
+    val colors = editorFieldColors()
+
+    LaunchedEffect(value, locale) {
+        val current = buildSubjectInput(tokens, query)
+        if (current != value) {
+            val parsed = parseSubjectInput(value, locale)
+            tokens = parsed.tokens
+            query = parsed.query
+        }
+    }
+
+    val suggestions = remember(tokens, query) {
+        resolveSubjectSuggestions(tokens, query)
+    }
     val shouldShowDropdown = expanded && enabled && suggestions.isNotEmpty()
+
+    fun emit(updatedTokens: List<String>, updatedQuery: String, collapseDropdown: Boolean = false) {
+        tokens = updatedTokens
+        query = updatedQuery
+        val nextValue = buildSubjectInput(updatedTokens, updatedQuery)
+        if (nextValue != value) {
+            onValueChange(nextValue)
+        }
+        expanded = when {
+            collapseDropdown -> false
+            updatedQuery.isBlank() -> false
+            else -> resolveSubjectSuggestions(updatedTokens, updatedQuery).isNotEmpty()
+        }
+    }
+
+    fun commitToken(rawToken: String) {
+        val trimmed = rawToken.trim()
+        if (trimmed.isEmpty()) {
+            emit(tokens, "", collapseDropdown = true)
+            return
+        }
+        val mergedTokens = mergeSubjectToken(tokens, trimmed, locale)
+        emit(mergedTokens, "", collapseDropdown = true)
+    }
 
     Column(modifier = modifier) {
         Box {
             BasicTextField(
                 value = query,
                 onValueChange = { raw ->
-                    val sanitizedQuery = enforceCapitalized(raw, locale)
-                    val trimmed = sanitizedQuery.trimEnd(',', ' ')
-                    val shouldMerge = raw.endsWith(',')
-                    val updatedTokens = if (shouldMerge) {
-                        mergeSubjectToken(tokens, trimmed, locale)
+                    val sanitized = enforceCapitalized(raw, locale)
+                    val delimiterIndex = sanitized.indexOf(',')
+                    if (delimiterIndex >= 0) {
+                        val tokenPart = sanitized.substring(0, delimiterIndex)
+                        val remainder = sanitized.substring(delimiterIndex + 1)
+                        val mergedTokens = mergeSubjectToken(tokens, tokenPart.trim(), locale)
+                        val nextQuery = enforceCapitalized(remainder.trimStart(), locale)
+                        emit(mergedTokens, nextQuery)
                     } else {
-                        tokens
-                    }
-                    val nextQuery = if (shouldMerge) "" else sanitizedQuery
-                    val nextValue = buildSubjectInput(updatedTokens, nextQuery)
-                    if (nextValue != value) {
-                        onValueChange(nextValue)
-                    }
-                    if (!expanded && enabled) {
-                        expanded = true
+                        emit(tokens, sanitized)
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(focusRequester)
                     .onGloballyPositioned { coordinates ->
                         dropdownWidth = coordinates.size.toSize().width
                     }
                     .onFocusChanged { focusState ->
-                        expanded = focusState.isFocused && suggestions.isNotEmpty()
+                        if (focusState.isFocused) {
+                            expanded = suggestions.isNotEmpty()
+                        } else {
+                            if (query.isNotBlank()) {
+                                commitToken(query)
+                            } else {
+                                emit(tokens, "", collapseDropdown = true)
+                            }
+                        }
                     },
                 enabled = enabled,
                 singleLine = true,
@@ -337,16 +365,11 @@ private fun SubjectInputField(
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = {
-                        val finalizedTokens = if (query.isNotBlank()) {
-                            mergeSubjectToken(tokens, query, locale)
+                        if (query.isNotBlank()) {
+                            commitToken(query)
                         } else {
-                            tokens
+                            emit(tokens, "", collapseDropdown = true)
                         }
-                        val nextValue = buildSubjectInput(finalizedTokens, "")
-                        if (nextValue != value) {
-                            onValueChange(nextValue)
-                        }
-                        expanded = false
                         onSubmit?.invoke()
                     }
                 ),
@@ -371,11 +394,8 @@ private fun SubjectInputField(
                                             val remainingTokens = tokens.filterNot {
                                                 it.equals(token, ignoreCase = true)
                                             }
-                                            val nextValue = buildSubjectInput(remainingTokens, query)
-                                            if (nextValue != value) {
-                                                onValueChange(nextValue)
-                                            }
-                                            expanded = true
+                                            emit(remainingTokens, query)
+                                            focusRequester.tryRequestFocus()
                                         },
                                         label = { Text(token) },
                                         enabled = enabled,
@@ -437,12 +457,8 @@ private fun SubjectInputField(
                     DropdownMenuItem(
                         text = { Text(suggestion) },
                         onClick = {
-                            val mergedTokens = mergeSubjectToken(tokens, suggestion, locale)
-                            val nextValue = buildSubjectInput(mergedTokens, "")
-                            if (nextValue != value) {
-                                onValueChange(nextValue)
-                            }
-                            expanded = true
+                            commitToken(suggestion)
+                            focusRequester.tryRequestFocus()
                         }
                     )
                 }
@@ -453,38 +469,53 @@ private fun SubjectInputField(
 
 private data class SubjectInputParts(
     val tokens: List<String>,
-    val query: String,
-    val hasSeparator: Boolean
+    val query: String
 )
 
 private fun parseSubjectInput(raw: String, locale: Locale): SubjectInputParts {
     if (raw.isBlank()) {
-        return SubjectInputParts(emptyList(), "", false)
+        return SubjectInputParts(emptyList(), "")
     }
-    val hasSeparator = raw.trimEnd().endsWith(',')
-    val segments = raw.split(',').map { it.trim() }
-    val baseTokens = if (hasSeparator) {
-        segments
+    val tokens = parseSubjectTokens(raw, locale)
+    val normalizedValue = buildSubjectInput(tokens, "")
+    val trimmed = raw.trim()
+    val query = if (trimmed.length > normalizedValue.length) {
+        val remainder = trimmed.substring(normalizedValue.length).trimStart(',', ' ')
+        enforceCapitalized(remainder, locale)
     } else {
-        segments.dropLast(1)
+        ""
     }
-    val tokens = baseTokens.fold(mutableListOf<String>()) { acc, item ->
-        val normalized = enforceCapitalized(item, locale)
-        if (normalized.isNotEmpty() && acc.none { it.equals(normalized, ignoreCase = true) }) {
-            acc.add(normalized)
-        }
-        acc
-    }
-    val query = if (hasSeparator) "" else segments.lastOrNull().orEmpty()
-    return SubjectInputParts(tokens, enforceCapitalized(query, locale), hasSeparator)
+    return SubjectInputParts(tokens, query)
 }
 
-private fun buildSubjectInput(tokens: List<String>, query: String, forceSeparator: Boolean = false): String {
+private fun parseSubjectTokens(raw: String, locale: Locale): List<String> {
+    if (raw.isBlank()) return emptyList()
+    return raw.split(',')
+        .map { enforceCapitalized(it.trim(), locale) }
+        .filter { it.isNotEmpty() }
+        .fold(mutableListOf<String>()) { acc, item ->
+            if (acc.none { it.equals(item, ignoreCase = true) }) {
+                acc.add(item)
+            }
+            acc
+        }
+}
+
+private fun resolveSubjectSuggestions(tokens: List<String>, query: String): List<String> {
+    val normalizedQuery = query.trim()
+    if (normalizedQuery.isEmpty()) return emptyList()
+    return SubjectSuggestions.filter { suggestion ->
+        suggestion.startsWith(normalizedQuery, ignoreCase = true)
+    }.filterNot { suggestion ->
+        tokens.any { token -> token.equals(suggestion, ignoreCase = true) }
+    }.take(12)
+}
+
+private fun buildSubjectInput(tokens: List<String>, query: String): String {
     val base = tokens.filter { it.isNotBlank() }.joinToString(separator = ", ")
     val normalizedQuery = query.trim()
     return when {
         normalizedQuery.isNotEmpty() -> if (base.isEmpty()) normalizedQuery else "$base, $normalizedQuery"
-        forceSeparator -> if (base.isEmpty()) "" else "$base, "
         else -> base
     }
 }
