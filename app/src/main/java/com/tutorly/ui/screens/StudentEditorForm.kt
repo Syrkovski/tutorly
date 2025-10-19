@@ -54,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -98,6 +97,7 @@ fun StudentEditorForm(
     enableScrolling: Boolean = true,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
+    subjectSuggestions: List<String> = emptyList(),
 ) {
     val nameFocusRequester = remember { FocusRequester() }
     val gradeFocusRequester = remember { FocusRequester() }
@@ -167,7 +167,8 @@ fun StudentEditorForm(
                 gradeFocusRequester = gradeFocusRequester,
                 gradeOptions = gradeOptions,
                 isStandalone = !showFullForm && editTarget == StudentEditTarget.PROFILE,
-                onSubmit = onSubmit
+                onSubmit = onSubmit,
+                subjectSuggestions = subjectSuggestions
             )
         }
 
@@ -426,17 +427,24 @@ private fun ProfileSection(
     gradeOptions: List<String>,
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
+    subjectSuggestions: List<String>,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     val locale = remember { Locale.getDefault() }
-    val subjectSuggestions = stringArrayResource(id = R.array.student_editor_subject_suggestions).toList()
+    val normalizedSuggestions = remember(subjectSuggestions, locale) {
+        subjectSuggestions
+            .map { enforceCapitalized(it, locale) }
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(locale) }
+    }
     val inputParts = remember(state.subject) { parseSubjectInput(state.subject, locale) }
     val normalizedSelected = remember(inputParts.tokens, locale) {
         inputParts.tokens.associateBy { it.lowercase(locale) }
     }
-    val filteredSuggestions = remember(subjectSuggestions, inputParts, locale) {
+    val filteredSuggestions = remember(normalizedSuggestions, inputParts, locale) {
         val query = inputParts.query
-        subjectSuggestions.filter { suggestion ->
+        normalizedSuggestions.filter { suggestion ->
             val normalized = suggestion.lowercase(locale)
             if (normalizedSelected.containsKey(normalized)) {
                 false

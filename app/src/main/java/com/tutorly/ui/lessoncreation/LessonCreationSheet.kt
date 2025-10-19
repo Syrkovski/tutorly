@@ -63,7 +63,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -347,14 +346,19 @@ private fun SubjectSection(
     } else {
         additionalNames.filter { it.contains(query, ignoreCase = true) }
     }
-    val popularSubjects = stringArrayResource(id = R.array.student_editor_subject_suggestions).toList()
+    val allPresetSubjects = remember(state.subjects, locale) {
+        state.subjects
+            .map { it.name.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(locale) }
+    }
     val normalizedExisting = remember(availableSubjects, additionalNames, locale) {
         (availableSubjects.map { it.name } + additionalNames)
             .map { it.lowercase(locale) }
             .toSet()
     }
-    val filteredPopular = remember(popularSubjects, normalizedExisting, query) {
-        popularSubjects.filter { subject ->
+    val filteredPopular = remember(allPresetSubjects, normalizedExisting, query) {
+        allPresetSubjects.filter { subject ->
             val normalized = subject.lowercase(locale)
             val matchesQuery = query.isBlank() || subject.contains(query, ignoreCase = true)
             matchesQuery && !normalizedExisting.contains(normalized)

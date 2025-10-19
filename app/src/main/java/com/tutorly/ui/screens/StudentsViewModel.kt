@@ -45,12 +45,25 @@ class StudentsViewModel @Inject constructor(
     private val _isArchiveMode = MutableStateFlow(false)
     val isArchiveMode: StateFlow<Boolean> = _isArchiveMode.asStateFlow()
 
+    private val _subjectSuggestions = MutableStateFlow<List<String>>(emptyList())
+    val subjectSuggestions: StateFlow<List<String>> = _subjectSuggestions.asStateFlow()
+
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
     private val lessonObservers = mutableMapOf<Long, Job>()
     private val _lessonSummaries = MutableStateFlow<Map<Long, LessonSummary>>(emptyMap())
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
     private var editingStudent: Student? = null
+    private var cachedSubjectPresetNames: List<String> = emptyList()
+    private var latestStudentsSnapshot: List<Student> = emptyList()
+    private val suggestionLocale: Locale = Locale.getDefault()
+
+    init {
+        viewModelScope.launch {
+            cachedSubjectPresetNames = loadSubjectPresetNames()
+            updateSubjectSuggestions()
+        }
+    }
 
     private val studentsStream = combine(
         _query.map { it.trim() },
@@ -68,6 +81,8 @@ class StudentsViewModel @Inject constructor(
         .onEach {
             syncDebtObservers(it)
             syncLessonObservers(it)
+            latestStudentsSnapshot = it
+            updateSubjectSuggestions()
         }
 
     val students: StateFlow<List<StudentListItem>> = combine(
@@ -337,11 +352,42 @@ class StudentsViewModel @Inject constructor(
                         val preset = subjectPresetsRepository.getById(subjectId)
                         if (preset != null) {
                             _subjects.update { cache -> cache + (subjectId to preset) }
+                            addPresetSuggestion(preset.name)
                         }
                     }
                 }
             }
         }
+    }
+
+    private suspend fun loadSubjectPresetNames(): List<String> {
+        val presets = runCatching { subjectPresetsRepository.all() }.getOrDefault(emptyList())
+        return presets
+            .map { formatSubjectName(it.name, suggestionLocale) }
+            .filter { it.isNotEmpty() }
+    }
+
+    private fun addPresetSuggestion(name: String) {
+        val formatted = formatSubjectName(name, suggestionLocale)
+        if (formatted.isEmpty()) return
+        if (cachedSubjectPresetNames.any { it.equals(formatted, ignoreCase = true) }) return
+        cachedSubjectPresetNames = cachedSubjectPresetNames + formatted
+        updateSubjectSuggestions()
+    }
+
+    private fun updateSubjectSuggestions() {
+        val studentSubjects = latestStudentsSnapshot
+            .flatMap { parseSubjectNames(it.subject, suggestionLocale) }
+        val combined = cachedSubjectPresetNames + studentSubjects
+        val seen = mutableSetOf<String>()
+        val deduped = mutableListOf<String>()
+        combined.forEach { name ->
+            val key = name.lowercase(suggestionLocale)
+            if (name.isNotEmpty() && seen.add(key)) {
+                deduped += name
+            }
+        }
+        _subjectSuggestions.value = deduped
     }
 
     override fun onCleared() {
