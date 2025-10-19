@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -62,6 +63,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -326,6 +328,7 @@ private fun SubjectSection(
     onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long?) -> Unit
 ) {
+    val locale = state.locale
     val availableSubjects = state.availableSubjects
     val studentSubjectNames = state.selectedStudent?.subjects.orEmpty()
         .map { it.trim() }
@@ -343,6 +346,19 @@ private fun SubjectSection(
         additionalNames
     } else {
         additionalNames.filter { it.contains(query, ignoreCase = true) }
+    }
+    val popularSubjects = stringArrayResource(id = R.array.student_editor_subject_suggestions).toList()
+    val normalizedExisting = remember(availableSubjects, additionalNames, locale) {
+        (availableSubjects.map { it.name } + additionalNames)
+            .map { it.lowercase(locale) }
+            .toSet()
+    }
+    val filteredPopular = remember(popularSubjects, normalizedExisting, query) {
+        popularSubjects.filter { subject ->
+            val normalized = subject.lowercase(locale)
+            val matchesQuery = query.isBlank() || subject.contains(query, ignoreCase = true)
+            matchesQuery && !normalizedExisting.contains(normalized)
+        }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
@@ -373,10 +389,10 @@ private fun SubjectSection(
                 errorBorderColor = MaterialTheme.colorScheme.error
             )
         )
-        if (filteredSubjects.isNotEmpty() || filteredAdditional.isNotEmpty()) {
+        if (filteredSubjects.isNotEmpty() || filteredAdditional.isNotEmpty() || filteredPopular.isNotEmpty()) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 filteredSubjects.forEach { subject ->
                     AssistChip(
@@ -393,6 +409,12 @@ private fun SubjectSection(
                 }
                 filteredAdditional.forEach { subjectName ->
                     AssistChip(
+                        onClick = { onSubjectInputChange(subjectName) },
+                        label = { Text(text = subjectName) }
+                    )
+                }
+                filteredPopular.forEach { subjectName ->
+                    SuggestionChip(
                         onClick = { onSubjectInputChange(subjectName) },
                         label = { Text(text = subjectName) }
                     )

@@ -13,6 +13,7 @@ import com.tutorly.models.SubjectPreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.time.Instant
+import java.util.Locale
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -106,13 +107,14 @@ class StudentsViewModel @Inject constructor(
         isActive: Boolean = true,
     ) {
         editingStudent = null
+        val normalizedSubject = normalizeSubjectsInput(subject)
         _editorFormState.value = StudentEditorFormState(
             studentId = null,
             name = name,
             phone = phone,
             messenger = messenger,
             rate = rate,
-            subject = subject,
+            subject = normalizedSubject,
             grade = grade,
             note = note,
             isArchived = isArchived,
@@ -122,13 +124,14 @@ class StudentsViewModel @Inject constructor(
 
     fun startStudentEdit(student: Student) {
         editingStudent = student
+        val normalizedSubject = normalizeSubjectsInput(student.subject.orEmpty())
         _editorFormState.value = StudentEditorFormState(
             studentId = student.id,
             name = student.name,
             phone = student.phone.orEmpty(),
             messenger = student.messenger.orEmpty(),
             rate = formatMoneyInput(student.rateCents),
-            subject = student.subject.orEmpty(),
+            subject = normalizedSubject,
             grade = student.grade.orEmpty(),
             note = student.note.orEmpty(),
             isArchived = student.isArchived,
@@ -190,7 +193,8 @@ class StudentsViewModel @Inject constructor(
 
         val trimmedPhone = state.phone.trim().ifBlank { null }
         val trimmedMessenger = state.messenger.trim().ifBlank { null }
-        val trimmedSubject = state.subject.trim().ifBlank { null }
+        val normalizedSubject = normalizeSubjectsInput(state.subject)
+        val trimmedSubject = normalizedSubject.ifBlank { null }
         val trimmedGrade = state.grade.trim().ifBlank { null }
         val trimmedNote = state.note.trim().ifBlank { null }
         val rateInput = state.rate.trim()
@@ -210,7 +214,7 @@ class StudentsViewModel @Inject constructor(
                     phone = trimmedPhone.orEmpty(),
                     messenger = trimmedMessenger.orEmpty(),
                     rate = normalizedRate,
-                    subject = trimmedSubject.orEmpty(),
+                    subject = normalizedSubject,
                     grade = trimmedGrade.orEmpty(),
                     note = trimmedNote.orEmpty(),
                     nameError = false,
@@ -373,6 +377,14 @@ class StudentsViewModel @Inject constructor(
     private data class LessonSnapshot(
         val subjectId: Long?
     )
+
+    private fun normalizeSubjectsInput(input: String): String {
+        return input.split(',')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(Locale.getDefault()) }
+            .joinToString(separator = ", ")
+    }
 
     private fun buildProgress(
         lessons: List<com.tutorly.models.Lesson>

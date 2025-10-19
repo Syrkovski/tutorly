@@ -42,12 +42,39 @@
     <string name="student_editor_subject">Предмет</string>
     <string name="student_editor_subject_placeholder">Введите предметы</string>
     <string name="student_editor_subject_support">Можно выбрать несколько предметов</string>
-    <string name="student_editor_subject_math">Математика</string>
-    <string name="student_editor_subject_russian">Русский язык</string>
-    <string name="student_editor_subject_english">Английский язык</string>
-    <string name="student_editor_subject_physics">Физика</string>
-    <string name="student_editor_subject_chemistry">Химия</string>
-    <string name="student_editor_subject_it">Информатика</string>
+    <string name="student_editor_subject_remove">Удалить %1$s</string>
+    <string-array name="student_editor_subject_suggestions">
+        <item>Математика</item>
+        <item>Русский язык</item>
+        <item>Английский язык</item>
+        <item>Физика</item>
+        <item>Химия</item>
+        <item>Информатика</item>
+        <item>Литература</item>
+        <item>История</item>
+        <item>Обществознание</item>
+        <item>Биология</item>
+        <item>География</item>
+        <item>Алгебра</item>
+        <item>Геометрия</item>
+        <item>Музыка</item>
+        <item>ИЗО</item>
+        <item>Технология</item>
+        <item>Французский язык</item>
+        <item>Немецкий язык</item>
+        <item>Испанский язык</item>
+        <item>Китайский язык</item>
+        <item>Программирование</item>
+        <item>Робототехника</item>
+        <item>Логика</item>
+        <item>Скорочтение</item>
+        <item>Подготовка к ЕГЭ</item>
+        <item>Подготовка к ОГЭ</item>
+        <item>Подготовка к олимпиадам</item>
+        <item>Подготовка в университет</item>
+        <item>Астрономия</item>
+        <item>Экономика</item>
+    </string-array>
     <string name="student_editor_grade">Класс</string>
     <string name="student_editor_notes">Заметки</string>
     <string name="student_editor_additional_data_title">Дополнительные данные</string>

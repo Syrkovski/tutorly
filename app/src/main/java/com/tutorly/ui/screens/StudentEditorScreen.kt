@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
+import java.util.Locale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -117,7 +118,8 @@ class StudentEditorVM @Inject constructor(
         } else {
             rateInput
         }
-        val trimmedSubject = formState.subject.trim().ifBlank { null }
+        val normalizedSubject = normalizeSubjectsInput(formState.subject)
+        val trimmedSubject = normalizedSubject.ifBlank { null }
         val trimmedGrade = formState.grade.trim().ifBlank { null }
         val trimmedNote = formState.note.trim().ifBlank { null }
 
@@ -128,7 +130,7 @@ class StudentEditorVM @Inject constructor(
                 phone = trimmedPhone.orEmpty(),
                 messenger = trimmedMessenger.orEmpty(),
                 rate = normalizedRate,
-                subject = trimmedSubject.orEmpty(),
+                subject = normalizedSubject,
                 grade = trimmedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
                 nameError = false
@@ -174,12 +176,20 @@ class StudentEditorVM @Inject constructor(
         phone = phone.orEmpty(),
         messenger = messenger.orEmpty(),
         rate = formatMoneyInput(rateCents),
-        subject = subject.orEmpty(),
+        subject = normalizeSubjectsInput(subject.orEmpty()),
         grade = grade.orEmpty(),
         note = note.orEmpty(),
         isArchived = isArchived,
         isActive = active,
     )
+
+    private fun normalizeSubjectsInput(input: String): String {
+        return input.split(',')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(Locale.getDefault()) }
+            .joinToString(separator = ", ")
+    }
 }
 
 @Composable
