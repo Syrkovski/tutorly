@@ -11,7 +11,7 @@ import java.time.ZonedDateTime
 import java.time.temporal.WeekFields
 import kotlin.math.roundToLong
 
-internal data class FinanceTemporalContext(
+data class FinanceTemporalContext(
     val now: ZonedDateTime,
     val zoneId: ZoneId,
     val weekFields: WeekFields
