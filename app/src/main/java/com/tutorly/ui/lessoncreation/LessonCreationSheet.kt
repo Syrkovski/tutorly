@@ -126,7 +126,9 @@ fun LessonCreationSheet(
     onStudentSelect: (Long) -> Unit,
     onAddStudent: () -> Unit,
     onSubjectInputChange: (String) -> Unit,
-    onSubjectSelect: (Long?) -> Unit,
+    onSubjectSelect: (Long) -> Unit,
+    onSubjectSuggestionToggle: (String) -> Unit,
+    onSubjectChipRemove: (Long?, String) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationChange: (Int) -> Unit,
@@ -170,7 +172,9 @@ fun LessonCreationSheet(
                 SubjectSection(
                     state = state,
                     onSubjectInputChange = onSubjectInputChange,
-                    onSubjectSelect = onSubjectSelect
+                    onSubjectSelect = onSubjectSelect,
+                    onSubjectSuggestionToggle = onSubjectSuggestionToggle,
+                    onSubjectChipRemove = onSubjectChipRemove
                 )
                 PriceSection(state = state, onPriceChange = onPriceChange)
                 NoteSection(state = state, onNoteChange = onNoteChange)
@@ -343,7 +347,9 @@ private fun StudentAvatar(
 private fun SubjectSection(
     state: LessonCreationUiState,
     onSubjectInputChange: (String) -> Unit,
-    onSubjectSelect: (Long?) -> Unit
+    onSubjectSelect: (Long) -> Unit,
+    onSubjectSuggestionToggle: (String) -> Unit,
+    onSubjectChipRemove: (Long?, String) -> Unit
 ) {
     val availableSubjects = state.availableSubjects
     val studentSubjectNames = state.selectedStudent?.subjects.orEmpty()
@@ -354,16 +360,7 @@ private fun SubjectSection(
     }
     val locale = state.locale
     val query = state.subjectInput
-    val selectedSubject = state.subjects.firstOrNull { it.id == state.selectedSubjectId }
-    val trimmedInput = query.trim()
-    val additionalSelection = if (selectedSubject != null || trimmedInput.isEmpty()) {
-        null
-    } else {
-        studentSubjectNames.firstOrNull { it.equals(trimmedInput, ignoreCase = true) }
-            ?: SubjectSuggestionDefaults.firstOrNull { it.equals(trimmedInput, ignoreCase = true) }
-    }
-    val hasActiveChip = selectedSubject != null || additionalSelection != null
-    val normalizedQuery = if (hasActiveChip) "" else trimmedInput.lowercase(locale)
+    val normalizedQuery = query.trim().lowercase(locale)
     val hasQuery = normalizedQuery.isNotEmpty()
     val matchingSubjects = availableSubjects.filter { option ->
         hasQuery && option.name.lowercase(locale).startsWith(normalizedQuery)
@@ -382,15 +379,13 @@ private fun SubjectSection(
     var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
     val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
     val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+    val selectedChips = state.selectedSubjectChips
 
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         Box {
             OutlinedTextField(
-                value = if (hasActiveChip) "" else state.subjectInput,
+                value = state.subjectInput,
                 onValueChange = {
-                    if (selectedSubject != null) {
-                        onSubjectSelect(null)
-                    }
                     onSubjectInputChange(it)
                     expanded = it.trim().isNotEmpty()
                 },
@@ -406,35 +401,38 @@ private fun SubjectSection(
                     Icon(imageVector = Icons.Filled.Book, contentDescription = null)
                 },
                 prefix = {
-                    if (hasActiveChip) {
-                        FilterChip(
-                            modifier = Modifier.padding(end = 8.dp),
-                            selected = true,
-                            onClick = {
-                                expanded = false
-                                if (selectedSubject != null) {
-                                    onSubjectSelect(null)
-                                }
-                                onSubjectInputChange("")
-                            },
-                            label = { Text(text = selectedSubject?.name ?: additionalSelection.orEmpty()) },
-                            leadingIcon = {
-                                if (selectedSubject != null) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .background(Color(selectedSubject.colorArgb), CircleShape)
+                    if (selectedChips.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            selectedChips.forEach { chip ->
+                                FilterChip(
+                                    selected = true,
+                                    onClick = {
+                                        expanded = false
+                                        onSubjectChipRemove(chip.id, chip.name)
+                                    },
+                                    label = { Text(text = chip.name) },
+                                    leadingIcon = {
+                                        chip.colorArgb?.let { color ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .background(Color(color), CircleShape)
+                                            )
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        Icon(imageVector = Icons.Filled.Close, contentDescription = null)
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
                                     )
-                                }
-                            },
-                            trailingIcon = {
-                                Icon(imageVector = Icons.Filled.Close, contentDescription = null)
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
-                            )
-                        )
+                                )
+                            }
+                        }
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
@@ -463,7 +461,7 @@ private fun SubjectSection(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     matchingSubjects.forEach { subject ->
-                        val isSelected = state.selectedSubjectId == subject.id
+                        val isSelected = selectedChips.any { it.id == subject.id }
                         FilterChip(
                             selected = isSelected,
                             onClick = {
@@ -490,13 +488,14 @@ private fun SubjectSection(
                         )
                     }
                     matchingAdditional.forEach { subjectName ->
-                        val isSelected = state.selectedSubjectId == null &&
-                            state.subjectInput.equals(subjectName, ignoreCase = true)
+                        val isSelected = selectedChips.any { chip ->
+                            chip.id == null && chip.name.equals(subjectName, ignoreCase = true)
+                        }
                         FilterChip(
                             selected = isSelected,
                             onClick = {
                                 expanded = false
-                                onSubjectInputChange(subjectName)
+                                onSubjectSuggestionToggle(subjectName)
                             },
                             label = { Text(text = subjectName) },
                             trailingIcon = {
@@ -511,13 +510,14 @@ private fun SubjectSection(
                         )
                     }
                     defaultSuggestions.forEach { suggestion ->
-                        val isSelected = state.selectedSubjectId == null &&
-                            state.subjectInput.equals(suggestion, ignoreCase = true)
+                        val isSelected = selectedChips.any { chip ->
+                            chip.id == null && chip.name.equals(suggestion, ignoreCase = true)
+                        }
                         FilterChip(
                             selected = isSelected,
                             onClick = {
                                 expanded = false
-                                onSubjectInputChange(suggestion)
+                                onSubjectSuggestionToggle(suggestion)
                             },
                             label = { Text(text = suggestion) },
                             trailingIcon = {
