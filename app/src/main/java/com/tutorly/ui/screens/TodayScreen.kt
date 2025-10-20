@@ -807,42 +807,65 @@ private fun TodayLessonRow(
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
-    val target = state.targetValue
-    if (target == SwipeToDismissBoxValue.Settled) {
+    val direction = state.dismissDirection
+        ?: when (state.targetValue) {
+            SwipeToDismissBoxValue.StartToEnd -> SwipeToDismissBoxValue.StartToEnd
+            SwipeToDismissBoxValue.EndToStart -> SwipeToDismissBoxValue.EndToStart
+            else -> null
+        }
+        ?: return
+
+    val progressFraction = if (state.targetValue == SwipeToDismissBoxValue.Settled) {
+        state.progress.fraction
+    } else {
+        1f
+    }
+
+    if (progressFraction <= 0f) {
         return
     }
+
+    val revealAlpha = progressFraction.coerceIn(0.35f, 1f)
+    val circleAlpha = revealAlpha.coerceAtLeast(0.5f)
+    val iconAlpha = revealAlpha.coerceAtLeast(0.7f)
+
     val containerColor: Color
     val circleColor: Color
     val tint: Color
     val alignment: Alignment
-    if (target == SwipeToDismissBoxValue.StartToEnd) {
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        circleColor = MaterialTheme.colorScheme.tertiary
-        tint = MaterialTheme.colorScheme.onTertiary
-        alignment = Alignment.CenterStart
-    } else {
-        containerColor = MaterialTheme.colorScheme.errorContainer
-        circleColor = MaterialTheme.colorScheme.error
-        tint = MaterialTheme.colorScheme.onError
-        alignment = Alignment.CenterEnd
+    when (direction) {
+        SwipeToDismissBoxValue.StartToEnd -> {
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            circleColor = MaterialTheme.colorScheme.tertiary
+            tint = MaterialTheme.colorScheme.onTertiary
+            alignment = Alignment.CenterStart
+        }
+        SwipeToDismissBoxValue.EndToStart -> {
+            containerColor = MaterialTheme.colorScheme.errorContainer
+            circleColor = MaterialTheme.colorScheme.error
+            tint = MaterialTheme.colorScheme.onError
+            alignment = Alignment.CenterEnd
+        }
+        else -> return
     }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(containerColor),
+            .background(containerColor.copy(alpha = revealAlpha)),
         contentAlignment = alignment
     ) {
         Box(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .size(40.dp)
-                .background(color = circleColor, shape = CircleShape),
+                .background(color = circleColor.copy(alpha = circleAlpha), shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Filled.CurrencyRuble,
                 contentDescription = null,
-                tint = tint,
+                tint = tint.copy(alpha = iconAlpha),
                 modifier = Modifier.size(24.dp)
             )
         }
