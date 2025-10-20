@@ -66,7 +66,8 @@ class StudentEditorVM @Inject constructor(
     }
 
     fun onNameChange(value: String) {
-        formState = formState.copy(name = value, nameError = false)
+        val capitalized = capitalizeInputWords(value)
+        formState = formState.copy(name = capitalized, nameError = false)
     }
 
     fun onPhoneChange(value: String) {
@@ -74,7 +75,8 @@ class StudentEditorVM @Inject constructor(
     }
 
     fun onMessengerChange(value: String) {
-        formState = formState.copy(messenger = value)
+        val capitalized = capitalizeInputWords(value)
+        formState = formState.copy(messenger = capitalized)
     }
 
     fun onRateChange(value: String) {
@@ -82,15 +84,18 @@ class StudentEditorVM @Inject constructor(
     }
 
     fun onSubjectChange(value: String) {
-        formState = formState.copy(subject = value)
+        val capitalized = capitalizeInputWords(value)
+        formState = formState.copy(subject = capitalized)
     }
 
     fun onGradeChange(value: String) {
-        formState = formState.copy(grade = value)
+        val capitalized = capitalizeInputWords(value)
+        formState = formState.copy(grade = capitalized)
     }
 
     fun onNoteChange(value: String) {
-        formState = formState.copy(note = value)
+        val capitalized = capitalizeInputWords(value)
+        formState = formState.copy(note = capitalized)
     }
 
     fun onArchivedChange(value: Boolean) {

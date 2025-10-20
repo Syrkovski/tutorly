@@ -451,9 +451,10 @@ private fun SubjectSelector(
         Box {
             BasicTextField(
                 value = subjectInput,
-                onValueChange = {
-                    subjectInput = it
-                    expanded = enabled && it.trim().isNotEmpty()
+                onValueChange = { raw ->
+                    val formatted = capitalizeInputWords(raw)
+                    subjectInput = formatted
+                    expanded = enabled && formatted.trim().isNotEmpty()
                 },
                 modifier = Modifier
                     .fillMaxWidth()

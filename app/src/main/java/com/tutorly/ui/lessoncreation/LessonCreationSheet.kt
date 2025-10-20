@@ -80,6 +80,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.lessoncreation.StudentOption
+import com.tutorly.ui.screens.capitalizeInputWords
 import com.tutorly.ui.subject.SubjectSuggestionDefaults
 import com.tutorly.ui.theme.extendedColors
 import kotlinx.coroutines.launch
@@ -217,10 +218,11 @@ private fun StudentSection(
         Box {
             OutlinedTextField(
                 value = query,
-                onValueChange = {
-                    query = it
+                onValueChange = { raw ->
+                    val formatted = capitalizeInputWords(raw)
+                    query = formatted
                     showSuggestions = true
-                    onQueryChange(it)
+                    onQueryChange(formatted)
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_student_label)) },
                 placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },

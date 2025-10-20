@@ -10,6 +10,7 @@ import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.domain.repo.UserSettingsRepository
 import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
+import com.tutorly.ui.screens.capitalizeInputWords
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -174,7 +175,8 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentQueryChange(query: String) {
-        val isCleared = query.isBlank()
+        val formatted = capitalizeInputWords(query)
+        val isCleared = formatted.isBlank()
         if (isCleared) {
             currentRateHistory = emptyList()
             currentStudentBaseRateCents = null
@@ -182,7 +184,7 @@ class LessonCreationViewModel @Inject constructor(
         }
 
         _uiState.update { current ->
-            val baseState = current.copy(studentQuery = query)
+            val baseState = current.copy(studentQuery = formatted)
             if (!isCleared) {
                 baseState
             } else {
@@ -195,9 +197,9 @@ class LessonCreationViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            val students = loadStudents(query)
+            val students = loadStudents(formatted)
             _uiState.update { current ->
-                if (current.studentQuery == query) {
+                if (current.studentQuery == formatted) {
                     current.copy(students = students)
                 } else {
                     current
@@ -207,7 +209,8 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentGradeChanged(value: String) {
-        _uiState.update { it.copy(studentGrade = value) }
+        val capitalized = capitalizeInputWords(value)
+        _uiState.update { it.copy(studentGrade = capitalized) }
     }
 
     fun onStudentSelected(studentId: Long) {
@@ -477,7 +480,8 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onSubjectInputChanged(value: String) {
-        _uiState.update { it.copy(subjectInput = value) }
+        val capitalized = capitalizeInputWords(value)
+        _uiState.update { it.copy(subjectInput = capitalized) }
     }
 
     private fun addSubjectChip(option: SubjectOption, state: LessonCreationUiState) {
@@ -525,7 +529,8 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onNoteChanged(value: String) {
-        _uiState.update { it.copy(note = value) }
+        val capitalized = capitalizeInputWords(value)
+        _uiState.update { it.copy(note = capitalized) }
     }
 
     fun submit() {
