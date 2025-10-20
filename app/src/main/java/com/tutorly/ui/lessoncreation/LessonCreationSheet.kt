@@ -354,7 +354,16 @@ private fun SubjectSection(
     }
     val locale = state.locale
     val query = state.subjectInput
-    val normalizedQuery = query.trim().lowercase(locale)
+    val selectedSubject = state.subjects.firstOrNull { it.id == state.selectedSubjectId }
+    val trimmedInput = query.trim()
+    val additionalSelection = if (selectedSubject != null || trimmedInput.isEmpty()) {
+        null
+    } else {
+        studentSubjectNames.firstOrNull { it.equals(trimmedInput, ignoreCase = true) }
+            ?: SubjectSuggestionDefaults.firstOrNull { it.equals(trimmedInput, ignoreCase = true) }
+    }
+    val hasActiveChip = selectedSubject != null || additionalSelection != null
+    val normalizedQuery = if (hasActiveChip) "" else trimmedInput.lowercase(locale)
     val hasQuery = normalizedQuery.isNotEmpty()
     val matchingSubjects = availableSubjects.filter { option ->
         hasQuery && option.name.lowercase(locale).startsWith(normalizedQuery)
@@ -377,8 +386,11 @@ private fun SubjectSection(
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         Box {
             OutlinedTextField(
-                value = if (state.selectedSubjectId != null) "" else state.subjectInput,
+                value = if (hasActiveChip) "" else state.subjectInput,
                 onValueChange = {
+                    if (selectedSubject != null) {
+                        onSubjectSelect(null)
+                    }
                     onSubjectInputChange(it)
                     expanded = it.trim().isNotEmpty()
                 },
@@ -392,6 +404,38 @@ private fun SubjectSection(
                 singleLine = true,
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+                },
+                prefix = {
+                    if (hasActiveChip) {
+                        FilterChip(
+                            modifier = Modifier.padding(end = 8.dp),
+                            selected = true,
+                            onClick = {
+                                expanded = false
+                                if (selectedSubject != null) {
+                                    onSubjectSelect(null)
+                                }
+                                onSubjectInputChange("")
+                            },
+                            label = { Text(text = selectedSubject?.name ?: additionalSelection.orEmpty()) },
+                            leadingIcon = {
+                                if (selectedSubject != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .background(Color(selectedSubject.colorArgb), CircleShape)
+                                    )
+                                }
+                            },
+                            trailingIcon = {
+                                Icon(imageVector = Icons.Filled.Close, contentDescription = null)
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -491,53 +535,6 @@ private fun SubjectSection(
             }
         }
 
-        val selectedSubject = state.subjects.firstOrNull { it.id == state.selectedSubjectId }
-        val trimmedInput = state.subjectInput.trim()
-        val additionalSelection = if (selectedSubject != null || trimmedInput.isEmpty() || expanded) {
-            null
-        } else {
-            studentSubjectNames.firstOrNull { it.equals(trimmedInput, ignoreCase = true) }
-                ?: SubjectSuggestionDefaults.firstOrNull {
-                    it.equals(trimmedInput, ignoreCase = true)
-                }
-        }
-        val chipLabel = selectedSubject?.name ?: additionalSelection
-
-        if (chipLabel != null) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = true,
-                    onClick = {
-                        expanded = false
-                        if (selectedSubject != null) {
-                            onSubjectSelect(null)
-                        }
-                        onSubjectInputChange("")
-                    },
-                    label = { Text(text = chipLabel) },
-                    leadingIcon = {
-                        if (selectedSubject != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(Color(selectedSubject.colorArgb), CircleShape)
-                            )
-                        }
-                    },
-                    trailingIcon = {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = null)
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            }
-        }
     }
 
     LaunchedEffect(hasSuggestions) {
