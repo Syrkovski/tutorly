@@ -816,7 +816,7 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
         ?: return
 
     val progressFraction = if (state.targetValue == SwipeToDismissBoxValue.Settled) {
-        state.progress.fraction
+        state.progress
     } else {
         1f
     }
