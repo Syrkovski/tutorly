@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalTextStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.IntSize
@@ -254,7 +255,10 @@ private fun ProfileSection(
                     tint = iconTint
                 )
             },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Next
+            ),
             colors = textFieldColors
         )
         if (state.nameError) {
@@ -292,6 +296,7 @@ private fun ProfileSection(
                 )
             },
             keyboardOptions = KeyboardOptions.Default.copy(
+                capitalization = KeyboardCapitalization.Words,
                 imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
             ),
             keyboardActions = if (isStandalone) {
@@ -347,7 +352,7 @@ private fun SubjectSelector(
             if (preset != null) {
                 preset.toChip()
             } else {
-                StudentSubjectChip(id = null, name = token, colorArgb = null)
+                StudentSubjectChip(id = null, name = normalizeSubjectLabel(token), colorArgb = null)
             }
         }
         selectedChips = chips
@@ -404,7 +409,8 @@ private fun SubjectSelector(
         val updated = if (existingIndex >= 0) {
             selectedChips.toMutableList().also { it.removeAt(existingIndex) }
         } else {
-            selectedChips + StudentSubjectChip(id = null, name = normalized, colorArgb = null)
+            val displayName = normalizeSubjectLabel(normalized)
+            selectedChips + StudentSubjectChip(id = null, name = displayName, colorArgb = null)
         }
         updateChips(updated)
         subjectInput = ""
@@ -431,7 +437,10 @@ private fun SubjectSelector(
             expanded = false
             return true
         }
-        updateChips(selectedChips + StudentSubjectChip(id = null, name = trimmedQuery, colorArgb = null))
+        val displayName = normalizeSubjectLabel(trimmedQuery)
+        updateChips(
+            selectedChips + StudentSubjectChip(id = null, name = displayName, colorArgb = null)
+        )
         subjectInput = ""
         expanded = false
         return true
@@ -447,9 +456,9 @@ private fun SubjectSelector(
         Box {
             BasicTextField(
                 value = subjectInput,
-                onValueChange = {
-                    subjectInput = it
-                    expanded = enabled && it.trim().isNotEmpty()
+                onValueChange = { raw ->
+                    subjectInput = raw
+                    expanded = enabled && raw.trim().isNotEmpty()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -463,6 +472,7 @@ private fun SubjectSelector(
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 interactionSource = interactionSource,
                 keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Words,
                     imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
                 ),
                 keyboardActions = if (isStandalone) {
@@ -624,7 +634,7 @@ private fun buildSubjectValue(chips: List<StudentSubjectChip>): String {
         if (trimmed.isNotEmpty()) {
             val normalized = trimmed.lowercase(Locale.getDefault())
             if (seen.add(normalized)) {
-                ordered.add(trimmed)
+                ordered.add(normalizeSubjectLabel(trimmed))
             }
         }
     }
@@ -803,6 +813,10 @@ private fun MessengerSection(
                         )
                     }
                 },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
                 colors = textFieldColors
             )
 
@@ -886,7 +900,10 @@ private fun NotesSection(
                 tint = iconTint
             )
         },
-        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+        keyboardOptions = KeyboardOptions.Default.copy(
+            capitalization = KeyboardCapitalization.Words,
+            imeAction = ImeAction.Done
+        ),
         keyboardActions = KeyboardActions(onDone = {
             onSubmit?.invoke()
         }),

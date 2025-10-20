@@ -8,6 +8,9 @@ import com.tutorly.domain.repo.UserSettingsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
+import com.tutorly.ui.screens.normalizeGrade
+import com.tutorly.ui.screens.normalizeSubject
+import com.tutorly.ui.screens.titleCaseWords
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -84,8 +87,10 @@ class LessonCardViewModel @Inject constructor(
                             isLoading = false,
                             studentId = details.studentId,
                             studentName = details.studentName,
-                            studentGrade = details.studentGrade,
-                            subjectName = details.subjectName,
+                            studentGrade = normalizeGrade(details.studentGrade),
+                            subjectName = details.subjectName
+                                ?.takeIf { it.isNotBlank() }
+                                ?.trim(),
                             date = start.toLocalDate(),
                             time = start.toLocalTime(),
                             durationMinutes = details.duration.toMinutes().toInt(),
@@ -152,7 +157,7 @@ class LessonCardViewModel @Inject constructor(
             state.copy(
                 studentId = studentId,
                 studentName = selected?.name ?: state.studentName,
-                studentGrade = selected?.grade ?: state.studentGrade,
+                studentGrade = normalizeGrade(selected?.grade) ?: state.studentGrade,
                 studentOptions = reorderOptions(state.studentOptions, studentId),
             )
         }
@@ -299,9 +304,12 @@ class LessonCardViewModel @Inject constructor(
     private fun Student.toOption(): LessonStudentOption {
         return LessonStudentOption(
             id = id,
-            name = name,
-            grade = grade?.takeIf { it.isNotBlank() }?.trim(),
-            subject = subject?.takeIf { it.isNotBlank() }?.trim(),
+            name = titleCaseWords(name),
+            grade = normalizeGrade(grade),
+            subject = subject
+                ?.takeIf { it.isNotBlank() }
+                ?.trim()
+                ?.let { normalizeSubject(it) },
         )
     }
 }
