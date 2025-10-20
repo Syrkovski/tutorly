@@ -377,7 +377,7 @@ private fun SubjectSection(
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         Box {
             OutlinedTextField(
-                value = state.subjectInput,
+                value = if (state.selectedSubjectId != null) "" else state.subjectInput,
                 onValueChange = {
                     onSubjectInputChange(it)
                     expanded = it.trim().isNotEmpty()
@@ -488,6 +488,54 @@ private fun SubjectSection(
                         )
                     }
                 }
+            }
+        }
+
+        val selectedSubject = state.subjects.firstOrNull { it.id == state.selectedSubjectId }
+        val trimmedInput = state.subjectInput.trim()
+        val additionalSelection = if (selectedSubject != null || trimmedInput.isEmpty() || expanded) {
+            null
+        } else {
+            studentSubjectNames.firstOrNull { it.equals(trimmedInput, ignoreCase = true) }
+                ?: SubjectSuggestionDefaults.firstOrNull {
+                    it.equals(trimmedInput, ignoreCase = true)
+                }
+        }
+        val chipLabel = selectedSubject?.name ?: additionalSelection
+
+        if (chipLabel != null) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = true,
+                    onClick = {
+                        expanded = false
+                        if (selectedSubject != null) {
+                            onSubjectSelect(null)
+                        }
+                        onSubjectInputChange("")
+                    },
+                    label = { Text(text = chipLabel) },
+                    leadingIcon = {
+                        if (selectedSubject != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(Color(selectedSubject.colorArgb), CircleShape)
+                            )
+                        }
+                    },
+                    trailingIcon = {
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = null)
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
             }
         }
     }
