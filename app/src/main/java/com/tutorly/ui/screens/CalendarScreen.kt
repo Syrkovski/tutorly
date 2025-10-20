@@ -572,7 +572,7 @@ fun PlanScreenHeader(
                 Surface(
                     onClick = { showDatePicker = true },
                     shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = Color.White,
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     tonalElevation = 2.dp,
                     shadowElevation = 4.dp
