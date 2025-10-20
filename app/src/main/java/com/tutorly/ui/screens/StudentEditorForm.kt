@@ -21,12 +21,14 @@ import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -583,6 +585,17 @@ private fun SubjectSelector(
                                                         )
                                                     }
                                                 },
+                                                trailingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Close,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                                ),
                                                 enabled = enabled
                                             )
                                         }
