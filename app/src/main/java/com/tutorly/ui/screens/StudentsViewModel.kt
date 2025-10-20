@@ -121,7 +121,7 @@ class StudentsViewModel @Inject constructor(
             phone = phone,
             messenger = messenger,
             rate = rate,
-            subject = titleCaseWords(subject),
+            subject = normalizeSubject(subject).orEmpty(),
             grade = normalizeGrade(grade).orEmpty(),
             note = note,
             isArchived = isArchived,
@@ -137,7 +137,7 @@ class StudentsViewModel @Inject constructor(
             phone = student.phone.orEmpty(),
             messenger = student.messenger.orEmpty(),
             rate = formatMoneyInput(student.rateCents),
-            subject = student.subject?.let { titleCaseWords(it) }.orEmpty(),
+            subject = normalizeSubject(student.subject).orEmpty(),
             grade = normalizeGrade(student.grade).orEmpty(),
             note = student.note.orEmpty(),
             isArchived = student.isArchived,
@@ -201,7 +201,7 @@ class StudentsViewModel @Inject constructor(
         val trimmedPhone = state.phone.trim().ifBlank { null }
         val trimmedMessenger = state.messenger.trim().ifBlank { null }
         val trimmedSubject = state.subject.trim().ifBlank { null }
-        val normalizedSubject = trimmedSubject?.let { titleCaseWords(it) }
+        val normalizedSubject = normalizeSubject(trimmedSubject)
         val normalizedGrade = normalizeGrade(state.grade)
         val trimmedNote = state.note.trim().ifBlank { null }
         val rateInput = state.rate.trim()
@@ -424,7 +424,7 @@ class StudentsViewModel @Inject constructor(
 
         val grade = normalizeGrade(student.grade)
             ?: student.note.extractGrade()
-        val normalizedSubject = subject?.let { titleCaseWords(it) }
+        val normalizedSubject = normalizeSubject(subject)
 
         return StudentCardProfile(subject = normalizedSubject, grade = grade)
     }

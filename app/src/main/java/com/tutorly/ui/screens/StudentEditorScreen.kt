@@ -127,7 +127,7 @@ class StudentEditorVM @Inject constructor(
             rateInput
         }
         val trimmedSubject = formState.subject.trim().ifBlank { null }
-        val normalizedSubject = trimmedSubject?.let { titleCaseWords(it) }
+        val normalizedSubject = normalizeSubject(trimmedSubject)
         val normalizedGrade = normalizeGrade(formState.grade)
         val trimmedNote = formState.note.trim().ifBlank { null }
 
@@ -184,7 +184,7 @@ class StudentEditorVM @Inject constructor(
         phone = phone.orEmpty(),
         messenger = messenger.orEmpty(),
         rate = formatMoneyInput(rateCents),
-        subject = subject?.let { titleCaseWords(it) }.orEmpty(),
+        subject = normalizeSubject(subject).orEmpty(),
         grade = normalizeGrade(grade).orEmpty(),
         note = note.orEmpty(),
         isArchived = isArchived,

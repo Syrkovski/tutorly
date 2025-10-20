@@ -352,7 +352,7 @@ private fun SubjectSelector(
             if (preset != null) {
                 preset.toChip()
             } else {
-                StudentSubjectChip(id = null, name = titleCaseWords(token), colorArgb = null)
+                StudentSubjectChip(id = null, name = normalizeSubjectLabel(token), colorArgb = null)
             }
         }
         selectedChips = chips
@@ -409,7 +409,7 @@ private fun SubjectSelector(
         val updated = if (existingIndex >= 0) {
             selectedChips.toMutableList().also { it.removeAt(existingIndex) }
         } else {
-            val displayName = titleCaseWords(normalized)
+            val displayName = normalizeSubjectLabel(normalized)
             selectedChips + StudentSubjectChip(id = null, name = displayName, colorArgb = null)
         }
         updateChips(updated)
@@ -437,7 +437,7 @@ private fun SubjectSelector(
             expanded = false
             return true
         }
-        val displayName = titleCaseWords(trimmedQuery)
+        val displayName = normalizeSubjectLabel(trimmedQuery)
         updateChips(
             selectedChips + StudentSubjectChip(id = null, name = displayName, colorArgb = null)
         )
@@ -634,7 +634,7 @@ private fun buildSubjectValue(chips: List<StudentSubjectChip>): String {
         if (trimmed.isNotEmpty()) {
             val normalized = trimmed.lowercase(Locale.getDefault())
             if (seen.add(normalized)) {
-                ordered.add(titleCaseWords(trimmed))
+                ordered.add(normalizeSubjectLabel(trimmed))
             }
         }
     }

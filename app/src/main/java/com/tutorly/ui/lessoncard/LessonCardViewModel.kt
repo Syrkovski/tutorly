@@ -9,6 +9,7 @@ import com.tutorly.models.Lesson
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.ui.screens.normalizeGrade
+import com.tutorly.ui.screens.normalizeSubject
 import com.tutorly.ui.screens.titleCaseWords
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
@@ -308,7 +309,7 @@ class LessonCardViewModel @Inject constructor(
             subject = subject
                 ?.takeIf { it.isNotBlank() }
                 ?.trim()
-                ?.let { titleCaseWords(it) },
+                ?.let { normalizeSubject(it) },
         )
     }
 }
