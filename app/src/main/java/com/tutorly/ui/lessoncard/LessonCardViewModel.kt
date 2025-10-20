@@ -85,9 +85,11 @@ class LessonCardViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             studentId = details.studentId,
-                            studentName = titleCaseWords(details.studentName),
+                            studentName = details.studentName,
                             studentGrade = normalizeGrade(details.studentGrade),
-                            subjectName = details.subjectName?.let { titleCaseWords(it) },
+                            subjectName = details.subjectName
+                                ?.takeIf { it.isNotBlank() }
+                                ?.trim(),
                             date = start.toLocalDate(),
                             time = start.toLocalTime(),
                             durationMinutes = details.duration.toMinutes().toInt(),

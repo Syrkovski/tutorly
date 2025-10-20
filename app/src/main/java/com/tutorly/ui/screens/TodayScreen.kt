@@ -853,15 +853,13 @@ private fun LessonCard(
     val timeText = remember(startTime) { timeFormatter.format(startTime) }
     val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
     val amount = remember(lesson.priceCents) { formatCurrency(lesson.priceCents.toLong(), currencyFormatter) }
-    val studentName = remember(lesson.studentName) { titleCaseWords(lesson.studentName) }
+    val studentName = remember(lesson.studentName) { lesson.studentName }
     val normalizedLessonTitle = lesson.lessonTitle
         ?.takeIf { it.isNotBlank() }
         ?.trim()
-        ?.let { titleCaseWords(it) }
     val normalizedSubjectName = lesson.subjectName
         ?.takeIf { it.isNotBlank() }
         ?.trim()
-        ?.let { titleCaseWords(it) }
     val subjectTitle = normalizedLessonTitle
         ?: normalizedSubjectName
         ?: stringResource(id = R.string.lesson_card_subject_placeholder)
