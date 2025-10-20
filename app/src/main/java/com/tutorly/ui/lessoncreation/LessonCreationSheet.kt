@@ -3,12 +3,17 @@ package com.tutorly.ui.lessoncreation
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,8 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -45,13 +48,14 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +63,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -71,10 +77,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
+import com.tutorly.ui.lessoncreation.StudentOption
 import com.tutorly.ui.theme.extendedColors
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
@@ -218,99 +225,150 @@ private fun StudentSection(
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         val selectedName = state.selectedStudent?.name ?: state.studentQuery
         var query by remember(selectedName) { mutableStateOf(selectedName) }
-        var expanded by remember { mutableStateOf(false) }
-        var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
-        val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
-        val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
-        Box {
-            OutlinedTextField(
-                value = query,
-                onValueChange = {
-                    query = it
-                    expanded = true
-                    onQueryChange(it)
-                },
-                label = { Text(text = stringResource(id = R.string.lesson_create_student_label)) },
-                placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { textFieldSize = it.size }
-                    .onFocusChanged { focusState -> expanded = focusState.isFocused },
-                singleLine = true,
-                leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Person, contentDescription = null)
-                },
-                trailingIcon = {
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null
-                        )
+        var showSuggestions by remember { mutableStateOf(false) }
+        val focusRequester = remember { FocusRequester() }
+        val coroutineScope = rememberCoroutineScope()
+
+        OutlinedTextField(
+            value = query,
+            onValueChange = {
+                query = it
+                showSuggestions = true
+                onQueryChange(it)
+            },
+            label = { Text(text = stringResource(id = R.string.lesson_create_student_label)) },
+            placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState ->
+                    if (!focusState.isFocused) {
+                        showSuggestions = false
                     }
                 },
-                isError = state.errors.containsKey(LessonCreationField.STUDENT),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surface,
-                    errorContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
-                    errorBorderColor = MaterialTheme.colorScheme.error
-                )
+            singleLine = true,
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+            },
+            isError = state.errors.containsKey(LessonCreationField.STUDENT),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                errorBorderColor = MaterialTheme.colorScheme.error
             )
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = dropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                DropdownMenuItem(
-                    text = { Text(text = stringResource(id = R.string.lesson_create_new_student)) },
-                    onClick = {
-                        expanded = false
-                        onAddStudent()
-                    }
-                )
-                state.students.forEach { option ->
-                    DropdownMenuItem(
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text = option.name,
-                                    style = LocalTextStyle.current,
-                                    maxLines = 1
-                                )
-                                if (option.subjects.isNotEmpty()) {
-                                    Text(
-                                        text = option.subjects.joinToString(separator = ", "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2
-                                    )
-                                }
-                            }
-                        },
-                        leadingIcon = {
-                            StudentAvatar(name = option.name, size = 32.dp)
-                        },
-                        trailingIcon = {
-                            if (state.selectedStudent?.id == option.id) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
-                            }
-                        },
-                        onClick = {
-                            query = option.name
-                            expanded = false
-                            onStudentSelect(option.id)
+        )
+
+        if (showSuggestions) {
+            SuggestionList(
+                students = state.students,
+                selectedStudentId = state.selectedStudent?.id,
+                onStudentClick = { option ->
+                    query = option.name
+                    showSuggestions = false
+                    onStudentSelect(option.id)
+                    coroutineScope.launch { focusRequester.requestFocus() }
+                },
+                onAddStudent = {
+                    showSuggestions = false
+                    onAddStudent()
+                    coroutineScope.launch { focusRequester.requestFocus() }
+                }
+            )
+        }
+
+        state.errors[LessonCreationField.STUDENT]?.let { message ->
+            ErrorText(message)
+        }
+    }
+}
+
+@Composable
+private fun SuggestionList(
+    students: List<StudentOption>,
+    selectedStudentId: Long?,
+    onStudentClick: (StudentOption) -> Unit,
+    onAddStudent: () -> Unit
+) {
+    if (students.isEmpty()) {
+        SuggestionContainer {
+            SuggestionItem(onClick = onAddStudent) {
+                Text(text = stringResource(id = R.string.lesson_create_new_student))
+            }
+        }
+        return
+    }
+
+    SuggestionContainer {
+        SuggestionItem(onClick = onAddStudent) {
+            Text(text = stringResource(id = R.string.lesson_create_new_student))
+        }
+
+        students.forEach { option ->
+            SuggestionItem(onClick = { onStudentClick(option) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StudentAvatar(name = option.name, size = 32.dp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = option.name,
+                            style = LocalTextStyle.current,
+                            maxLines = 1
+                        )
+                        if (option.subjects.isNotEmpty()) {
+                            Text(
+                                text = option.subjects.joinToString(separator = ", "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2
+                            )
                         }
-                    )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (selectedStudentId == option.id) {
+                        Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                    }
                 }
             }
         }
-        state.errors[LessonCreationField.STUDENT]?.let { message ->
-            ErrorText(message)
+    }
+}
+
+@Composable
+private fun SuggestionContainer(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                shape = MaterialTheme.shapes.medium
+            )
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surface),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun SuggestionItem(
+    onClick: () -> Unit,
+    content: @Composable RowScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        color = Color.Transparent
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            content()
         }
     }
 }
