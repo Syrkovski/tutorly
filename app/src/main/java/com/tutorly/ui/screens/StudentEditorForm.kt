@@ -4,13 +4,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -28,41 +30,43 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.outlined.CurrencyRuble
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import com.tutorly.R
 import com.tutorly.ui.theme.extendedColors
 import java.util.Locale
@@ -100,7 +104,6 @@ fun StudentEditorForm(
     enableScrolling: Boolean = true,
     enabled: Boolean = true,
     onSubmit: (() -> Unit)? = null,
-    subjectSuggestions: List<String> = emptyList(),
 ) {
     val nameFocusRequester = remember { FocusRequester() }
     val gradeFocusRequester = remember { FocusRequester() }
@@ -109,10 +112,6 @@ fun StudentEditorForm(
     val messengerFocusRequester = remember { FocusRequester() }
     val noteFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
-    val gradeNumbers = remember { (9..11).toList() }
-    val gradeOptions = gradeNumbers.map { number ->
-        stringResource(id = R.string.student_editor_grade_option, number)
-    }
 
     LaunchedEffect(initialFocus, enabled) {
         if (enabled) {
@@ -168,10 +167,8 @@ fun StudentEditorForm(
                 enabled = enabled,
                 nameFocusRequester = nameFocusRequester,
                 gradeFocusRequester = gradeFocusRequester,
-                gradeOptions = gradeOptions,
                 isStandalone = !showFullForm && editTarget == StudentEditTarget.PROFILE,
-                onSubmit = onSubmit,
-                subjectSuggestions = subjectSuggestions
+                onSubmit = onSubmit
             )
         }
 
@@ -232,7 +229,41 @@ fun StudentEditorForm(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+private val SubjectSuggestions = listOf(
+    "Математика",
+    "Алгебра",
+    "Геометрия",
+    "Русский язык",
+    "Литература",
+    "Английский язык",
+    "Немецкий язык",
+    "Французский язык",
+    "Испанский язык",
+    "Китайский язык",
+    "Информатика",
+    "Программирование",
+    "Физика",
+    "Химия",
+    "Биология",
+    "География",
+    "История",
+    "Обществознание",
+    "Экономика",
+    "Право",
+    "Музыка",
+    "Изобразительное искусство",
+    "Технология",
+    "Черчение",
+    "Физкультура",
+    "ЕГЭ",
+    "ОГЭ",
+    "Олимпиады",
+    "Подготовка к ВПР",
+    "Подготовка к ДВИ",
+    "Подготовка к собеседованию",
+    "Подготовка к колледжу"
+)
+
 @Composable
 private fun SubjectInputField(
     value: String,
@@ -244,69 +275,222 @@ private fun SubjectInputField(
     leadingIcon: @Composable (() -> Unit)?,
     onSubmit: (() -> Unit)?,
     locale: Locale,
-    suggestions: List<String>,
-    onSuggestionSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val parts = remember(value, locale) { parseSubjectInput(value, locale) }
-    val tokens = parts.tokens
-    val query = parts.query
+    var tokens by remember { mutableStateOf(parseSubjectTokens(value, locale)) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    var dropdownWidth by remember { mutableStateOf(0f) }
+    val focusRequester = remember { FocusRequester() }
     val interactionSource = remember { MutableInteractionSource() }
-    val colors = editorFieldColors()
+    val textStyle = MaterialTheme.typography.bodyLarge
     val textColor = MaterialTheme.colorScheme.onSurface
-    val textStyle = MaterialTheme.typography.bodyLarge.merge(TextStyle(color = textColor))
+    val colors = editorFieldColors()
 
-    fun updateValue(updatedTokens: List<String>, updatedQuery: String, keepSeparator: Boolean = false) {
-        val sanitizedTokens = updatedTokens.filter { it.isNotBlank() }
-        val normalizedQuery = enforceCapitalized(updatedQuery, locale)
-        onValueChange(
-            buildSubjectInput(
-                sanitizedTokens,
-                normalizedQuery,
-                forceSeparator = keepSeparator || (parts.hasSeparator && normalizedQuery.isEmpty() && sanitizedTokens.isNotEmpty())
-            )
-        )
+    LaunchedEffect(value, locale) {
+        val parsedTokens = parseSubjectTokens(value, locale)
+        if (parsedTokens != tokens) {
+            tokens = parsedTokens
+            if (query.isNotEmpty()) {
+                query = ""
+            }
+            expanded = false
+        }
     }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        BasicTextField(
-            value = query,
-            onValueChange = { raw ->
-                val sanitized = enforceCapitalized(raw, locale)
-                val commaIndex = sanitized.indexOf(',')
-                if (commaIndex >= 0) {
-                    val newToken = sanitized.substring(0, commaIndex).trim()
-                    val remainder = sanitized.substring(commaIndex + 1).trimStart()
-                    val merged = mergeSubjectToken(tokens, newToken, locale)
-                    updateValue(merged, remainder, keepSeparator = remainder.isEmpty())
-                } else {
-                    updateValue(tokens, sanitized)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = enabled,
-            textStyle = textStyle,
-            cursorBrush = SolidColor(MaterialTheme.extendedColors.accent),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Sentences,
-                imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(onNext = { onSubmit?.invoke() }),
-            decorationBox = { innerTextField ->
-            }
-        )
+    val suggestions = remember(tokens, query) { resolveSubjectSuggestions(tokens, query) }
+    val shouldShowDropdown = expanded && enabled && suggestions.isNotEmpty()
 
-        if (suggestions.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+    fun updateState(
+        newTokens: List<String> = tokens,
+        newQuery: String = query,
+        collapseDropdown: Boolean = false
+    ) {
+        val normalizedQuery = enforceCapitalized(newQuery, locale)
+        val tokensChanged = newTokens != tokens
+        if (tokensChanged) {
+            tokens = newTokens
+            val nextValue = buildSubjectValue(newTokens)
+            if (nextValue != value) {
+                onValueChange(nextValue)
+            }
+        }
+        if (query != normalizedQuery) {
+            query = normalizedQuery
+        }
+        expanded = when {
+            collapseDropdown -> false
+            normalizedQuery.isBlank() -> false
+            else -> resolveSubjectSuggestions(newTokens, normalizedQuery).isNotEmpty()
+        }
+    }
+
+    fun commitToken(rawToken: String, refocus: Boolean) {
+        val trimmed = rawToken.trim()
+        if (trimmed.isEmpty()) {
+            updateState(newQuery = "", collapseDropdown = true)
+        } else {
+            val mergedTokens = mergeSubjectToken(tokens, trimmed, locale)
+            updateState(newTokens = mergedTokens, newQuery = "", collapseDropdown = true)
+        }
+        if (refocus) {
+            focusRequester.tryRequestFocus()
+        }
+    }
+
+    val rawLeadingIcon = leadingIcon
+    val decoratedLeadingIcon: (@Composable (() -> Unit))? = if (rawLeadingIcon == null) {
+        null
+    } else {
+        {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .wrapContentHeight(align = Alignment.Top)
+                    .padding(top = 8.dp)
+            ) {
+                rawLeadingIcon()
+            }
+        }
+    }
+
+    Column(modifier = modifier) {
+        Box {
+            BasicTextField(
+                value = query,
+                onValueChange = { raw ->
+                    val sanitized = enforceCapitalized(raw, locale)
+                    val delimiterIndex = sanitized.indexOf(',')
+                    if (delimiterIndex >= 0) {
+                        val tokenPart = sanitized.substring(0, delimiterIndex)
+                        val remainder = sanitized.substring(delimiterIndex + 1)
+                        commitToken(tokenPart, refocus = true)
+                        updateState(newQuery = remainder.trimStart())
+                    } else {
+                        updateState(newQuery = sanitized)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onGloballyPositioned { coordinates ->
+                        dropdownWidth = coordinates.size.toSize().width
+                    }
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            expanded = suggestions.isNotEmpty()
+                        } else {
+                            if (query.isNotBlank()) {
+                                commitToken(query, refocus = false)
+                            } else {
+                                updateState(newQuery = "", collapseDropdown = true)
+                            }
+                        }
+                    },
+                enabled = enabled,
+                singleLine = true,
+                textStyle = textStyle.copy(color = textColor),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        if (query.isNotBlank()) {
+                            commitToken(query, refocus = true)
+                        } else {
+                            updateState(newQuery = "", collapseDropdown = true)
+                            onSubmit?.invoke()
+                        }
+                    }
+                ),
+                cursorBrush = SolidColor(MaterialTheme.extendedColors.accent),
+                interactionSource = interactionSource,
+                decorationBox = { innerTextField ->
+                    OutlinedTextFieldDefaults.DecorationBox(
+                        value = query,
+                        innerTextField = {
+                            FlowRow(
+                                modifier = Modifier
+                                    .defaultMinSize(minHeight = 56.dp)
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                tokens.forEach { token ->
+                                    AssistChip(
+                                        onClick = {
+                                            if (!enabled) return@AssistChip
+                                            val remainingTokens = tokens.filterNot {
+                                                it.equals(token, ignoreCase = true)
+                                            }
+                                            updateState(newTokens = remainingTokens)
+                                            focusRequester.tryRequestFocus()
+                                        },
+                                        label = { Text(token) },
+                                        enabled = enabled,
+                                        trailingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Filled.Close,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .defaultMinSize(minHeight = 24.dp)
+                                ) {
+                                    if (tokens.isEmpty() && query.isEmpty()) {
+                                        CompositionLocalProvider(
+                                            LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant,
+                                            LocalTextStyle provides textStyle
+                                        ) {
+                                            placeholder?.invoke()
+                                        }
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        },
+                        label = label,
+                        placeholder = null,
+                        leadingIcon = decoratedLeadingIcon,
+                        trailingIcon = null,
+                        prefix = null,
+                        suffix = null,
+                        supportingText = supportingText,
+                        singleLine = false,
+                        enabled = enabled,
+                        isError = false,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        colors = colors,
+                        contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 8.dp)
+                    )
+                }
+            )
+
+            val dropdownModifier = if (dropdownWidth > 0f) {
+                Modifier.width(with(LocalDensity.current) { dropdownWidth.toDp() })
+            } else {
+                Modifier
+            }
+
+            DropdownMenu(
+                expanded = shouldShowDropdown,
+                onDismissRequest = { expanded = false },
+                modifier = dropdownModifier
             ) {
                 suggestions.forEach { suggestion ->
-                    SuggestionChip(
-                        onClick = { onSuggestionSelected(suggestion) },
-                        label = { Text(text = suggestion) },
-                        enabled = enabled
+                    DropdownMenuItem(
+                        text = { Text(suggestion) },
+                        onClick = {
+                            commitToken(suggestion, refocus = true)
+                            focusRequester.tryRequestFocus()
+                        }
                     )
                 }
             }
@@ -314,42 +498,31 @@ private fun SubjectInputField(
     }
 }
 
-private data class SubjectInputParts(
-    val tokens: List<String>,
-    val query: String,
-    val hasSeparator: Boolean
-)
-
-private fun parseSubjectInput(raw: String, locale: Locale): SubjectInputParts {
-    if (raw.isBlank()) {
-        return SubjectInputParts(emptyList(), "", false)
-    }
-    val hasSeparator = raw.trimEnd().endsWith(',')
-    val segments = raw.split(',').map { it.trim() }
-    val baseTokens = if (hasSeparator) {
-        segments
-    } else {
-        segments.dropLast(1)
-    }
-    val tokens = baseTokens.fold(mutableListOf<String>()) { acc, item ->
-        val normalized = enforceCapitalized(item, locale)
-        if (normalized.isNotEmpty() && acc.none { it.equals(normalized, ignoreCase = true) }) {
-            acc.add(normalized)
+private fun parseSubjectTokens(raw: String, locale: Locale): List<String> {
+    if (raw.isBlank()) return emptyList()
+    return raw.split(',')
+        .map { enforceCapitalized(it.trim(), locale) }
+        .filter { it.isNotEmpty() }
+        .fold(mutableListOf<String>()) { acc, item ->
+            if (acc.none { it.equals(item, ignoreCase = true) }) {
+                acc.add(item)
+            }
+            acc
         }
-        acc
-    }
-    val query = if (hasSeparator) "" else segments.lastOrNull().orEmpty()
-    return SubjectInputParts(tokens, enforceCapitalized(query, locale), hasSeparator)
 }
 
-private fun buildSubjectInput(tokens: List<String>, query: String, forceSeparator: Boolean = false): String {
-    val base = tokens.filter { it.isNotBlank() }.joinToString(separator = ", ")
+private fun buildSubjectValue(tokens: List<String>): String {
+    return tokens.filter { it.isNotBlank() }.joinToString(separator = ", ")
+}
+
+private fun resolveSubjectSuggestions(tokens: List<String>, query: String): List<String> {
     val normalizedQuery = query.trim()
-    return when {
-        normalizedQuery.isNotEmpty() -> if (base.isEmpty()) normalizedQuery else "$base, $normalizedQuery"
-        forceSeparator -> if (base.isEmpty()) "" else "$base, "
-        else -> base
-    }
+    if (normalizedQuery.isEmpty()) return emptyList()
+    return SubjectSuggestions.filter { suggestion ->
+        suggestion.startsWith(normalizedQuery, ignoreCase = true)
+    }.filterNot { suggestion ->
+        tokens.any { token -> token.equals(suggestion, ignoreCase = true) }
+    }.take(12)
 }
 
 private fun mergeSubjectToken(tokens: List<String>, token: String, locale: Locale): List<String> {
@@ -369,7 +542,6 @@ private fun enforceCapitalized(value: String, locale: Locale): String {
     return first + trimmed.drop(1)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileSection(
     state: StudentEditorFormState,
@@ -379,35 +551,11 @@ private fun ProfileSection(
     enabled: Boolean,
     nameFocusRequester: FocusRequester,
     gradeFocusRequester: FocusRequester,
-    gradeOptions: List<String>,
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
-    subjectSuggestions: List<String>,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     val locale = remember { Locale.getDefault() }
-    val normalizedSuggestions = remember(subjectSuggestions, locale) {
-        subjectSuggestions
-            .map { enforceCapitalized(it, locale) }
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinctBy { it.lowercase(locale) }
-    }
-    val inputParts = remember(state.subject) { parseSubjectInput(state.subject, locale) }
-    val normalizedSelected = remember(inputParts.tokens, locale) {
-        inputParts.tokens.associateBy { it.lowercase(locale) }
-    }
-    val filteredSuggestions = remember(normalizedSuggestions, inputParts, locale) {
-        val query = inputParts.query
-        normalizedSuggestions.filter { suggestion ->
-            val normalized = suggestion.lowercase(locale)
-            if (normalizedSelected.containsKey(normalized)) {
-                false
-            } else {
-                query.isBlank() || suggestion.contains(query, ignoreCase = true)
-            }
-        }
-    }
     val textFieldColors = editorFieldColors()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -444,22 +592,17 @@ private fun ProfileSection(
             onValueChange = onSubjectChange,
             enabled = enabled,
             label = { Text(text = stringResource(id = R.string.student_editor_subject)) },
-            placeholder = { Text(text = stringResource(id = R.string.student_editor_subject_placeholder)) },
+            placeholder = null,
             supportingText = { Text(text = stringResource(id = R.string.student_editor_subject_support)) },
             leadingIcon = {
-                Icon(imageVector = Icons.Filled.Book, contentDescription = null, tint = iconTint)
+                Icon(
+                    imageVector = Icons.Filled.Book,
+                    contentDescription = null,
+                    tint = iconTint
+                )
             },
             onSubmit = { gradeFocusRequester.tryRequestFocus() },
             locale = locale,
-            suggestions = filteredSuggestions,
-            onSuggestionSelected = { suggestion ->
-                val updated = buildSubjectInput(
-                    mergeSubjectToken(inputParts.tokens, suggestion, locale),
-                    query = "",
-                    forceSeparator = true
-                )
-                onSubjectChange(updated)
-            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -489,33 +632,9 @@ private fun ProfileSection(
             },
             colors = textFieldColors
         )
-
-        if (gradeOptions.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                gradeOptions.forEach { option ->
-                    val selected = state.grade.equals(option, ignoreCase = true)
-                    FilterChip(
-                        selected = selected,
-                        onClick = {
-                            val value = if (selected) "" else option
-                            onGradeChange(value)
-                        },
-                        label = { Text(text = option) },
-                        enabled = enabled,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.extendedColors.accent.copy(alpha = 0.16f)
-                        )
-                    )
-                }
-            }
-        }
     }
 }
-
-@OptIn(ExperimentalLayoutApi::class)
+ 
 @Composable
 private fun RateSection(
     rate: String,
@@ -526,9 +645,7 @@ private fun RateSection(
     onSubmit: (() -> Unit)?,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
-    val rateOptions = remember { listOf(1500, 2000, 2500, 3000) }
     val textFieldColors = editorFieldColors()
-    val normalizedRate = remember(rate) { rate.filter { it.isDigit() } }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -562,27 +679,6 @@ private fun RateSection(
             colors = textFieldColors
         )
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            rateOptions.forEach { option ->
-                val formatted = stringResource(id = R.string.student_editor_rate_option_value, option)
-                val selected = normalizedRate == option.toString()
-                FilterChip(
-                    selected = selected,
-                    onClick = {
-                        val newValue = if (selected) "" else option.toString()
-                        onRateChange(newValue)
-                    },
-                    label = { Text(text = formatted) },
-                    enabled = enabled,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.extendedColors.accent.copy(alpha = 0.16f)
-                    )
-                )
-            }
-        }
     }
 }
 
