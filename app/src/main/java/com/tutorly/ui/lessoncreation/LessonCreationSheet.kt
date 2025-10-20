@@ -3,6 +3,7 @@ package com.tutorly.ui.lessoncreation
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -62,12 +64,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -388,7 +392,25 @@ private fun SubjectSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         Box {
-            OutlinedTextField(
+            val interactionSource = remember { MutableInteractionSource() }
+            val labelValue = remember(state.subjectInput, selectedChips) {
+                when {
+                    state.subjectInput.isNotEmpty() -> state.subjectInput
+                    selectedChips.isNotEmpty() -> " "
+                    else -> ""
+                }
+            }
+            val textFieldColors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
+            BasicTextField(
                 value = state.subjectInput,
                 onValueChange = {
                     onSubjectInputChange(it)
@@ -400,60 +422,78 @@ private fun SubjectSection(
                     .onFocusChanged { focusState ->
                         expanded = focusState.isFocused && hasSuggestions
                     },
-                label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
                 singleLine = true,
-                leadingIcon = {
-                    Icon(imageVector = Icons.Filled.Book, contentDescription = null)
-                },
-                prefix = {
-                    if (selectedChips.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            selectedChips.forEach { chip ->
-                                FilterChip(
-                                    selected = true,
-                                    onClick = {
-                                        expanded = false
-                                        onSubjectChipRemove(chip.id, chip.name)
-                                    },
-                                    label = { Text(text = chip.name) },
-                                    leadingIcon = {
-                                        chip.colorArgb?.let { color ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(12.dp)
-                                                    .background(Color(color), CircleShape)
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                interactionSource = interactionSource,
+                decorationBox = { innerTextField ->
+                    OutlinedTextFieldDefaults.DecorationBox(
+                        value = labelValue,
+                        visualTransformation = VisualTransformation.None,
+                        innerTextField = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (selectedChips.isNotEmpty()) {
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        selectedChips.forEach { chip ->
+                                            FilterChip(
+                                                selected = true,
+                                                onClick = {
+                                                    expanded = false
+                                                    onSubjectChipRemove(chip.id, chip.name)
+                                                },
+                                                label = { Text(text = chip.name) },
+                                                leadingIcon = {
+                                                    chip.colorArgb?.let { color ->
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(12.dp)
+                                                                .background(Color(color), CircleShape)
+                                                        )
+                                                    }
+                                                },
+                                                trailingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Close,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                                )
                                             )
                                         }
-                                    },
-                                    trailingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Filled.Close,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
-                                    )
-                                )
+                                    }
+                                }
+                                Box(modifier = Modifier.weight(1f, fill = true)) {
+                                    innerTextField()
+                                }
                             }
-                        }
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surface,
-                    errorContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
-                    errorBorderColor = MaterialTheme.colorScheme.error
-                )
+                        },
+                        label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
+                        placeholder = null,
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Filled.Book, contentDescription = null)
+                        },
+                        trailingIcon = null,
+                        supportingText = null,
+                        shape = OutlinedTextFieldDefaults.shape,
+                        singleLine = true,
+                        enabled = true,
+                        isError = state.errors.containsKey(LessonCreationField.SUBJECT),
+                        interactionSource = interactionSource,
+                        colors = textFieldColors,
+                        contentPadding = OutlinedTextFieldDefaults.contentPadding()
+                    )
+                }
             )
             DropdownMenu(
                 expanded = expanded && hasSuggestions,
@@ -526,6 +566,7 @@ private fun SubjectSection(
             }
         }
 
+        state.errors[LessonCreationField.SUBJECT]?.let { ErrorText(it) }
     }
 
     LaunchedEffect(hasSuggestions) {
