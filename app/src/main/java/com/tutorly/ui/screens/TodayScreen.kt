@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -652,15 +653,14 @@ private fun PastDebtorsCollapsible(
     } else {
         stringResource(R.string.today_debtors_past_subtitle, lessons.size)
     }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        SectionHeader(text = stringResource(R.string.today_debtors_past_title))
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+    CollapsibleSection(
+        title = stringResource(R.string.today_debtors_past_title),
+        subtitle = subtitle,
+        titleTextStyle = MaterialTheme.typography.titleSmall,
+        titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+        headerPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+    ) {
         if (lessons.isEmpty()) {
             Text(
                 text = stringResource(R.string.today_debtors_past_empty),
@@ -680,7 +680,6 @@ private fun PastDebtorsCollapsible(
             )
         }
         if (hasMore) {
-            Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = onOpenDebtors) {
                 Text(text = stringResource(R.string.today_debtors_more_cta))
             }
@@ -693,6 +692,10 @@ private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    titleTextStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    headerPadding: PaddingValues = PaddingValues(vertical = 6.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -705,7 +708,7 @@ private fun CollapsibleSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
+                .padding(headerPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
@@ -714,7 +717,8 @@ private fun CollapsibleSection(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = titleTextStyle,
+                    color = titleColor
                 )
                 if (subtitle != null) {
                     Text(
@@ -727,7 +731,7 @@ private fun CollapsibleSection(
             Icon(
                 imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = iconTint
             )
         }
         if (expanded) {
