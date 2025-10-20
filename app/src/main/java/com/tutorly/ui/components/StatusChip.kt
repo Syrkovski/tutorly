@@ -60,58 +60,47 @@ fun statusChipData(
     now: ZonedDateTime
 ): StatusChipData {
     val colorScheme = MaterialTheme.colorScheme
-    val plannedColor = colorScheme.primary
     val cancelledColor = colorScheme.outline
     val paidColor = Color(0xFF4E998C)
 
     fun defaultContentColor(background: Color): Color =
         if (background.luminance() < 0.5f) Color.White else colorScheme.onSurface
 
-    val description: String
-    val background: Color
-    val content: Color
-    val label: String
+    val isFutureLesson = now.isBefore(start)
 
-    if (paymentStatus == PaymentStatus.CANCELLED) {
-        description = stringResource(R.string.lesson_status_cancelled)
-        background = cancelledColor
-        content = defaultContentColor(cancelledColor)
-        label = "×"
-    } else if (now.isBefore(start)) {
-        if (paymentStatus == PaymentStatus.PAID) {
-            description = stringResource(R.string.calendar_status_prepaid)
-            background = paidColor
+    val data = when (paymentStatus) {
+        PaymentStatus.CANCELLED -> StatusChipData(
+            label = "×",
+            description = stringResource(R.string.lesson_status_cancelled),
+            background = cancelledColor,
+            content = defaultContentColor(cancelledColor)
+        )
+
+        PaymentStatus.PAID -> StatusChipData(
+            label = stringResource(R.string.lesson_status_paid),
+            description = stringResource(R.string.lesson_status_paid),
+            background = paidColor,
             content = PaidChipContent
-            label = "₽"
-        } else {
-            description = stringResource(R.string.calendar_status_planned)
-            background = plannedColor
-            content = defaultContentColor(plannedColor)
-            label = "⏳"
+        )
+
+        PaymentStatus.DUE, PaymentStatus.UNPAID -> {
+            if (isFutureLesson) {
+                StatusChipData(
+                    label = "₽",
+                    description = stringResource(R.string.lesson_status_unpaid),
+                    background = colorScheme.surfaceVariant,
+                    content = colorScheme.onSurfaceVariant
+                )
+            } else {
+                StatusChipData(
+                    label = stringResource(R.string.lesson_status_unpaid),
+                    description = stringResource(R.string.lesson_status_unpaid),
+                    background = DebtChipFill,
+                    content = DebtChipContent
+                )
+            }
         }
-    } else if (now.isAfter(end)) {
-        if (paymentStatus == PaymentStatus.PAID) {
-            description = stringResource(R.string.lesson_status_paid)
-            background = paidColor
-            content = PaidChipContent
-            label = "₽"
-        } else {
-            description = stringResource(R.string.lesson_status_due)
-            background = DebtChipFill
-            content = DebtChipContent
-            label = "₽"
-        }
-    } else {
-        description = stringResource(R.string.calendar_status_in_progress)
-        background = plannedColor
-        content = defaultContentColor(plannedColor)
-        label = "▶"
     }
 
-    return StatusChipData(
-        label = label,
-        description = description,
-        background = background,
-        content = content
-    )
+    return data
 }
