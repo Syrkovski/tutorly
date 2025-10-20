@@ -68,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
@@ -408,7 +409,8 @@ private fun SubjectSection(
                 expanded = expanded && hasSuggestions,
                 onDismissRequest = { expanded = false },
                 modifier = dropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface,
+                properties = PopupProperties(focusable = false)
             ) {
                 matchingSubjects.forEach { subject ->
                     DropdownMenuItem(
