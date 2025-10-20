@@ -652,15 +652,21 @@ private fun PastDebtorsCollapsible(
     } else {
         stringResource(R.string.today_debtors_past_subtitle, lessons.size)
     }
-    CollapsibleSection(
-        title = stringResource(R.string.today_debtors_past_title),
-        subtitle = subtitle
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SectionHeader(text = stringResource(R.string.today_debtors_past_title))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         if (lessons.isEmpty()) {
             Text(
                 text = stringResource(R.string.today_debtors_past_empty),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         } else {
             LessonsList(
@@ -674,6 +680,7 @@ private fun PastDebtorsCollapsible(
             )
         }
         if (hasMore) {
+            Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = onOpenDebtors) {
                 Text(text = stringResource(R.string.today_debtors_more_cta))
             }
