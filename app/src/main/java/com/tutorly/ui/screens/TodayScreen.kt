@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -669,7 +670,8 @@ private fun PastDebtorsCollapsible(
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
-                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                showLessonDate = true
             )
         }
         if (hasMore) {
@@ -740,7 +742,8 @@ private fun LessonsList(
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -752,7 +755,8 @@ private fun LessonsList(
                 onSwipeLeft = onSwipeLeft,
                 onClick = { onLessonOpen(lesson.id) },
                 onLongPress = { onOpenStudentProfile(lesson.studentId) },
-                cardElevation = cardElevation
+                cardElevation = cardElevation,
+                showLessonDate = showLessonDate
             )
         }
     }
@@ -766,7 +770,8 @@ private fun TodayLessonRow(
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -795,7 +800,8 @@ private fun TodayLessonRow(
                     onClick = onClick,
                     onLongClick = onLongPress
                 ),
-            cardElevation = cardElevation
+            cardElevation = cardElevation,
+            showLessonDate = showLessonDate
         )
     }
 }
@@ -844,7 +850,8 @@ private fun LessonCard(
     lesson: LessonForToday,
     modifier: Modifier = Modifier,
     cardColors: CardColors = TutorlyCardDefaults.colors(containerColor = Color.White),
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false
 ) {
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -853,6 +860,9 @@ private fun LessonCard(
     val timeText = remember(startTime) { timeFormatter.format(startTime) }
     val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
     val amount = remember(lesson.priceCents) { formatCurrency(lesson.priceCents.toLong(), currencyFormatter) }
+    val locale = remember { Locale.getDefault() }
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("EEE, d MMM", locale) }
+    val lessonDateLabel = remember(lesson.startAt) { dateFormatter.format(lesson.startAt.atZone(zoneId)) }
     val studentName = remember(lesson.studentName) { lesson.studentName }
     val normalizedLessonTitle = lesson.lessonTitle
         ?.takeIf { it.isNotBlank() }
@@ -915,6 +925,9 @@ private fun LessonCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (showLessonDate) {
+                    LessonMetaPill(text = lessonDateLabel)
+                }
                 LessonMetaPill(text = timeText)
                 LessonMetaPill(text = durationLabel)
                 LessonMetaPill(text = amount)
@@ -986,6 +999,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, MaterialTheme.extendedColors.chipSelected),
         modifier = modifier
     ) {
         Text(
