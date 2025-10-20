@@ -133,7 +133,6 @@ fun LessonCreationSheet(
     onDismiss: () -> Unit,
     onStudentQueryChange: (String) -> Unit,
     onStudentSelect: (Long) -> Unit,
-    onAddStudent: () -> Unit,
     onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long) -> Unit,
     onSubjectSuggestionToggle: (String) -> Unit,
@@ -173,8 +172,7 @@ fun LessonCreationSheet(
                 StudentSection(
                     state = state,
                     onQueryChange = onStudentQueryChange,
-                    onStudentSelect = onStudentSelect,
-                    onAddStudent = onAddStudent
+                    onStudentSelect = onStudentSelect
                 )
                 TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
                 DurationSection(state = state, onDurationChange = onDurationChange)
@@ -219,8 +217,7 @@ private fun SheetHeader(onDismiss: () -> Unit) {
 private fun StudentSection(
     state: LessonCreationUiState,
     onQueryChange: (String) -> Unit,
-    onStudentSelect: (Long) -> Unit,
-    onAddStudent: () -> Unit
+    onStudentSelect: (Long) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         val selectedName = state.selectedStudent?.name ?: state.studentQuery
@@ -272,11 +269,6 @@ private fun StudentSection(
                     showSuggestions = false
                     onStudentSelect(option.id)
                     coroutineScope.launch { focusRequester.requestFocus() }
-                },
-                onAddStudent = {
-                    showSuggestions = false
-                    onAddStudent()
-                    coroutineScope.launch { focusRequester.requestFocus() }
                 }
             )
         }
@@ -291,23 +283,13 @@ private fun StudentSection(
 private fun SuggestionList(
     students: List<StudentOption>,
     selectedStudentId: Long?,
-    onStudentClick: (StudentOption) -> Unit,
-    onAddStudent: () -> Unit
+    onStudentClick: (StudentOption) -> Unit
 ) {
     if (students.isEmpty()) {
-        SuggestionContainer {
-            SuggestionItem(onClick = onAddStudent) {
-                Text(text = stringResource(id = R.string.lesson_create_new_student))
-            }
-        }
         return
     }
 
     SuggestionContainer {
-        SuggestionItem(onClick = onAddStudent) {
-            Text(text = stringResource(id = R.string.lesson_create_new_student))
-        }
-
         students.forEach { option ->
             SuggestionItem(onClick = { onStudentClick(option) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

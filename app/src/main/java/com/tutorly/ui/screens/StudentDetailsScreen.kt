@@ -182,11 +182,6 @@ fun StudentDetailsScreen(
         onDismiss = { creationViewModel.dismiss() },
         onStudentQueryChange = creationViewModel::onStudentQueryChange,
         onStudentSelect = creationViewModel::onStudentSelected,
-        onAddStudent = {
-            creationViewModel.prepareForStudentCreation()
-            creationViewModel.dismiss()
-            onAddStudentFromCreation()
-        },
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onSubjectSuggestionToggle = creationViewModel::onSubjectSuggestionToggled,
