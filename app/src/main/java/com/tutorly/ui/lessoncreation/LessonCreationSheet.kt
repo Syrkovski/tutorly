@@ -841,7 +841,7 @@ private fun ActionButtons(
 ) {
     androidx.compose.material3.Button(
         onClick = onSubmit,
-        enabled = !state.isSubmitting && state.selectedStudent != null,
+        enabled = !state.isSubmitting,
         modifier = Modifier.fillMaxWidth()
     ) {
         if (state.isSubmitting) {
