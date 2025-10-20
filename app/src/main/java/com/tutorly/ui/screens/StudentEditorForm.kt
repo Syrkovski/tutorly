@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -105,13 +104,6 @@ fun StudentEditorForm(
     val messengerFocusRequester = remember { FocusRequester() }
     val noteFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
-    var isGradeDropdownExpanded by remember { mutableStateOf(false) }
-    val gradeOtherOption = stringResource(id = R.string.student_editor_grade_other)
-    val gradeNumbers = remember { (9..11).toList() }
-    val gradeOptions = gradeNumbers.map { number ->
-        stringResource(id = R.string.student_editor_grade_option, number)
-    } + gradeOtherOption
-
     LaunchedEffect(initialFocus, enabled) {
         if (enabled) {
             when (initialFocus) {
@@ -167,10 +159,6 @@ fun StudentEditorForm(
                 enabled = enabled,
                 nameFocusRequester = nameFocusRequester,
                 gradeFocusRequester = gradeFocusRequester,
-                isGradeDropdownExpanded = isGradeDropdownExpanded,
-                onGradeDropdownExpandedChange = { isGradeDropdownExpanded = it },
-                gradeOptions = gradeOptions,
-                gradeOtherOption = gradeOtherOption,
                 isStandalone = !showFullForm && editTarget == StudentEditTarget.PROFILE,
                 onSubmit = onSubmit
             )
@@ -243,10 +231,6 @@ private fun ProfileSection(
     enabled: Boolean,
     nameFocusRequester: FocusRequester,
     gradeFocusRequester: FocusRequester,
-    isGradeDropdownExpanded: Boolean,
-    onGradeDropdownExpandedChange: (Boolean) -> Unit,
-    gradeOptions: List<String>,
-    gradeOtherOption: String,
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
 ) {
@@ -291,80 +275,32 @@ private fun ProfileSection(
             onSubmit = onSubmit
         )
 
-        var gradeFieldSize by remember { mutableStateOf(IntSize.Zero) }
-        val gradeDropdownWidth = with(LocalDensity.current) { gradeFieldSize.width.toDp() }
-        val gradeDropdownModifier = if (gradeDropdownWidth > 0.dp) Modifier.width(gradeDropdownWidth) else Modifier
-        Box {
-            OutlinedTextField(
-                value = state.grade,
-                onValueChange = onGradeChange,
-                label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { gradeFieldSize = it.size }
-                    .focusRequester(gradeFocusRequester)
-                    .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
-                            onGradeDropdownExpandedChange(false)
-                        } else if (enabled) {
-                            onGradeDropdownExpandedChange(true)
-                        }
-                    },
-                singleLine = true,
-                enabled = enabled,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.School,
-                        contentDescription = null,
-                        tint = iconTint
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { onGradeDropdownExpandedChange(!isGradeDropdownExpanded) },
-                        enabled = enabled
-                    ) {
-                        Icon(
-                            imageVector = if (isGradeDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null,
-                            tint = iconTint
-                        )
-                    }
-                },
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
-                ),
-                keyboardActions = if (isStandalone) {
-                    KeyboardActions(onDone = { onSubmit?.invoke() })
-                } else {
-                    KeyboardActions.Default
-                },
-                colors = textFieldColors
-            )
-
-            DropdownMenu(
-                expanded = isGradeDropdownExpanded,
-                onDismissRequest = { onGradeDropdownExpandedChange(false) },
-                modifier = gradeDropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                gradeOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(text = option) },
-                        onClick = {
-                            onGradeDropdownExpandedChange(false)
-                            if (option == gradeOtherOption) {
-                                onGradeChange("")
-                                gradeFocusRequester.requestFocus()
-                            } else {
-                                onGradeChange(option)
-                            }
-                        },
-                        enabled = enabled
-                    )
-                }
-            }
-        }
+        OutlinedTextField(
+            value = state.grade,
+            onValueChange = onGradeChange,
+            label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(gradeFocusRequester),
+            singleLine = true,
+            enabled = enabled,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.School,
+                    contentDescription = null,
+                    tint = iconTint
+                )
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+            ),
+            keyboardActions = if (isStandalone) {
+                KeyboardActions(onDone = { onSubmit?.invoke() })
+            } else {
+                KeyboardActions.Default
+            },
+            colors = textFieldColors
+        )
     }
 }
 @OptIn(ExperimentalLayoutApi::class)
@@ -705,85 +641,38 @@ private fun RateSection(
     onSubmit: (() -> Unit)?,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
-    var isRateDropdownExpanded by remember { mutableStateOf(false) }
-    var rateFieldSize by remember { mutableStateOf(IntSize.Zero) }
-    val rateDropdownWidth = with(LocalDensity.current) { rateFieldSize.width.toDp() }
-    val rateDropdownModifier = if (rateDropdownWidth > 0.dp) Modifier.width(rateDropdownWidth) else Modifier
-    val rateOptions = remember { listOf(1500, 2000, 2500, 3000) }
     val textFieldColors = editorFieldColors()
 
-    Box {
-        OutlinedTextField(
-            value = rate,
-            onValueChange = onRateChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .onGloballyPositioned { rateFieldSize = it.size },
-            singleLine = true,
-            enabled = enabled,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.CurrencyRuble,
-                    contentDescription = null,
-                    tint = iconTint
-                )
-            },
-            trailingIcon = {
-                IconButton(
-                    onClick = { isRateDropdownExpanded = !isRateDropdownExpanded },
-                    enabled = enabled
-                ) {
-                    Icon(
-                        imageVector = if (isRateDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                        contentDescription = null,
-                        tint = iconTint
-                    )
-                }
-            },
-            supportingText = {
-                Text(text = stringResource(id = R.string.student_editor_rate_support))
-            },
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
-            ),
-            keyboardActions = if (isStandalone) {
-                KeyboardActions(onDone = { onSubmit?.invoke() })
-            } else {
-                KeyboardActions.Default
-            },
-            colors = textFieldColors
-        )
-
-        DropdownMenu(
-            expanded = isRateDropdownExpanded,
-            onDismissRequest = { isRateDropdownExpanded = false },
-            modifier = rateDropdownModifier,
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            rateOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = stringResource(id = R.string.student_editor_rate_option_value, option)) },
-                    onClick = {
-                        onRateChange(option.toString())
-                        isRateDropdownExpanded = false
-                    },
-                    enabled = enabled
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(text = stringResource(id = R.string.student_editor_rate_option_other)) },
-                onClick = {
-                    isRateDropdownExpanded = false
-                    onRateChange("")
-                    focusRequester.tryRequestFocus()
-                },
-                enabled = enabled
+    OutlinedTextField(
+        value = rate,
+        onValueChange = onRateChange,
+        label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        singleLine = true,
+        enabled = enabled,
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Outlined.CurrencyRuble,
+                contentDescription = null,
+                tint = iconTint
             )
-        }
-    }
+        },
+        supportingText = {
+            Text(text = stringResource(id = R.string.student_editor_rate_support))
+        },
+        keyboardOptions = KeyboardOptions.Default.copy(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+        ),
+        keyboardActions = if (isStandalone) {
+            KeyboardActions(onDone = { onSubmit?.invoke() })
+        } else {
+            KeyboardActions.Default
+        },
+        colors = textFieldColors
+    )
 }
 
 @Composable
