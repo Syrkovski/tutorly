@@ -485,7 +485,6 @@ private fun SubjectSection(
                         },
                         trailingIcon = null,
                         supportingText = null,
-                        shape = OutlinedTextFieldDefaults.shape,
                         singleLine = true,
                         enabled = true,
                         isError = state.errors.containsKey(LessonCreationField.SUBJECT),

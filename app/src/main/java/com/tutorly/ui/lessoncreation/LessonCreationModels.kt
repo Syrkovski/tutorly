@@ -46,6 +46,7 @@ data class LessonCreationConfig(
 
 enum class LessonCreationField {
     STUDENT,
+    SUBJECT,
     TIME,
     DURATION,
     PRICE
