@@ -167,6 +167,7 @@ fun AppNavRoot() {
                     val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
                     CalendarScreen(
                         onAddStudent = {
+                            creationViewModel.prepareForStudentCreation()
                             nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
                                 launchSingleTop = true
                             }
@@ -210,6 +211,7 @@ fun AppNavRoot() {
                     val calendarEntry =
                         remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
                     val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
+                    val creationState by creationViewModel.uiState.collectAsState()
                     val originName = entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
                     val origin =
                         runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(
@@ -251,6 +253,8 @@ fun AppNavRoot() {
                             }
                         },
                         initialEditorOrigin = origin,
+                        initialStudentName = creationState.studentQuery,
+                        initialStudentGrade = creationState.studentGrade,
                         sharedTransitionScope = sharedScope,
                         animatedVisibilityScope = this
                     )

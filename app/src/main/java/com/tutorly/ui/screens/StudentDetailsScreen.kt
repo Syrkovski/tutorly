@@ -165,6 +165,7 @@ fun StudentDetailsScreen(
         onStudentSelect = lessonCardViewModel::onStudentSelected,
         onAddStudent = {
             lessonCardViewModel.dismiss()
+            creationViewModel.prepareForStudentCreation()
             onAddStudentFromCreation()
         },
         onDateSelect = lessonCardViewModel::onDateSelected,
@@ -181,6 +182,7 @@ fun StudentDetailsScreen(
         state = creationState,
         onDismiss = { creationViewModel.dismiss() },
         onStudentQueryChange = creationViewModel::onStudentQueryChange,
+        onStudentGradeChange = creationViewModel::onStudentGradeChanged,
         onStudentSelect = creationViewModel::onStudentSelected,
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,

@@ -124,6 +124,7 @@ class LessonCreationViewModel @Inject constructor(
                 studentQuery = "",
                 students = students,
                 selectedStudent = null,
+                studentGrade = config.studentGrade?.trim().orEmpty(),
                 subjects = subjectOptions,
                 availableSubjects = subjectOptions,
                 selectedSubjectId = null,
@@ -157,6 +158,7 @@ class LessonCreationViewModel @Inject constructor(
             start = ZonedDateTime.of(state.date, state.time, currentZone),
             duration = Duration.ofMinutes(state.durationMinutes.toLong()),
             studentId = null,
+            studentGrade = state.studentGrade.trim().ifBlank { null },
             subjectId = state.selectedSubjectId,
             note = state.note,
             zoneId = currentZone,
@@ -183,6 +185,10 @@ class LessonCreationViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun onStudentGradeChanged(value: String) {
+        _uiState.update { it.copy(studentGrade = value) }
     }
 
     fun onStudentSelected(studentId: Long) {
@@ -247,6 +253,7 @@ class LessonCreationViewModel @Inject constructor(
                 selectedStudent = selected,
                 students = mergeStudentOption(it.students, selected),
                 studentQuery = selected.name,
+                studentGrade = selected.grade.orEmpty(),
                 selectedSubjectId = resolvedSubjectId,
                 selectedSubjectChips = nextChips,
                 durationMinutes = duration,
@@ -691,6 +698,7 @@ private fun Student.toOption(): StudentOption {
         id = id,
         name = name,
         rateCents = rateCents,
+        grade = grade?.takeIf { it.isNotBlank() }?.trim(),
         subjects = subjects
     )
 }

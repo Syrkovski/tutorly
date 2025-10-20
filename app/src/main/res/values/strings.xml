@@ -159,6 +159,7 @@
     <string name="lesson_create_title">Добавить занятие</string>
     <string name="lesson_create_student_label">Ученик</string>
     <string name="lesson_create_student_placeholder">Начните вводить имя</string>
+    <string name="lesson_create_student_grade_label">Класс</string>
     <string name="lesson_create_subject_label">Предмет</string>
     <string name="lesson_create_subject_empty">Для ученика не найдены предметы</string>
     <string name="lesson_create_duration_label">Длительность</string>

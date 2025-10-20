@@ -132,6 +132,7 @@ fun LessonCreationSheet(
     state: LessonCreationUiState,
     onDismiss: () -> Unit,
     onStudentQueryChange: (String) -> Unit,
+    onStudentGradeChange: (String) -> Unit,
     onStudentSelect: (Long) -> Unit,
     onSubjectInputChange: (String) -> Unit,
     onSubjectSelect: (Long) -> Unit,
@@ -172,6 +173,7 @@ fun LessonCreationSheet(
                 StudentSection(
                     state = state,
                     onQueryChange = onStudentQueryChange,
+                    onGradeChange = onStudentGradeChange,
                     onStudentSelect = onStudentSelect
                 )
                 TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
@@ -217,6 +219,7 @@ private fun SheetHeader(onDismiss: () -> Unit) {
 private fun StudentSection(
     state: LessonCreationUiState,
     onQueryChange: (String) -> Unit,
+    onGradeChange: (String) -> Unit,
     onStudentSelect: (Long) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
@@ -229,6 +232,16 @@ private fun StudentSection(
         val coroutineScope = rememberCoroutineScope()
         val students = state.students
         val hasSuggestions = students.isNotEmpty()
+        val fieldColors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            disabledContainerColor = MaterialTheme.colorScheme.surface,
+            errorContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+            disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+            errorBorderColor = MaterialTheme.colorScheme.error
+        )
 
         LaunchedEffect(students) {
             if (students.isEmpty()) {
@@ -258,16 +271,7 @@ private fun StudentSection(
                     Icon(imageVector = Icons.Filled.Person, contentDescription = null)
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surface,
-                    errorContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
-                    errorBorderColor = MaterialTheme.colorScheme.error
-                )
+                colors = fieldColors
             )
 
             DropdownMenu(
@@ -287,9 +291,16 @@ private fun StudentSection(
                                     style = LocalTextStyle.current,
                                     maxLines = 1
                                 )
-                                if (option.subjects.isNotEmpty()) {
+                                val grade = option.grade?.takeIf { it.isNotBlank() }
+                                val subtitleParts = buildList {
+                                    grade?.let { add(it) }
+                                    if (option.subjects.isNotEmpty()) {
+                                        add(option.subjects.joinToString(separator = ", "))
+                                    }
+                                }.filter { it.isNotBlank() }
+                                if (subtitleParts.isNotEmpty()) {
                                     Text(
-                                        text = option.subjects.joinToString(separator = ", "),
+                                        text = subtitleParts.joinToString(separator = " • "),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 2
@@ -319,6 +330,18 @@ private fun StudentSection(
         state.errors[LessonCreationField.STUDENT]?.let { message ->
             ErrorText(message)
         }
+
+        OutlinedTextField(
+            value = state.studentGrade,
+            onValueChange = onGradeChange,
+            label = { Text(text = stringResource(id = R.string.lesson_create_student_grade_label)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Description, contentDescription = null)
+            },
+            colors = fieldColors
+        )
     }
 }
 

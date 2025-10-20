@@ -13,6 +13,7 @@ data class LessonCreationUiState(
     val studentQuery: String = "",
     val students: List<StudentOption> = emptyList(),
     val selectedStudent: StudentOption? = null,
+    val studentGrade: String = "",
     val subjects: List<SubjectOption> = emptyList(),
     val availableSubjects: List<SubjectOption> = emptyList(),
     val selectedSubjectId: Long? = null,
@@ -38,6 +39,7 @@ data class LessonCreationConfig(
     val start: ZonedDateTime? = null,
     val duration: Duration? = null,
     val studentId: Long? = null,
+    val studentGrade: String? = null,
     val subjectId: Long? = null,
     val note: String? = null,
     val zoneId: ZoneId? = null,
@@ -75,6 +77,7 @@ data class StudentOption(
     val id: Long,
     val name: String,
     val rateCents: Int?,
+    val grade: String?,
     val subjects: List<String> = emptyList()
 )
 
