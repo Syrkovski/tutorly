@@ -126,7 +126,7 @@ class StudentEditorVM @Inject constructor(
             rateInput
         }
         val trimmedSubject = formState.subject.trim().ifBlank { null }
-        val trimmedGrade = formState.grade.trim().ifBlank { null }
+        val normalizedGrade = normalizeGrade(formState.grade)
         val trimmedNote = formState.note.trim().ifBlank { null }
 
         viewModelScope.launch {
@@ -137,7 +137,7 @@ class StudentEditorVM @Inject constructor(
                 messenger = trimmedMessenger.orEmpty(),
                 rate = normalizedRate,
                 subject = trimmedSubject.orEmpty(),
-                grade = trimmedGrade.orEmpty(),
+                grade = normalizedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
                 nameError = false
             )
@@ -147,7 +147,7 @@ class StudentEditorVM @Inject constructor(
                 messenger = trimmedMessenger,
                 rateCents = parsedRate,
                 subject = trimmedSubject,
-                grade = trimmedGrade,
+                grade = normalizedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
@@ -157,7 +157,7 @@ class StudentEditorVM @Inject constructor(
                 messenger = trimmedMessenger,
                 rateCents = parsedRate,
                 subject = trimmedSubject,
-                grade = trimmedGrade,
+                grade = normalizedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
@@ -183,7 +183,7 @@ class StudentEditorVM @Inject constructor(
         messenger = messenger.orEmpty(),
         rate = formatMoneyInput(rateCents),
         subject = subject.orEmpty(),
-        grade = grade.orEmpty(),
+        grade = normalizeGrade(grade).orEmpty(),
         note = note.orEmpty(),
         isArchived = isArchived,
         isActive = active,

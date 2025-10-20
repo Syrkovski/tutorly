@@ -200,7 +200,7 @@ class StudentsViewModel @Inject constructor(
         val trimmedPhone = state.phone.trim().ifBlank { null }
         val trimmedMessenger = state.messenger.trim().ifBlank { null }
         val trimmedSubject = state.subject.trim().ifBlank { null }
-        val trimmedGrade = state.grade.trim().ifBlank { null }
+        val normalizedGrade = normalizeGrade(state.grade)
         val trimmedNote = state.note.trim().ifBlank { null }
         val rateInput = state.rate.trim()
         val parsedRate = parseMoneyInput(rateInput)
@@ -220,7 +220,7 @@ class StudentsViewModel @Inject constructor(
                     messenger = trimmedMessenger.orEmpty(),
                     rate = normalizedRate,
                     subject = trimmedSubject.orEmpty(),
-                    grade = trimmedGrade.orEmpty(),
+                    grade = normalizedGrade.orEmpty(),
                     note = trimmedNote.orEmpty(),
                     nameError = false,
                     isSaving = true
@@ -244,7 +244,7 @@ class StudentsViewModel @Inject constructor(
                     messenger = trimmedMessenger,
                     rateCents = parsedRate,
                     subject = trimmedSubject,
-                    grade = trimmedGrade,
+                    grade = normalizedGrade,
                     note = trimmedNote,
                     isArchived = state.isArchived,
                     active = state.isActive,
@@ -268,7 +268,7 @@ class StudentsViewModel @Inject constructor(
                     messenger = trimmedMessenger,
                     rateCents = parsedRate,
                     subject = trimmedSubject,
-                    grade = trimmedGrade,
+                    grade = normalizedGrade,
                     note = trimmedNote,
                     isArchived = state.isArchived,
                     active = state.isActive,
@@ -420,9 +420,7 @@ class StudentsViewModel @Inject constructor(
                 ?.firstOrNull { it.isNotBlank() }
                 ?.trim()
 
-        val grade = student.grade
-            ?.takeIf { it.isNotBlank() }
-            ?.trim()
+        val grade = normalizeGrade(student.grade)
             ?: student.note.extractGrade()
 
         return StudentCardProfile(subject = subject, grade = grade)
