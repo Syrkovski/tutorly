@@ -398,31 +398,20 @@ private fun CalendarTopBar(
                 .fillMaxWidth()
                 .height(80.dp)
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(id = R.string.calendar_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+            CalendarModeToggle(
+                selected = displayMode,
+                onSelect = onSelectMode
             )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CalendarModeToggle(
-                    selected = displayMode,
-                    onSelect = onSelectMode
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = stringResource(id = R.string.calendar_open_settings),
+                    tint = Color.White
                 )
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = stringResource(id = R.string.calendar_open_settings)
-                    )
-                }
             }
         }
     }
@@ -583,7 +572,7 @@ fun PlanScreenHeader(
                 Surface(
                     onClick = { showDatePicker = true },
                     shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = Color.White,
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     tonalElevation = 2.dp,
                     shadowElevation = 4.dp
