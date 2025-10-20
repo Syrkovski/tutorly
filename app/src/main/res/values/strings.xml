@@ -161,7 +161,6 @@
     <string name="lesson_create_student_placeholder">Начните вводить имя</string>
     <string name="lesson_create_new_student">+ Новый ученик</string>
     <string name="lesson_create_subject_label">Предмет</string>
-    <string name="lesson_create_subject_placeholder">Выберите ученика, чтобы выбрать предмет</string>
     <string name="lesson_create_subject_empty">Для ученика не найдены предметы</string>
     <string name="lesson_create_duration_label">Длительность</string>
     <string name="lesson_create_duration_chip">%1$d</string>

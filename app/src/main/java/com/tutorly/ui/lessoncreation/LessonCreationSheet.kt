@@ -387,9 +387,6 @@ private fun SubjectSection(
                         expanded = focusState.isFocused && hasSuggestions
                     },
                 label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
-                placeholder = {
-                    Text(text = stringResource(id = R.string.lesson_create_subject_placeholder))
-                },
                 singleLine = true,
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Book, contentDescription = null)
