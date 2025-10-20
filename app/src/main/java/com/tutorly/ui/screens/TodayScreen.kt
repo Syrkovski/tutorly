@@ -856,7 +856,7 @@ private fun LessonCard(
     val subjectTitle = lesson.lessonTitle?.takeIf { it.isNotBlank() }?.trim()
         ?: lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
         ?: stringResource(id = R.string.lesson_card_subject_placeholder)
-    val grade = lesson.studentGrade?.takeIf { it.isNotBlank() }?.trim()
+    val grade = normalizeGrade(lesson.studentGrade)
     val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
     val durationLabel = stringResource(R.string.today_duration_format, durationMinutes)
     val isFutureLesson = remember(lesson.startAt) { lesson.startAt.isAfter(Instant.now()) }

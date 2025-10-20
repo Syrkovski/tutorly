@@ -816,7 +816,9 @@ private fun LessonBlock(
 
     val statusInfo = lesson.statusPresentation(now)
     val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
-        listOfNotNull(lesson.studentGrade, lesson.subjectName)
+        val grade = normalizeGrade(lesson.studentGrade)
+        val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
+        listOfNotNull(grade, subject)
             .takeIf { it.isNotEmpty() }
             ?.joinToString(separator = " • ")
     }

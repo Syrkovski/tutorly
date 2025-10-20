@@ -11,6 +11,7 @@ import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.UserProfile
+import com.tutorly.ui.screens.normalizeGrade
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.Duration
@@ -250,7 +251,7 @@ private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
         studentName = studentName,
         studentNote = studentNote,
         subjectName = subjectName,
-        studentGrade = studentGrade,
+        studentGrade = normalizeGrade(studentGrade),
         lessonTitle = lessonTitle,
         lessonNote = lessonNote,
         paymentStatus = paymentStatus,
