@@ -890,6 +890,26 @@ private fun LessonCard(
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (showLessonDate) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = lessonDateLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PaymentStatusChip(
+                        status = lesson.paymentStatus,
+                        isFutureLesson = isFutureLesson
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -914,20 +934,13 @@ private fun LessonCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (showLessonDate) {
-                        Text(
-                            text = lessonDateLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
                 }
-                PaymentStatusChip(
-                    status = lesson.paymentStatus,
-                    isFutureLesson = isFutureLesson
-                )
+                if (!showLessonDate) {
+                    PaymentStatusChip(
+                        status = lesson.paymentStatus,
+                        isFutureLesson = isFutureLesson
+                    )
+                }
             }
             androidx.compose.foundation.layout.FlowRow(
                 modifier = Modifier.fillMaxWidth(),
