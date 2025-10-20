@@ -914,6 +914,15 @@ private fun LessonCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    if (showLessonDate) {
+                        Text(
+                            text = lessonDateLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 PaymentStatusChip(
                     status = lesson.paymentStatus,
@@ -925,9 +934,6 @@ private fun LessonCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (showLessonDate) {
-                    LessonMetaPill(text = lessonDateLabel)
-                }
                 LessonMetaPill(text = timeText)
                 LessonMetaPill(text = durationLabel)
                 LessonMetaPill(text = amount)
