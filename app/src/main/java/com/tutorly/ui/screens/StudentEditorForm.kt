@@ -1,12 +1,12 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ExperimentalLayoutApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -14,18 +14,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,28 +36,30 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalTextStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
+import com.tutorly.models.SubjectPreset
+import com.tutorly.ui.subject.SubjectSuggestionDefaults
 import com.tutorly.ui.theme.extendedColors
+import java.util.LinkedHashSet
 import java.util.Locale
 
 @Composable
@@ -82,6 +86,7 @@ fun StudentEditorForm(
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
     onRateChange: (String) -> Unit,
+    subjectPresets: List<SubjectPreset> = emptyList(),
     onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -99,13 +104,6 @@ fun StudentEditorForm(
     val messengerFocusRequester = remember { FocusRequester() }
     val noteFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
-    var isGradeDropdownExpanded by remember { mutableStateOf(false) }
-    val gradeOtherOption = stringResource(id = R.string.student_editor_grade_other)
-    val gradeNumbers = remember { (9..11).toList() }
-    val gradeOptions = gradeNumbers.map { number ->
-        stringResource(id = R.string.student_editor_grade_option, number)
-    } + gradeOtherOption
-
     LaunchedEffect(initialFocus, enabled) {
         if (enabled) {
             when (initialFocus) {
@@ -154,16 +152,13 @@ fun StudentEditorForm(
         if (showFullForm || editTarget == StudentEditTarget.PROFILE) {
             ProfileSection(
                 state = state,
+                subjectPresets = subjectPresets,
                 onNameChange = onNameChange,
                 onSubjectChange = onSubjectChange,
                 onGradeChange = onGradeChange,
                 enabled = enabled,
                 nameFocusRequester = nameFocusRequester,
                 gradeFocusRequester = gradeFocusRequester,
-                isGradeDropdownExpanded = isGradeDropdownExpanded,
-                onGradeDropdownExpandedChange = { isGradeDropdownExpanded = it },
-                gradeOptions = gradeOptions,
-                gradeOtherOption = gradeOtherOption,
                 isStandalone = !showFullForm && editTarget == StudentEditTarget.PROFILE,
                 onSubmit = onSubmit
             )
@@ -229,70 +224,18 @@ fun StudentEditorForm(
 @Composable
 private fun ProfileSection(
     state: StudentEditorFormState,
+    subjectPresets: List<SubjectPreset>,
     onNameChange: (String) -> Unit,
     onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     enabled: Boolean,
     nameFocusRequester: FocusRequester,
     gradeFocusRequester: FocusRequester,
-    isGradeDropdownExpanded: Boolean,
-    onGradeDropdownExpandedChange: (Boolean) -> Unit,
-    gradeOptions: List<String>,
-    gradeOtherOption: String,
     isStandalone: Boolean,
     onSubmit: (() -> Unit)?,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
-    val popularSubjects = listOf(
-        stringResource(id = R.string.student_editor_subject_math),
-        stringResource(id = R.string.student_editor_subject_russian),
-        stringResource(id = R.string.student_editor_subject_english),
-        stringResource(id = R.string.student_editor_subject_physics),
-        stringResource(id = R.string.student_editor_subject_chemistry),
-        stringResource(id = R.string.student_editor_subject_it)
-    )
-    var isSubjectDropdownExpanded by remember { mutableStateOf(false) }
-    var selectedSubjects by remember { mutableStateOf<List<String>>(emptyList()) }
-    var customSubjects by remember { mutableStateOf("") }
-    var isOtherSelected by remember { mutableStateOf(false) }
-    val customSubjectFocusRequester = remember { FocusRequester() }
     val textFieldColors = editorFieldColors()
-
-    LaunchedEffect(state.subject) {
-        val normalizedOptions = popularSubjects.associateBy { it.lowercase(Locale.getDefault()) }
-        val tokens = state.subject.split(',')
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-        val preset = mutableListOf<String>()
-        val others = mutableListOf<String>()
-        tokens.forEach { token ->
-            val match = normalizedOptions[token.lowercase(Locale.getDefault())]
-            if (match != null) {
-                if (!preset.contains(match)) {
-                    preset.add(match)
-                }
-            } else {
-                others.add(token)
-            }
-        }
-        selectedSubjects = popularSubjects.filter { preset.contains(it) }
-        val othersValue = others.joinToString(", ")
-        customSubjects = othersValue
-        isOtherSelected = othersValue.isNotBlank()
-    }
-
-    LaunchedEffect(isOtherSelected, enabled) {
-        if (enabled && isOtherSelected) {
-            customSubjectFocusRequester.safeRequestFocus()
-        }
-    }
-
-    val displayedSubjects = remember(selectedSubjects, customSubjects) {
-        buildSubjectValue(selectedSubjects, customSubjects)
-    }
-    var subjectFieldSize by remember { mutableStateOf(IntSize.Zero) }
-    val subjectDropdownWidth = with(LocalDensity.current) { subjectFieldSize.width.toDp() }
-    val subjectDropdownModifier = if (subjectDropdownWidth > 0.dp) Modifier.width(subjectDropdownWidth) else Modifier
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
             value = state.name,
@@ -322,212 +265,370 @@ private fun ProfileSection(
             )
         }
 
-        Box {
-            OutlinedTextField(
-                value = displayedSubjects,
-                onValueChange = {},
-                label = { Text(text = stringResource(id = R.string.student_editor_subject)) },
-                placeholder = { Text(text = stringResource(id = R.string.student_editor_subject_placeholder)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { subjectFieldSize = it.size }
-                    .onFocusChanged { focusState ->
-                        if (enabled && focusState.isFocused) {
-                            isSubjectDropdownExpanded = true
-                        }
-                    },
-                singleLine = true,
-                enabled = enabled,
-                readOnly = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Book,
-                        contentDescription = null,
-                        tint = iconTint
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { isSubjectDropdownExpanded = !isSubjectDropdownExpanded },
-                        enabled = enabled
-                    ) {
-                        Icon(
-                            imageVector = if (isSubjectDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null,
-                            tint = iconTint
-                        )
-                    }
-                },
-                supportingText = {
-                    Text(text = stringResource(id = R.string.student_editor_subject_support))
-                },
-                colors = textFieldColors
-            )
+        SubjectSelector(
+            studentId = state.studentId,
+            subjectValue = state.subject,
+            subjectPresets = subjectPresets,
+            onSubjectChange = onSubjectChange,
+            enabled = enabled,
+            isStandalone = isStandalone,
+            onSubmit = onSubmit
+        )
 
-            DropdownMenu(
-                expanded = isSubjectDropdownExpanded,
-                onDismissRequest = { isSubjectDropdownExpanded = false },
-                modifier = subjectDropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                popularSubjects.forEach { option ->
-                    val isSelected = selectedSubjects.contains(option)
-                    DropdownMenuItem(
-                        text = { Text(text = option) },
-                        onClick = {
-                            val updated = if (isSelected) {
-                                selectedSubjects.filterNot { it == option }
-                            } else {
-                                val current = selectedSubjects.toMutableList()
-                                if (!current.contains(option)) {
-                                    current.add(option)
-                                }
-                                current
-                            }
-                            val ordered = popularSubjects.filter { updated.contains(it) }
-                            selectedSubjects = ordered
-                            onSubjectChange(buildSubjectValue(ordered, customSubjects))
-                        },
-                        leadingIcon = {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null,
-                                enabled = enabled
-                            )
-                        },
-                        enabled = enabled
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(text = stringResource(id = R.string.student_editor_subject_other_option)) },
-                    onClick = {
-                        val newValue = !isOtherSelected
-                        isOtherSelected = newValue
-                        if (!newValue) {
-                            customSubjects = ""
-                            onSubjectChange(buildSubjectValue(selectedSubjects, ""))
-                        }
-                    },
-                    leadingIcon = {
-                        Checkbox(
-                            checked = isOtherSelected,
-                            onCheckedChange = null,
-                            enabled = enabled
-                        )
-                    },
-                    enabled = enabled
+        OutlinedTextField(
+            value = state.grade,
+            onValueChange = onGradeChange,
+            label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(gradeFocusRequester),
+            singleLine = true,
+            enabled = enabled,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.School,
+                    contentDescription = null,
+                    tint = iconTint
                 )
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+            ),
+            keyboardActions = if (isStandalone) {
+                KeyboardActions(onDone = { onSubmit?.invoke() })
+            } else {
+                KeyboardActions.Default
+            },
+            colors = textFieldColors
+        )
+    }
+}
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SubjectSelector(
+    studentId: Long?,
+    subjectValue: String,
+    subjectPresets: List<SubjectPreset>,
+    onSubjectChange: (String) -> Unit,
+    enabled: Boolean,
+    isStandalone: Boolean,
+    onSubmit: (() -> Unit)?,
+) {
+    val locale = remember { Locale.getDefault() }
+    var subjectInput by remember { mutableStateOf("") }
+    var selectedChips by remember { mutableStateOf<List<StudentSubjectChip>>(emptyList()) }
+    var expanded by remember { mutableStateOf(false) }
+    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
+    val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
+    val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+    val interactionSource = remember { MutableInteractionSource() }
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surface,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
+        errorContainerColor = MaterialTheme.colorScheme.surface,
+        focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+        errorBorderColor = MaterialTheme.colorScheme.error
+    )
+    val presetLookup = remember(subjectPresets, locale) {
+        subjectPresets.associateBy { it.name.lowercase(locale) }
+    }
+
+    LaunchedEffect(studentId) { subjectInput = "" }
+
+    LaunchedEffect(subjectValue, subjectPresets) {
+        val tokens = subjectValue.split(',')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        val chips = tokens.map { token ->
+            val preset = presetLookup[token.lowercase(locale)]
+            if (preset != null) {
+                preset.toChip()
+            } else {
+                StudentSubjectChip(id = null, name = token, colorArgb = null)
             }
         }
+        selectedChips = chips
+        subjectInput = ""
+    }
 
-        if (isOtherSelected) {
-            OutlinedTextField(
-                value = customSubjects,
-                onValueChange = {
-                    customSubjects = it
-                    onSubjectChange(buildSubjectValue(selectedSubjects, it))
-                },
-                label = { Text(text = stringResource(id = R.string.student_editor_subject_custom_label)) },
-                placeholder = { Text(text = stringResource(id = R.string.student_editor_subject_custom_placeholder)) },
-                supportingText = {
-                    Text(text = stringResource(id = R.string.student_editor_subject_custom_support))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(customSubjectFocusRequester),
-                enabled = enabled,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Description,
-                        contentDescription = null,
-                        tint = iconTint
-                    )
-                },
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next),
-                keyboardActions = if (isStandalone) {
-                    KeyboardActions(onDone = { onSubmit?.invoke() })
-                } else {
-                    KeyboardActions.Default
-                },
-                colors = textFieldColors
-            )
+    val trimmedQuery = subjectInput.trim()
+    val normalizedQuery = trimmedQuery.lowercase(locale)
+    val hasQuery = normalizedQuery.isNotEmpty()
+    val matchingPresets = if (hasQuery) {
+        subjectPresets.filter { option ->
+            option.name.lowercase(locale).startsWith(normalizedQuery)
         }
+    } else {
+        emptyList()
+    }
+    val matchingDefaults = if (hasQuery) {
+        SubjectSuggestionDefaults.filter { suggestion ->
+            val normalized = suggestion.lowercase(locale)
+            normalized.startsWith(normalizedQuery) &&
+                subjectPresets.none { it.name.equals(suggestion, ignoreCase = true) }
+        }
+    } else {
+        emptyList()
+    }
+    val hasSuggestions = matchingPresets.isNotEmpty() || matchingDefaults.isNotEmpty()
 
-        var gradeFieldSize by remember { mutableStateOf(IntSize.Zero) }
-        val gradeDropdownWidth = with(LocalDensity.current) { gradeFieldSize.width.toDp() }
-        val gradeDropdownModifier = if (gradeDropdownWidth > 0.dp) Modifier.width(gradeDropdownWidth) else Modifier
+    fun updateChips(updated: List<StudentSubjectChip>) {
+        selectedChips = updated
+        onSubjectChange(buildSubjectValue(updated))
+    }
+
+    fun addPreset(option: SubjectPreset) {
+        if (selectedChips.any { it.id == option.id }) {
+            subjectInput = ""
+            expanded = false
+            return
+        }
+        updateChips(selectedChips + option.toChip())
+        subjectInput = ""
+        expanded = false
+    }
+
+    fun toggleSuggestion(name: String) {
+        val normalized = name.trim()
+        if (normalized.isEmpty()) {
+            subjectInput = ""
+            expanded = false
+            return
+        }
+        val existingIndex = selectedChips.indexOfFirst { chip ->
+            chip.id == null && chip.name.equals(normalized, ignoreCase = true)
+        }
+        val updated = if (existingIndex >= 0) {
+            selectedChips.toMutableList().also { it.removeAt(existingIndex) }
+        } else {
+            selectedChips + StudentSubjectChip(id = null, name = normalized, colorArgb = null)
+        }
+        updateChips(updated)
+        subjectInput = ""
+        expanded = false
+    }
+
+    fun removeChip(chip: StudentSubjectChip) {
+        val updated = if (chip.id != null) {
+            selectedChips.filterNot { it.id == chip.id }
+        } else {
+            selectedChips.filterNot {
+                it.id == null && it.name.equals(chip.name, ignoreCase = true)
+            }
+        }
+        updateChips(updated)
+    }
+
+    fun commitInput(): Boolean {
+        if (trimmedQuery.isEmpty()) {
+            return false
+        }
+        if (selectedChips.any { it.name.equals(trimmedQuery, ignoreCase = true) }) {
+            subjectInput = ""
+            expanded = false
+            return true
+        }
+        updateChips(selectedChips + StudentSubjectChip(id = null, name = trimmedQuery, colorArgb = null))
+        subjectInput = ""
+        expanded = false
+        return true
+    }
+
+    LaunchedEffect(hasSuggestions) {
+        if (!hasSuggestions) {
+            expanded = false
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box {
-            OutlinedTextField(
-                value = state.grade,
-                onValueChange = onGradeChange,
-                label = { Text(text = stringResource(id = R.string.student_editor_grade)) },
+            BasicTextField(
+                value = subjectInput,
+                onValueChange = {
+                    subjectInput = it
+                    expanded = enabled && it.trim().isNotEmpty()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onGloballyPositioned { gradeFieldSize = it.size }
-                    .focusRequester(gradeFocusRequester)
+                    .onGloballyPositioned { textFieldSize = it.size }
                     .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
-                            onGradeDropdownExpandedChange(false)
-                        } else if (enabled) {
-                            onGradeDropdownExpandedChange(true)
-                        }
+                        expanded = enabled && focusState.isFocused && hasSuggestions
                     },
                 singleLine = true,
                 enabled = enabled,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.School,
-                        contentDescription = null,
-                        tint = iconTint
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { onGradeDropdownExpandedChange(!isGradeDropdownExpanded) },
-                        enabled = enabled
-                    ) {
-                        Icon(
-                            imageVector = if (isGradeDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                            contentDescription = null,
-                            tint = iconTint
-                        )
-                    }
-                },
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                interactionSource = interactionSource,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
                 ),
                 keyboardActions = if (isStandalone) {
-                    KeyboardActions(onDone = { onSubmit?.invoke() })
+                    KeyboardActions(onDone = {
+                        val consumed = commitInput()
+                        if (!consumed) {
+                            defaultKeyboardAction(ImeAction.Done)
+                        }
+                        onSubmit?.invoke()
+                    })
                 } else {
-                    KeyboardActions.Default
+                    KeyboardActions(onNext = {
+                        val consumed = commitInput()
+                        if (!consumed) {
+                            defaultKeyboardAction(ImeAction.Next)
+                        }
+                    })
                 },
-                colors = textFieldColors
+                decorationBox = { innerTextField ->
+                    val labelValue = remember(subjectInput, selectedChips) {
+                        when {
+                            subjectInput.isNotEmpty() -> subjectInput
+                            selectedChips.isNotEmpty() -> " "
+                            else -> ""
+                        }
+                    }
+                    OutlinedTextFieldDefaults.DecorationBox(
+                        value = labelValue,
+                        visualTransformation = VisualTransformation.None,
+                        innerTextField = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (selectedChips.isNotEmpty()) {
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        selectedChips.forEach { chip ->
+                                            FilterChip(
+                                                selected = true,
+                                                onClick = {
+                                                    if (enabled) {
+                                                        removeChip(chip)
+                                                    }
+                                                },
+                                                label = { Text(text = chip.name) },
+                                                leadingIcon = {
+                                                    chip.colorArgb?.let { color ->
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(12.dp)
+                                                                .background(Color(color), CircleShape)
+                                                        )
+                                                    }
+                                                },
+                                                trailingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Close,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                                ),
+                                                enabled = enabled
+                                            )
+                                        }
+                                    }
+                                }
+                                Box(modifier = Modifier.weight(1f, fill = true)) {
+                                    innerTextField()
+                                }
+                            }
+                        },
+                        label = { Text(text = stringResource(id = R.string.student_editor_subject)) },
+                        placeholder = null,
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Book, contentDescription = null) },
+                        trailingIcon = null,
+                        supportingText = null,
+                        singleLine = true,
+                        enabled = enabled,
+                        isError = false,
+                        interactionSource = interactionSource,
+                        colors = textFieldColors,
+                        contentPadding = OutlinedTextFieldDefaults.contentPadding()
+                    )
+                }
             )
 
             DropdownMenu(
-                expanded = isGradeDropdownExpanded,
-                onDismissRequest = { onGradeDropdownExpandedChange(false) },
-                modifier = gradeDropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
+                expanded = expanded && hasSuggestions,
+                onDismissRequest = { expanded = false },
+                modifier = dropdownModifier,
+                containerColor = MaterialTheme.colorScheme.surface,
+                properties = PopupProperties(focusable = false)
             ) {
-                gradeOptions.forEach { option ->
+                matchingPresets.forEach { option ->
+                    val isSelected = selectedChips.any { it.id == option.id }
                     DropdownMenuItem(
-                        text = { Text(text = option) },
-                        onClick = {
-                            onGradeDropdownExpandedChange(false)
-                            if (option == gradeOtherOption) {
-                                onGradeChange("")
-                                gradeFocusRequester.requestFocus()
-                            } else {
-                                onGradeChange(option)
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .background(Color(option.colorArgb), CircleShape)
+                                )
+                                Text(text = option.name)
                             }
                         },
-                        enabled = enabled
+                        trailingIcon = {
+                            if (isSelected) {
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            }
+                        },
+                        onClick = { addPreset(option) }
+                    )
+                }
+                matchingDefaults.forEach { suggestion ->
+                    val isSelected = selectedChips.any {
+                        it.id == null && it.name.equals(suggestion, ignoreCase = true)
+                    }
+                    DropdownMenuItem(
+                        text = { Text(text = suggestion) },
+                        trailingIcon = {
+                            if (isSelected) {
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            }
+                        },
+                        onClick = { toggleSuggestion(suggestion) }
                     )
                 }
             }
         }
     }
+}
+
+private data class StudentSubjectChip(
+    val id: Long?,
+    val name: String,
+    val colorArgb: Int?
+)
+
+private fun SubjectPreset.toChip(): StudentSubjectChip =
+    StudentSubjectChip(id = id, name = name, colorArgb = colorArgb)
+
+private fun buildSubjectValue(chips: List<StudentSubjectChip>): String {
+    val seen = LinkedHashSet<String>()
+    val ordered = mutableListOf<String>()
+    chips.forEach { chip ->
+        val trimmed = chip.name.trim()
+        if (trimmed.isNotEmpty()) {
+            val normalized = trimmed.lowercase(Locale.getDefault())
+            if (seen.add(normalized)) {
+                ordered.add(trimmed)
+            }
+        }
+    }
+    return ordered.joinToString(separator = ", ")
 }
 
 @Composable
@@ -540,85 +641,38 @@ private fun RateSection(
     onSubmit: (() -> Unit)?,
 ) {
     val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
-    var isRateDropdownExpanded by remember { mutableStateOf(false) }
-    var rateFieldSize by remember { mutableStateOf(IntSize.Zero) }
-    val rateDropdownWidth = with(LocalDensity.current) { rateFieldSize.width.toDp() }
-    val rateDropdownModifier = if (rateDropdownWidth > 0.dp) Modifier.width(rateDropdownWidth) else Modifier
-    val rateOptions = remember { listOf(1500, 2000, 2500, 3000) }
     val textFieldColors = editorFieldColors()
 
-    Box {
-        OutlinedTextField(
-            value = rate,
-            onValueChange = onRateChange,
-            label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .onGloballyPositioned { rateFieldSize = it.size },
-            singleLine = true,
-            enabled = enabled,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.CurrencyRuble,
-                    contentDescription = null,
-                    tint = iconTint
-                )
-            },
-            trailingIcon = {
-                IconButton(
-                    onClick = { isRateDropdownExpanded = !isRateDropdownExpanded },
-                    enabled = enabled
-                ) {
-                    Icon(
-                        imageVector = if (isRateDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                        contentDescription = null,
-                        tint = iconTint
-                    )
-                }
-            },
-            supportingText = {
-                Text(text = stringResource(id = R.string.student_editor_rate_support))
-            },
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
-            ),
-            keyboardActions = if (isStandalone) {
-                KeyboardActions(onDone = { onSubmit?.invoke() })
-            } else {
-                KeyboardActions.Default
-            },
-            colors = textFieldColors
-        )
-
-        DropdownMenu(
-            expanded = isRateDropdownExpanded,
-            onDismissRequest = { isRateDropdownExpanded = false },
-            modifier = rateDropdownModifier,
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            rateOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = stringResource(id = R.string.student_editor_rate_option_value, option)) },
-                    onClick = {
-                        onRateChange(option.toString())
-                        isRateDropdownExpanded = false
-                    },
-                    enabled = enabled
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(text = stringResource(id = R.string.student_editor_rate_option_other)) },
-                onClick = {
-                    isRateDropdownExpanded = false
-                    onRateChange("")
-                    focusRequester.tryRequestFocus()
-                },
-                enabled = enabled
+    OutlinedTextField(
+        value = rate,
+        onValueChange = onRateChange,
+        label = { Text(text = stringResource(id = R.string.student_editor_rate)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        singleLine = true,
+        enabled = enabled,
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Outlined.CurrencyRuble,
+                contentDescription = null,
+                tint = iconTint
             )
-        }
-    }
+        },
+        supportingText = {
+            Text(text = stringResource(id = R.string.student_editor_rate_support))
+        },
+        keyboardOptions = KeyboardOptions.Default.copy(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
+        ),
+        keyboardActions = if (isStandalone) {
+            KeyboardActions(onDone = { onSubmit?.invoke() })
+        } else {
+            KeyboardActions.Default
+        },
+        colors = textFieldColors
+    )
 }
 
 @Composable
@@ -904,17 +958,7 @@ private fun buildMessengerValue(
     }
 }
 
-private fun buildSubjectValue(selected: List<String>, custom: String): String {
-    val ordered = LinkedHashSet<String>()
-    selected.map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .forEach { ordered.add(it) }
-    custom.split(',')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .forEach { ordered.add(it) }
-    return ordered.joinToString(separator = ", ")
-}
+
 
 private enum class StudentMessengerType(
     val label: String,

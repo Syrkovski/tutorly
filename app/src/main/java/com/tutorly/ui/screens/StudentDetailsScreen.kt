@@ -74,6 +74,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
+import com.tutorly.models.SubjectPreset
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.PaymentBadge
@@ -393,6 +394,7 @@ fun StudentDetailsScreen(
             onPhoneChange = editorViewModel::onPhoneChange,
             onMessengerChange = editorViewModel::onMessengerChange,
             onRateChange = editorViewModel::onRateChange,
+            subjectPresets = editorViewModel.subjectPresets,
             onSubjectChange = editorViewModel::onSubjectChange,
             onGradeChange = editorViewModel::onGradeChange,
             onNoteChange = editorViewModel::onNoteChange,
@@ -546,6 +548,7 @@ private fun StudentEditorDialogContent(
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
     onRateChange: (String) -> Unit,
+    subjectPresets: List<SubjectPreset>,
     onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -591,6 +594,7 @@ private fun StudentEditorDialogContent(
             onPhoneChange = onPhoneChange,
             onMessengerChange = onMessengerChange,
             onRateChange = onRateChange,
+            subjectPresets = subjectPresets,
             onSubjectChange = onSubjectChange,
             onGradeChange = onGradeChange,
             onNoteChange = onNoteChange,
