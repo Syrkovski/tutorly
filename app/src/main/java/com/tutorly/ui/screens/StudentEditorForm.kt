@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalTextStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.IntSize
@@ -254,7 +255,10 @@ private fun ProfileSection(
                     tint = iconTint
                 )
             },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Next
+            ),
             colors = textFieldColors
         )
         if (state.nameError) {
@@ -292,6 +296,7 @@ private fun ProfileSection(
                 )
             },
             keyboardOptions = KeyboardOptions.Default.copy(
+                capitalization = KeyboardCapitalization.Words,
                 imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
             ),
             keyboardActions = if (isStandalone) {
@@ -452,9 +457,8 @@ private fun SubjectSelector(
             BasicTextField(
                 value = subjectInput,
                 onValueChange = { raw ->
-                    val formatted = capitalizeInputWords(raw)
-                    subjectInput = formatted
-                    expanded = enabled && formatted.trim().isNotEmpty()
+                    subjectInput = raw
+                    expanded = enabled && raw.trim().isNotEmpty()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -468,6 +472,7 @@ private fun SubjectSelector(
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 interactionSource = interactionSource,
                 keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Words,
                     imeAction = if (isStandalone) ImeAction.Done else ImeAction.Next
                 ),
                 keyboardActions = if (isStandalone) {
@@ -808,6 +813,10 @@ private fun MessengerSection(
                         )
                     }
                 },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
                 colors = textFieldColors
             )
 
@@ -891,7 +900,10 @@ private fun NotesSection(
                 tint = iconTint
             )
         },
-        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+        keyboardOptions = KeyboardOptions.Default.copy(
+            capitalization = KeyboardCapitalization.Words,
+            imeAction = ImeAction.Done
+        ),
         keyboardActions = KeyboardActions(onDone = {
             onSubmit?.invoke()
         }),

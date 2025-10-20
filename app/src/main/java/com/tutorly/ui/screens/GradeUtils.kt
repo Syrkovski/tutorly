@@ -11,29 +11,6 @@ internal fun titleCaseWords(value: String): String {
         }
 }
 
-internal fun capitalizeInputWords(value: String): String {
-    if (value.isEmpty()) return value
-    val builder = StringBuilder(value.length)
-    var capitalizeNext = true
-    value.forEach { char ->
-        when {
-            capitalizeNext && char.isLetter() -> {
-                builder.append(char.titlecaseChar())
-                capitalizeNext = false
-            }
-            else -> {
-                builder.append(char)
-                capitalizeNext = when {
-                    char.isLetter() || char.isDigit() -> false
-                    char == '\'' || char == '’' -> false
-                    else -> true
-                }
-            }
-        }
-    }
-    return builder.toString()
-}
-
 private fun capitalizeWord(word: String): String {
     if (word.isEmpty()) return word
     val firstLetterIndex = word.indexOfFirst { it.isLetter() }

@@ -72,6 +72,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -80,7 +82,6 @@ import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.lessoncreation.StudentOption
-import com.tutorly.ui.screens.capitalizeInputWords
 import com.tutorly.ui.subject.SubjectSuggestionDefaults
 import com.tutorly.ui.theme.extendedColors
 import kotlinx.coroutines.launch
@@ -219,10 +220,9 @@ private fun StudentSection(
             OutlinedTextField(
                 value = query,
                 onValueChange = { raw ->
-                    val formatted = capitalizeInputWords(raw)
-                    query = formatted
+                    query = raw
                     showSuggestions = true
-                    onQueryChange(formatted)
+                    onQueryChange(raw)
                 },
                 label = { Text(text = stringResource(id = R.string.lesson_create_student_label)) },
                 placeholder = { Text(text = stringResource(id = R.string.lesson_create_student_placeholder)) },
@@ -238,6 +238,10 @@ private fun StudentSection(
                     Icon(imageVector = Icons.Filled.Person, contentDescription = null)
                 },
                 isError = state.errors.containsKey(LessonCreationField.STUDENT),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
                 colors = fieldColors
             )
 
@@ -307,6 +311,10 @@ private fun StudentSection(
             leadingIcon = {
                 Icon(imageVector = Icons.Filled.Description, contentDescription = null)
             },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Next
+            ),
             colors = fieldColors
         )
     }
@@ -416,6 +424,10 @@ private fun SubjectSection(
                 textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 interactionSource = interactionSource,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
                 decorationBox = { innerTextField ->
                     OutlinedTextFieldDefaults.DecorationBox(
                         value = labelValue,
@@ -788,6 +800,9 @@ private fun NoteSection(state: LessonCreationUiState, onNoteChange: (String) -> 
         leadingIcon = {
             Icon(imageVector = Icons.Filled.Description, contentDescription = null)
         },
+        keyboardOptions = KeyboardOptions.Default.copy(
+            capitalization = KeyboardCapitalization.Words
+        ),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
