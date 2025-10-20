@@ -185,7 +185,6 @@ class CalendarViewModel @Inject constructor(
             when (mode.value) {
                 CalendarMode.DAY -> current.minusDays(1)
                 CalendarMode.WEEK -> current.minusWeeks(1)
-                CalendarMode.MONTH -> current.minusMonths(1)
             }
         }
     }
@@ -195,7 +194,6 @@ class CalendarViewModel @Inject constructor(
             when (mode.value) {
                 CalendarMode.DAY -> current.plusDays(1)
                 CalendarMode.WEEK -> current.plusWeeks(1)
-                CalendarMode.MONTH -> current.plusMonths(1)
             }
         }
     }
@@ -235,12 +233,6 @@ private fun CalendarMode.toRange(anchor: LocalDate, zoneId: ZoneId): CalendarRan
         val weekStart = anchor.with(DayOfWeek.MONDAY)
         val start = weekStart.atStartOfDay(zoneId).toInstant()
         val end = weekStart.plusWeeks(1).atStartOfDay(zoneId).toInstant()
-        CalendarRange(start, end)
-    }
-    CalendarMode.MONTH -> {
-        val monthStart = anchor.withDayOfMonth(1)
-        val start = monthStart.atStartOfDay(zoneId).toInstant()
-        val end = monthStart.plusMonths(1).atStartOfDay(zoneId).toInstant()
         CalendarRange(start, end)
     }
 }

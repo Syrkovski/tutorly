@@ -64,22 +64,19 @@ import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
+import com.tutorly.ui.theme.CardSurface
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.time.temporal.TemporalAdjusters
-import java.time.temporal.WeekFields
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-enum class CalendarMode { DAY, WEEK, MONTH }
+enum class CalendarMode { DAY, WEEK }
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -101,9 +98,6 @@ fun CalendarScreen(
     val zoneId = remember { ZoneId.systemDefault() }
 
     LaunchedEffect(mode) {
-        if (mode == CalendarMode.MONTH) {
-            viewModel.setMode(CalendarMode.DAY)
-        }
     }
 
     LessonCardSheet(
@@ -343,21 +337,6 @@ fun CalendarScreen(
                         currentDateTime = uiState.currentDateTime,
                         onLessonClick = { brief -> lessonCardViewModel.open(brief.id) }
                     )
-                    CalendarMode.MONTH -> MonthCalendar(
-                        anchor = currentDate,
-                        currentDateTime = uiState.currentDateTime,
-                        weekendDays = uiState.weekendDays,
-                        onDaySelected = { selected ->
-                            direction = when {
-                                selected.isAfter(anchor) -> 1
-                                selected.isBefore(anchor) -> -1
-                                else -> 0
-                            }
-                            viewModel.setMode(CalendarMode.DAY)
-                            viewModel.selectDate(selected)
-                        },
-                        selectedDate = currentDate
-                    )
                 }
             }
 
@@ -388,9 +367,7 @@ private fun CalendarTopBar(
     onSelectMode: (CalendarMode) -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    val displayMode = remember(selectedMode) {
-        if (selectedMode == CalendarMode.MONTH) CalendarMode.DAY else selectedMode
-    }
+    val displayMode = remember(selectedMode) { selectedMode }
 
     GradientTopBarContainer {
         Row(
@@ -520,7 +497,7 @@ fun PlanScreenHeader(
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)
             // свайп только на хедере — не мешает вертикальному скроллу списка
             .pointerInput(mode) {
                 val threshold = 48.dp.toPx()
@@ -572,9 +549,9 @@ fun PlanScreenHeader(
                 Surface(
                     onClick = { showDatePicker = true },
                     shape = RoundedCornerShape(24.dp),
-                    color = Color.White,
+                    color = CardSurface,
                     contentColor = MaterialTheme.colorScheme.onSurface,
-                    tonalElevation = 2.dp,
+//                    tonalElevation = 2.dp,
                     shadowElevation = 4.dp
                 ) {
                     Row(
@@ -725,7 +702,7 @@ private fun DayTimeline(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFFFCFAFC))
+            .background(Color(0xFFFFFFFF))
             .verticalScroll(scroll)
     ) {
         Box(
@@ -912,212 +889,3 @@ private fun LessonBlock(
 @Composable
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
-
-/* ----------------------------- MONTH GRID -------------------------------- */
-
-@Composable
-private fun MonthCalendar(
-    anchor: LocalDate,
-    currentDateTime: ZonedDateTime,
-    weekendDays: Set<DayOfWeek>,
-    onDaySelected: (LocalDate) -> Unit,
-    selectedDate: LocalDate? = null,
-    modifier: Modifier = Modifier.fillMaxSize()
-) {
-    val month = remember(anchor) { YearMonth.from(anchor) }
-    val firstDay = remember(month) { month.atDay(1) }
-    val firstVisibleDay = remember(firstDay) {
-        firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    }
-    val totalCells = remember { 6 * 7 }
-    val days = remember(firstVisibleDay, totalCells) {
-        generateSequence(firstVisibleDay) { it.plusDays(1) }
-            .take(totalCells)
-            .toList()
-    }
-    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
-
-    BoxWithConstraints(modifier) {
-        val headerHeight = 36.dp
-        val gridHeight = remember(maxHeight) { (maxHeight - headerHeight).coerceAtLeast(0.dp) }
-        val cellHeight = remember(gridHeight) { if (gridHeight == 0.dp) 0.dp else gridHeight / 6 }
-        val weekdays = remember {
-            listOf(
-                DayOfWeek.MONDAY,
-                DayOfWeek.TUESDAY,
-                DayOfWeek.WEDNESDAY,
-                DayOfWeek.THURSDAY,
-                DayOfWeek.FRIDAY,
-                DayOfWeek.SATURDAY,
-                DayOfWeek.SUNDAY
-            )
-        }
-
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(headerHeight),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                weekdays.forEach { dayOfWeek ->
-                    val label = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
-                        .replaceFirstChar { it.titlecase(Locale("ru")) }
-                    val labelColor = when {
-                        dayOfWeek in weekendDays -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            textAlign = TextAlign.Center,
-                            color = labelColor
-                        )
-                    }
-                }
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(7),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(gridHeight),
-                contentPadding = PaddingValues(0.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-                userScrollEnabled = false
-            ) {
-                items(days) { date ->
-                    MonthDayCell(
-                        date = date,
-                        inCurrentMonth = date.month == month.month,
-                        isToday = date == today,
-                        isWeekend = date.dayOfWeek in weekendDays,
-                        isSelected = selectedDate == date,
-                        onClick = {
-                            if (date.month == month.month) {
-                                onDaySelected(date)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(cellHeight)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MonthDayCell(
-    date: LocalDate,
-    inCurrentMonth: Boolean,
-    isToday: Boolean,
-    isWeekend: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val enabled = inCurrentMonth
-    val isMonday = date.dayOfWeek == DayOfWeek.MONDAY
-    val weekNumber = remember(date) { date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
-    val containerColor = when {
-        !enabled -> Color.Transparent
-        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-        isToday -> Color.White
-        else -> Color.Transparent
-    }
-    val contentColor = when {
-        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val dayNumberColor = when {
-        !enabled -> contentColor.copy(alpha = 0.3f)
-        isSelected -> MaterialTheme.colorScheme.onPrimary
-        isToday -> MaterialTheme.colorScheme.primary
-        isWeekend -> MaterialTheme.colorScheme.primary
-        else -> contentColor
-    }
-    val weekNumberColor = when {
-        !enabled -> contentColor.copy(alpha = 0.2f)
-        isSelected -> MaterialTheme.colorScheme.primary
-        isWeekend -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-    }
-
-    Surface(
-        color = containerColor,
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = if ((isToday || isSelected) && enabled) 2.dp else 0.dp,
-        shadowElevation = if ((isToday || isSelected) && enabled) 4.dp else 0.dp,
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(enabled = enabled, onClick = onClick)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.Top
-        ) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                DayNumberBadge(
-                    day = date.dayOfMonth,
-                    isToday = isToday,
-                    isSelected = isSelected,
-                    color = dayNumberColor,
-                    enabled = enabled
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f, fill = true))
-            if (isMonday) {
-                Text(
-                    text = weekNumber.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = weekNumberColor,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayNumberBadge(
-    day: Int,
-    isToday: Boolean,
-    isSelected: Boolean,
-    color: Color,
-    enabled: Boolean
-) {
-    val badgeColor = when {
-        !enabled -> Color.Transparent
-        isSelected -> MaterialTheme.colorScheme.primary
-        isToday -> MaterialTheme.colorScheme.primary
-        else -> Color.Transparent
-    }
-    val textColor = when {
-        (isSelected || isToday) && enabled -> MaterialTheme.colorScheme.onPrimary
-        else -> color
-    }
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(badgeColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = day.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = textColor
-        )
-    }
-}

@@ -39,7 +39,7 @@ fun WeekMosaic(
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
     currentDateTime: ZonedDateTime,
     onLessonClick: (LessonBrief) -> Unit = {},
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
     itemSpacing: Dp = 12.dp
 ) {
     val monday = anchor.with(DayOfWeek.MONDAY)
@@ -90,11 +90,7 @@ private fun DayTile(
     }
 
     // Белая подложка только для сегодняшнего дня
-    val bg: Color = if (isToday) {
-        Color.White
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLowest
-    }
+    val bg: Color = Color.White
 
     val dayShape = MaterialTheme.shapes.medium
     Surface(
