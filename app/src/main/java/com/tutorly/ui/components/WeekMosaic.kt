@@ -89,8 +89,12 @@ private fun DayTile(
         else model.brief.partition { it.isOngoingOn(model.date, now) }
     }
 
-    // белая подложка для всех дней
-    val bg: Color = Color.White
+    // Белая подложка только для сегодняшнего дня
+    val bg: Color = if (isToday) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLowest
+    }
 
     val dayShape = MaterialTheme.shapes.medium
     Surface(
