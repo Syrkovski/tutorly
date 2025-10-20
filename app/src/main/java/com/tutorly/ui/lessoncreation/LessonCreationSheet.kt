@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,7 +33,6 @@ import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -337,6 +338,7 @@ private fun StudentAvatar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SubjectSection(
     state: LessonCreationUiState,
@@ -409,44 +411,82 @@ private fun SubjectSection(
                 containerColor = MaterialTheme.colorScheme.surface,
                 properties = PopupProperties(focusable = false)
             ) {
-                matchingSubjects.forEach { subject ->
-                    DropdownMenuItem(
-                        text = { Text(text = subject.name) },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(Color(subject.colorArgb), CircleShape)
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(all = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    matchingSubjects.forEach { subject ->
+                        val isSelected = state.selectedSubjectId == subject.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                expanded = false
+                                onSubjectSelect(subject.id)
+                            },
+                            label = { Text(text = subject.name) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .background(Color(subject.colorArgb), CircleShape)
+                                )
+                            },
+                            trailingIcon = {
+                                if (isSelected) {
+                                    Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                                }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
                             )
-                        },
-                        trailingIcon = {
-                            if (state.selectedSubjectId == subject.id) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
-                            }
-                        },
-                        onClick = {
-                            expanded = false
-                            onSubjectSelect(subject.id)
-                        }
-                    )
-                }
-                matchingAdditional.forEach { subjectName ->
-                    DropdownMenuItem(
-                        text = { Text(text = subjectName) },
-                        onClick = {
-                            expanded = false
-                            onSubjectInputChange(subjectName)
-                        }
-                    )
-                }
-                defaultSuggestions.forEach { suggestion ->
-                    DropdownMenuItem(
-                        text = { Text(text = suggestion) },
-                        onClick = {
-                            expanded = false
-                            onSubjectInputChange(suggestion)
-                        }
-                    )
+                        )
+                    }
+                    matchingAdditional.forEach { subjectName ->
+                        val isSelected = state.selectedSubjectId == null &&
+                            state.subjectInput.equals(subjectName, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                expanded = false
+                                onSubjectInputChange(subjectName)
+                            },
+                            label = { Text(text = subjectName) },
+                            trailingIcon = {
+                                if (isSelected) {
+                                    Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                                }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                    defaultSuggestions.forEach { suggestion ->
+                        val isSelected = state.selectedSubjectId == null &&
+                            state.subjectInput.equals(suggestion, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                expanded = false
+                                onSubjectInputChange(suggestion)
+                            },
+                            label = { Text(text = suggestion) },
+                            trailingIcon = {
+                                if (isSelected) {
+                                    Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                                }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
                 }
             }
         }
