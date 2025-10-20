@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,6 +78,42 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val SectionSpacing = 12.dp
+
+private val SubjectSuggestionDefaults = listOf(
+    "Математика",
+    "Русский язык",
+    "Английский язык",
+    "Физика",
+    "Химия",
+    "Биология",
+    "История",
+    "Обществознание",
+    "Литература",
+    "География",
+    "Информатика",
+    "Алгебра",
+    "Геометрия",
+    "Экономика",
+    "Право",
+    "Немецкий язык",
+    "Французский язык",
+    "Испанский язык",
+    "Китайский язык",
+    "Итальянский язык",
+    "Турецкий язык",
+    "Программирование",
+    "Шахматы",
+    "Музыка",
+    "Вокал",
+    "Фортепиано",
+    "Гитара",
+    "Логопед",
+    "Подготовка к школе",
+    "Начальная школа",
+    "ЕГЭ",
+    "ОГЭ",
+    "Олимпиады"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -312,7 +349,23 @@ private fun SubjectSection(
     val additionalNames = studentSubjectNames.filter { name ->
         availableSubjects.none { option -> option.name.equals(name, ignoreCase = true) }
     }
-    val hasSuggestions = availableSubjects.isNotEmpty() || additionalNames.isNotEmpty()
+    val locale = state.locale
+    val query = state.subjectInput
+    val normalizedQuery = query.trim().lowercase(locale)
+    val hasQuery = normalizedQuery.isNotEmpty()
+    val matchingSubjects = availableSubjects.filter { option ->
+        hasQuery && option.name.lowercase(locale).startsWith(normalizedQuery)
+    }
+    val matchingAdditional = additionalNames.filter { name ->
+        hasQuery && name.lowercase(locale).startsWith(normalizedQuery)
+    }
+    val defaultSuggestions = SubjectSuggestionDefaults.filter { name ->
+        hasQuery && name.lowercase(locale).startsWith(normalizedQuery)
+    }.filterNot { suggestion ->
+        matchingSubjects.any { it.name.equals(suggestion, ignoreCase = true) } ||
+            matchingAdditional.any { it.equals(suggestion, ignoreCase = true) }
+    }
+    val hasSuggestions = matchingSubjects.isNotEmpty() || matchingAdditional.isNotEmpty() || defaultSuggestions.isNotEmpty()
     var expanded by remember(state.selectedStudent, availableSubjects, additionalNames) { mutableStateOf(false) }
     var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
     val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
@@ -324,11 +377,14 @@ private fun SubjectSection(
                 value = state.subjectInput,
                 onValueChange = {
                     onSubjectInputChange(it)
-                    expanded = hasSuggestions
+                    expanded = it.trim().isNotEmpty()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onGloballyPositioned { textFieldSize = it.size },
+                    .onGloballyPositioned { textFieldSize = it.size }
+                    .onFocusChanged { focusState ->
+                        expanded = focusState.isFocused && hasSuggestions
+                    },
                 label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
                 placeholder = {
                     Text(text = stringResource(id = R.string.lesson_create_subject_placeholder))
@@ -336,16 +392,6 @@ private fun SubjectSection(
                 singleLine = true,
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Book, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (hasSuggestions) {
-                        IconButton(onClick = { expanded = !expanded }) {
-                            Icon(
-                                imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                                contentDescription = null
-                            )
-                        }
-                    }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -364,7 +410,7 @@ private fun SubjectSection(
                 modifier = dropdownModifier,
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
-                availableSubjects.forEach { subject ->
+                matchingSubjects.forEach { subject ->
                     DropdownMenuItem(
                         text = { Text(text = subject.name) },
                         leadingIcon = {
@@ -385,7 +431,7 @@ private fun SubjectSection(
                         }
                     )
                 }
-                additionalNames.forEach { subjectName ->
+                matchingAdditional.forEach { subjectName ->
                     DropdownMenuItem(
                         text = { Text(text = subjectName) },
                         onClick = {
@@ -394,7 +440,22 @@ private fun SubjectSection(
                         }
                     )
                 }
+                defaultSuggestions.forEach { suggestion ->
+                    DropdownMenuItem(
+                        text = { Text(text = suggestion) },
+                        onClick = {
+                            expanded = false
+                            onSubjectInputChange(suggestion)
+                        }
+                    )
+                }
             }
+        }
+    }
+
+    LaunchedEffect(hasSuggestions) {
+        if (!hasSuggestions) {
+            expanded = false
         }
     }
 }
