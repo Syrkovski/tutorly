@@ -22,15 +22,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.CurrencyRuble
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -66,7 +66,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -812,35 +811,41 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
     if (target == SwipeToDismissBoxValue.Settled) {
         return
     }
-    val color: Color
-    val icon: ImageVector
+    val containerColor: Color
+    val circleColor: Color
     val tint: Color
     val alignment: Alignment
     if (target == SwipeToDismissBoxValue.StartToEnd) {
-        color = MaterialTheme.colorScheme.tertiaryContainer
-        icon = Icons.Filled.Check
-        tint = MaterialTheme.colorScheme.onTertiaryContainer
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        circleColor = MaterialTheme.colorScheme.tertiary
+        tint = MaterialTheme.colorScheme.onTertiary
         alignment = Alignment.CenterStart
     } else {
-        color = MaterialTheme.colorScheme.errorContainer
-        icon = Icons.Outlined.WarningAmber
-        tint = MaterialTheme.colorScheme.onErrorContainer
+        containerColor = MaterialTheme.colorScheme.errorContainer
+        circleColor = MaterialTheme.colorScheme.error
+        tint = MaterialTheme.colorScheme.onError
         alignment = Alignment.CenterEnd
     }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(color),
+            .background(containerColor),
         contentAlignment = alignment
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
+        Box(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .size(28.dp)
-        )
+                .size(40.dp)
+                .background(color = circleColor, shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CurrencyRuble,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
