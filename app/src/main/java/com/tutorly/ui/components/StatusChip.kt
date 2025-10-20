@@ -77,7 +77,7 @@ fun statusChipData(
         )
 
         PaymentStatus.PAID -> StatusChipData(
-            label = stringResource(R.string.lesson_status_paid),
+            label = "₽",
             description = stringResource(R.string.lesson_status_paid),
             background = paidColor,
             content = PaidChipContent
@@ -93,7 +93,7 @@ fun statusChipData(
                 )
             } else {
                 StatusChipData(
-                    label = stringResource(R.string.lesson_status_unpaid),
+                    label = "₽",
                     description = stringResource(R.string.lesson_status_unpaid),
                     background = DebtChipFill,
                     content = DebtChipContent
