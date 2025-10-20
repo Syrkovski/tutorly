@@ -89,6 +89,8 @@ fun StudentsScreen(
     onStudentOpen: (Long) -> Unit,
     onStudentCreatedFromLesson: (Long) -> Unit = {},
     initialEditorOrigin: StudentEditorOrigin = StudentEditorOrigin.NONE,
+    initialStudentName: String = "",
+    initialStudentGrade: String = "",
     modifier: Modifier = Modifier,
     vm: StudentsViewModel = hiltViewModel(),
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -110,10 +112,13 @@ fun StudentsScreen(
         showEditor = true
     }
 
-    LaunchedEffect(initialEditorOrigin) {
+    LaunchedEffect(initialEditorOrigin, initialStudentName, initialStudentGrade) {
         if (initialEditorOrigin != StudentEditorOrigin.NONE) {
             editorOrigin = initialEditorOrigin
-            vm.startStudentCreation()
+            vm.startStudentCreation(
+                name = initialStudentName,
+                grade = initialStudentGrade
+            )
             showEditor = true
         }
     }

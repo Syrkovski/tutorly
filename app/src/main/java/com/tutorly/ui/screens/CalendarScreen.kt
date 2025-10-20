@@ -106,6 +106,7 @@ fun CalendarScreen(
         onStudentSelect = lessonCardViewModel::onStudentSelected,
         onAddStudent = {
             lessonCardViewModel.dismiss()
+            creationViewModel.prepareForStudentCreation()
             onAddStudent()
         },
         onDateSelect = lessonCardViewModel::onDateSelected,
@@ -146,12 +147,8 @@ fun CalendarScreen(
         state = creationState,
         onDismiss = { creationViewModel.dismiss() },
         onStudentQueryChange = creationViewModel::onStudentQueryChange,
+        onStudentGradeChange = creationViewModel::onStudentGradeChanged,
         onStudentSelect = creationViewModel::onStudentSelected,
-        onAddStudent = {
-            creationViewModel.prepareForStudentCreation()
-            creationViewModel.dismiss()
-            onAddStudent()
-        },
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onSubjectSuggestionToggle = creationViewModel::onSubjectSuggestionToggled,

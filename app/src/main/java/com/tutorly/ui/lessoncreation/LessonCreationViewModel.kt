@@ -124,6 +124,7 @@ class LessonCreationViewModel @Inject constructor(
                 studentQuery = "",
                 students = students,
                 selectedStudent = null,
+                studentGrade = config.studentGrade?.trim().orEmpty(),
                 subjects = subjectOptions,
                 availableSubjects = subjectOptions,
                 selectedSubjectId = null,
@@ -157,6 +158,7 @@ class LessonCreationViewModel @Inject constructor(
             start = ZonedDateTime.of(state.date, state.time, currentZone),
             duration = Duration.ofMinutes(state.durationMinutes.toLong()),
             studentId = null,
+            studentGrade = state.studentGrade.trim().ifBlank { null },
             subjectId = state.selectedSubjectId,
             note = state.note,
             zoneId = currentZone,
@@ -185,10 +187,91 @@ class LessonCreationViewModel @Inject constructor(
         }
     }
 
+    fun onStudentGradeChanged(value: String) {
+        _uiState.update { it.copy(studentGrade = value) }
+    }
+
     fun onStudentSelected(studentId: Long) {
         viewModelScope.launch {
             selectStudent(studentId, applyDefaults = true)
         }
+    }
+
+    private suspend fun ensureStudentSelected(state: LessonCreationUiState): StudentOption? {
+        val name = state.studentQuery.trim()
+        if (name.isEmpty()) return null
+
+        state.students.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { existing ->
+            currentRateHistory = loadRateHistory(existing.id)
+            currentStudentBaseRateCents = existing.rateCents
+            currentStudentBaseRateDuration = existing.rateCents?.let { _ ->
+                state.durationMinutes.takeIf { it > 0 }
+            }
+            val pricePresets = computePricePresets(state.durationMinutes)
+            _uiState.update {
+                it.copy(
+                    selectedStudent = existing,
+                    students = mergeStudentOption(it.students, existing),
+                    studentQuery = existing.name,
+                    studentGrade = existing.grade.orEmpty(),
+                    pricePresets = pricePresets
+                )
+            }
+            return existing
+        }
+
+        val grade = state.studentGrade.trim().takeIf { it.isNotEmpty() }
+        val subjectNames = mutableListOf<String>().apply {
+            state.selectedSubjectChips.forEach { chip ->
+                val trimmed = chip.name.trim()
+                if (trimmed.isNotEmpty()) add(trimmed)
+            }
+            val pending = state.subjectInput.trim()
+            if (pending.isNotEmpty()) add(pending)
+            state.selectedSubjectId?.let { subjectId ->
+                val option = state.subjects.firstOrNull { it.id == subjectId }
+                if (option != null) {
+                    val trimmed = option.name.trim()
+                    if (trimmed.isNotEmpty()) add(trimmed)
+                }
+            }
+        }
+        val distinctSubjects = subjectNames
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(state.locale) }
+        val subjectsValue = distinctSubjects.joinToString(separator = ", ").takeIf { it.isNotEmpty() }
+
+        val newStudent = Student(
+            name = name,
+            grade = grade,
+            subject = subjectsValue
+        )
+
+        val newId = runCatching { studentsRepository.upsert(newStudent) }.getOrElse { error ->
+            _uiState.update {
+                it.copy(
+                    snackbarMessage = error.message ?: "Не удалось сохранить ученика"
+                )
+            }
+            return null
+        }
+
+        val persisted = studentsRepository.getByIdSafe(newId) ?: newStudent.copy(id = newId)
+        val option = persisted.toOption()
+        currentRateHistory = emptyList()
+        currentStudentBaseRateCents = null
+        currentStudentBaseRateDuration = null
+        _uiState.update {
+            it.copy(
+                selectedStudent = option,
+                students = mergeStudentOption(it.students, option),
+                studentQuery = option.name,
+                studentGrade = option.grade.orEmpty(),
+                pricePresets = emptyList()
+            )
+        }
+        return option
     }
 
     private suspend fun selectStudent(studentId: Long, applyDefaults: Boolean) {
@@ -247,6 +330,7 @@ class LessonCreationViewModel @Inject constructor(
                 selectedStudent = selected,
                 students = mergeStudentOption(it.students, selected),
                 studentQuery = selected.name,
+                studentGrade = selected.grade.orEmpty(),
                 selectedSubjectId = resolvedSubjectId,
                 selectedSubjectChips = nextChips,
                 durationMinutes = duration,
@@ -443,12 +527,18 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     private suspend fun attemptSubmit(force: Boolean) {
-        val state = _uiState.value
+        var state = _uiState.value
         val errors = mutableMapOf<LessonCreationField, String>()
-        val student = state.selectedStudent
-        if (student == null) {
-            errors[LessonCreationField.STUDENT] = "Выберите ученика"
+        val student = state.selectedStudent ?: run {
+            val created = ensureStudentSelected(state)
+            if (created == null) {
+                errors[LessonCreationField.STUDENT] = "Выберите ученика"
+                _uiState.update { it.copy(errors = errors) }
+                return
+            }
+            created
         }
+        state = _uiState.value
         if (state.durationMinutes <= 0) {
             errors[LessonCreationField.DURATION] = "Длительность должна быть больше 0"
         } else if (state.durationMinutes % state.slotStepMinutes != 0) {
@@ -489,7 +579,7 @@ class LessonCreationViewModel @Inject constructor(
         }
 
         val request = LessonCreateRequest(
-            studentId = student!!.id,
+            studentId = student.id,
             subjectId = state.selectedSubjectId,
             title = title,
             startAt = start.toInstant(),
@@ -691,6 +781,7 @@ private fun Student.toOption(): StudentOption {
         id = id,
         name = name,
         rateCents = rateCents,
+        grade = grade?.takeIf { it.isNotBlank() }?.trim(),
         subjects = subjects
     )
 }
