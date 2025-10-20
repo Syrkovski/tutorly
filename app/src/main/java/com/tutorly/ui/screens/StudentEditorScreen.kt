@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.models.Student
+import java.util.Locale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -24,7 +25,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class StudentEditorVM @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val repo: StudentsRepository
+    private val repo: StudentsRepository,
 ) : ViewModel() {
     private val id: Long? = savedStateHandle.get<Long>("studentId")
     private val editTargetName: String? = savedStateHandle.get<String>("editTarget")
@@ -37,7 +38,6 @@ class StudentEditorVM @Inject constructor(
     var formState by mutableStateOf(StudentEditorFormState())
         private set
     private var loadedStudent: Student? = null
-
     init {
         id?.let {
             viewModelScope.launch {
@@ -117,7 +117,8 @@ class StudentEditorVM @Inject constructor(
         } else {
             rateInput
         }
-        val trimmedSubject = formState.subject.trim().ifBlank { null }
+        val normalizedSubject = normalizeSubjectsInput(formState.subject)
+        val trimmedSubject = normalizedSubject.ifBlank { null }
         val trimmedGrade = formState.grade.trim().ifBlank { null }
         val trimmedNote = formState.note.trim().ifBlank { null }
 
@@ -128,7 +129,7 @@ class StudentEditorVM @Inject constructor(
                 phone = trimmedPhone.orEmpty(),
                 messenger = trimmedMessenger.orEmpty(),
                 rate = normalizedRate,
-                subject = trimmedSubject.orEmpty(),
+                subject = normalizedSubject,
                 grade = trimmedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
                 nameError = false
@@ -174,12 +175,20 @@ class StudentEditorVM @Inject constructor(
         phone = phone.orEmpty(),
         messenger = messenger.orEmpty(),
         rate = formatMoneyInput(rateCents),
-        subject = subject.orEmpty(),
+        subject = normalizeSubjectsInput(subject.orEmpty()),
         grade = grade.orEmpty(),
         note = note.orEmpty(),
         isArchived = isArchived,
         isActive = active,
     )
+
+    private fun normalizeSubjectsInput(input: String): String {
+        return input.split(',')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase(Locale.getDefault()) }
+            .joinToString(separator = ", ")
+    }
 }
 
 @Composable
@@ -193,7 +202,6 @@ fun StudentEditorDialog(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-
     val currentOnDismiss by androidx.compose.runtime.rememberUpdatedState(onDismiss)
     val currentOnSaved by androidx.compose.runtime.rememberUpdatedState(onSaved)
 

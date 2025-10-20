@@ -19,6 +19,7 @@ data class LessonCreationUiState(
     val subjectInput: String = "",
     val date: LocalDate = LocalDate.now(),
     val time: LocalTime = LocalTime.now(),
+    val timeInput: String = "",
     val durationMinutes: Int = 60,
     val priceCents: Int = 0,
     val pricePresets: List<Int> = emptyList(),
@@ -27,7 +28,9 @@ data class LessonCreationUiState(
     val slotStepMinutes: Int = 30,
     val errors: Map<LessonCreationField, String> = emptyMap(),
     val snackbarMessage: String? = null,
+    val snackbarActionLabel: String? = null,
     val showConflictDialog: ConflictInfo? = null,
+    val studentDuplicatePrompt: StudentDuplicatePrompt? = null,
     val origin: LessonCreationOrigin = LessonCreationOrigin.CALENDAR,
     val locale: Locale = Locale.getDefault(),
     val zoneId: ZoneId = ZoneId.systemDefault()
@@ -81,6 +84,12 @@ data class ConflictLesson(
     val studentName: String,
     val start: ZonedDateTime,
     val end: ZonedDateTime
+)
+
+data class StudentDuplicatePrompt(
+    val existingStudent: StudentOption,
+    val enteredName: String,
+    val forceSubmission: Boolean
 )
 
 sealed interface LessonCreationEvent {

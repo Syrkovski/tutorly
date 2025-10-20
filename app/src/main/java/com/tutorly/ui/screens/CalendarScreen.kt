@@ -141,11 +141,14 @@ fun CalendarScreen(
         }
     }
 
-    LaunchedEffect(creationState.snackbarMessage) {
-        creationState.snackbarMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            creationViewModel.consumeSnackbar()
-        }
+    LaunchedEffect(creationState.snackbarMessage, creationState.snackbarActionLabel) {
+        val message = creationState.snackbarMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = message,
+            actionLabel = creationState.snackbarActionLabel,
+            withDismissAction = creationState.snackbarActionLabel != null
+        )
+        creationViewModel.consumeSnackbar()
     }
 
     LessonCreationSheet(
@@ -153,21 +156,19 @@ fun CalendarScreen(
         onDismiss = { creationViewModel.dismiss() },
         onStudentQueryChange = creationViewModel::onStudentQueryChange,
         onStudentSelect = creationViewModel::onStudentSelected,
-        onAddStudent = {
-            creationViewModel.prepareForStudentCreation()
-            creationViewModel.dismiss()
-            onAddStudent()
-        },
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
         onDateSelect = creationViewModel::onDateSelected,
-        onTimeSelect = creationViewModel::onTimeSelected,
+        onTimeInputChange = creationViewModel::onTimeInputChanged,
         onDurationChange = creationViewModel::onDurationChanged,
         onPriceChange = creationViewModel::onPriceChanged,
         onNoteChange = creationViewModel::onNoteChanged,
         onSubmit = creationViewModel::submit,
         onConfirmConflict = creationViewModel::confirmConflict,
-        onDismissConflict = creationViewModel::dismissConflict
+        onDismissConflict = creationViewModel::dismissConflict,
+        onUseDuplicateStudent = creationViewModel::useDuplicateStudent,
+        onCreateDuplicateStudent = creationViewModel::createDuplicateStudent,
+        onDismissDuplicateStudent = creationViewModel::dismissDuplicateStudent
     )
 
     val prevPeriod = {
@@ -396,17 +397,9 @@ private fun CalendarTopBar(
                 .fillMaxWidth()
                 .height(80.dp)
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(id = R.string.calendar_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically

@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
 import javax.inject.Inject
-import kotlin.math.max
+import kotlin.collections.ArrayDeque
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +32,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.max
+
+private const val TIME_INPUT_INVALID_MESSAGE = "Введите время в формате ЧЧ:ММ"
 
 @HiltViewModel
 class LessonCreationViewModel @Inject constructor(
@@ -53,6 +56,8 @@ class LessonCreationViewModel @Inject constructor(
     private var currentZone: ZoneId = ZoneId.systemDefault()
     private var conflictRequest: LessonCreateRequest? = null
     private var pendingStudentConfig: LessonCreationConfig? = null
+    private var pendingNewStudentName: String? = null
+    private val snackbarQueue: ArrayDeque<SnackbarPayload> = ArrayDeque()
     private val rateHistoryCache: MutableMap<Long, List<RateUsage>> = mutableMapOf()
     private var currentRateHistory: List<RateUsage> = emptyList()
     private var currentStudentBaseRateCents: Int? = null
@@ -79,6 +84,7 @@ class LessonCreationViewModel @Inject constructor(
 
     fun start(config: LessonCreationConfig) {
         pendingStudentConfig = null
+        pendingNewStudentName = null
         viewModelScope.launch {
             cachedSubjects = subjectPresetsRepository.all()
             val settings = userSettingsRepository.get()
@@ -88,8 +94,9 @@ class LessonCreationViewModel @Inject constructor(
             val zone = config.zoneId ?: config.start?.zone ?: ZoneId.systemDefault()
             val start = config.start ?: ZonedDateTime.now(zone)
             currentZone = zone
-            val slotStep = max(5, settings.slotStepMinutes)
+            val slotStep = gcd(settings.slotStepMinutes, 5).coerceAtLeast(5)
             val roundedStart = roundToStep(start, slotStep)
+            val startTime = roundedStart.toLocalTime()
             val baseDuration = config.duration?.toMinutes()?.toInt()
                 ?: settings.defaultLessonDurationMinutes
             val basePrice = settings.defaultLessonPriceCents
@@ -112,7 +119,8 @@ class LessonCreationViewModel @Inject constructor(
                 availableSubjects = subjectOptions,
                 selectedSubjectId = null,
                 date = roundedStart.toLocalDate(),
-                time = roundedStart.toLocalTime(),
+                time = startTime,
+                timeInput = formatTime(startTime, locale),
                 durationMinutes = baseDuration,
                 priceCents = basePrice,
                 note = config.note.orEmpty(),
@@ -129,8 +137,18 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun dismiss() {
-        _uiState.update { it.copy(isVisible = false, snackbarMessage = null, showConflictDialog = null) }
+        _uiState.update {
+            it.copy(
+                isVisible = false,
+                snackbarMessage = null,
+                snackbarActionLabel = null,
+                showConflictDialog = null,
+                studentDuplicatePrompt = null
+            )
+        }
         conflictRequest = null
+        pendingNewStudentName = null
+        snackbarQueue.clear()
     }
 
     fun prepareForStudentCreation() {
@@ -155,11 +173,35 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentQueryChange(query: String) {
-        _uiState.update { it.copy(studentQuery = query) }
+        pendingNewStudentName = null
+        val currentState = _uiState.value
+        val selected = currentState.selectedStudent
+        val enforced = query
+        val keepSelection = selected?.name?.equals(enforced, ignoreCase = true) == true
+        val availableSubjects = if (keepSelection) {
+            currentState.availableSubjects
+        } else {
+            resolveAvailableSubjects(null, currentState.locale, currentState.selectedSubjectId)
+        }
+        val pricePresets = if (keepSelection) currentState.pricePresets else emptyList()
+        _uiState.update {
+            it.copy(
+                studentQuery = enforced,
+                selectedStudent = if (keepSelection) selected else null,
+                availableSubjects = availableSubjects,
+                pricePresets = pricePresets,
+                studentDuplicatePrompt = null
+            )
+        }
+        if (!keepSelection) {
+            currentRateHistory = emptyList()
+            currentStudentBaseRateCents = null
+            currentStudentBaseRateDuration = null
+        }
         viewModelScope.launch {
-            val students = loadStudents(query)
+            val students = loadStudents(enforced)
             _uiState.update { current ->
-                if (current.studentQuery == query) {
+                if (current.studentQuery == enforced) {
                     current.copy(students = students)
                 } else {
                     current
@@ -169,6 +211,7 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentSelected(studentId: Long) {
+        pendingNewStudentName = null
         viewModelScope.launch {
             selectStudent(studentId, applyDefaults = true)
         }
@@ -292,9 +335,10 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onSubjectInputChanged(value: String) {
         val state = _uiState.value
-        val normalized = value.trim()
+        val enforced =value
+        val normalized = enforced.trim()
         if (normalized.isEmpty()) {
-            _uiState.update { it.copy(subjectInput = value, selectedSubjectId = null) }
+            _uiState.update { it.copy(subjectInput = enforced, selectedSubjectId = null) }
             return
         }
         val match = state.availableSubjects.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
@@ -304,7 +348,7 @@ class LessonCreationViewModel @Inject constructor(
         } else {
             _uiState.update {
                 it.copy(
-                    subjectInput = value,
+                    subjectInput = enforced,
                     selectedSubjectId = null
                 )
             }
@@ -330,8 +374,52 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onTimeSelected(time: LocalTime) {
-        val rounded = roundTimeToStep(time, _uiState.value.slotStepMinutes)
-        _uiState.update { it.copy(time = rounded) }
+        val state = _uiState.value
+        val aligned = alignTimeToStep(time, state.slotStepMinutes)
+        _uiState.update {
+            it.copy(
+                time = aligned,
+                timeInput = formatTime(aligned, it.locale),
+                errors = it.errors - LessonCreationField.TIME
+            )
+        }
+    }
+
+    fun onTimeInputChanged(rawValue: String) {
+        val state = _uiState.value
+        val digits = rawValue.filter { it.isDigit() }.take(4)
+        val formatted = formatTimeInput(digits)
+        if (digits.length < 3) {
+            _uiState.update {
+                it.copy(
+                    timeInput = formatted,
+                    errors = it.errors - LessonCreationField.TIME
+                )
+            }
+            return
+        }
+
+        val padded = digits.padStart(4, '0')
+        val hours = padded.substring(0, 2).toInt()
+        val minutes = padded.substring(2, 4).toInt()
+        if (hours !in 0..23 || minutes !in 0..59) {
+            _uiState.update {
+                it.copy(
+                    timeInput = formatted,
+                    errors = it.errors + (LessonCreationField.TIME to TIME_INPUT_INVALID_MESSAGE)
+                )
+            }
+            return
+        }
+
+        val aligned = alignTimeToStep(LocalTime.of(hours, minutes), state.slotStepMinutes)
+        _uiState.update {
+            it.copy(
+                time = aligned,
+                timeInput = formatTime(aligned, it.locale),
+                errors = it.errors - LessonCreationField.TIME
+            )
+        }
     }
 
     fun onDurationChanged(value: Int) {
@@ -351,6 +439,7 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onNoteChanged(value: String) {
+        val locale = _uiState.value.locale
         _uiState.update { it.copy(note = value) }
     }
 
@@ -368,15 +457,26 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun consumeSnackbar() {
-        _uiState.update { it.copy(snackbarMessage = null) }
+        val next = if (snackbarQueue.isEmpty()) null else snackbarQueue.removeFirst()
+        if (next == null) {
+            _uiState.update { it.copy(snackbarMessage = null, snackbarActionLabel = null) }
+        } else {
+            _uiState.update {
+                it.copy(
+                    snackbarMessage = next.message,
+                    snackbarActionLabel = next.actionLabel
+                )
+            }
+        }
     }
 
     private suspend fun attemptSubmit(force: Boolean) {
-        val state = _uiState.value
+        var state = _uiState.value
         val errors = mutableMapOf<LessonCreationField, String>()
-        val student = state.selectedStudent
-        if (student == null) {
-            errors[LessonCreationField.STUDENT] = "Выберите ученика"
+        val trimmedName = state.studentQuery.trim()
+        var student = state.selectedStudent
+        if (student == null && trimmedName.isBlank()) {
+            errors[LessonCreationField.STUDENT] = "Укажите ученика"
         }
         if (state.durationMinutes <= 0) {
             errors[LessonCreationField.DURATION] = "Длительность должна быть больше 0"
@@ -398,6 +498,37 @@ class LessonCreationViewModel @Inject constructor(
             return
         }
 
+        if (student == null) {
+            val similar = findSimilarStudent(trimmedName)
+            if (similar != null && !force) {
+                _uiState.update {
+                    it.copy(
+                        errors = emptyMap(),
+                        studentDuplicatePrompt = StudentDuplicatePrompt(
+                            existingStudent = similar,
+                            enteredName = trimmedName,
+                            forceSubmission = force
+                        )
+                    )
+                }
+                return
+            }
+
+            val created = createStudentFromInput(trimmedName, state) ?: return
+            _uiState.update { it.copy(studentDuplicatePrompt = null) }
+            selectStudent(created.id, applyDefaults = false)
+            state = _uiState.value
+            student = state.selectedStudent
+        } else {
+            pendingNewStudentName = null
+        }
+
+        if (student == null) {
+            errors[LessonCreationField.STUDENT] = "Укажите ученика"
+            _uiState.update { it.copy(errors = errors) }
+            return
+        }
+
         val normalizedSubjectInput = state.subjectInput.trim()
         val selectedSubjectName = state.subjects.firstOrNull { it.id == state.selectedSubjectId }?.name
         val title = normalizedSubjectInput.takeUnless {
@@ -405,7 +536,7 @@ class LessonCreationViewModel @Inject constructor(
         }
 
         val request = LessonCreateRequest(
-            studentId = student!!.id,
+            studentId = student.id,
             subjectId = state.selectedSubjectId,
             title = title,
             startAt = start.toInstant(),
@@ -435,6 +566,30 @@ class LessonCreationViewModel @Inject constructor(
         createLesson(request)
     }
 
+    fun useDuplicateStudent() {
+        val prompt = _uiState.value.studentDuplicatePrompt ?: return
+        viewModelScope.launch {
+            pendingNewStudentName = null
+            _uiState.update { it.copy(studentDuplicatePrompt = null) }
+            selectStudent(prompt.existingStudent.id, applyDefaults = true)
+            attemptSubmit(prompt.forceSubmission)
+        }
+    }
+
+    fun createDuplicateStudent() {
+        val prompt = _uiState.value.studentDuplicatePrompt ?: return
+        viewModelScope.launch {
+            val created = createStudentFromInput(prompt.enteredName, _uiState.value) ?: return@launch
+            _uiState.update { it.copy(studentDuplicatePrompt = null) }
+            selectStudent(created.id, applyDefaults = false)
+            attemptSubmit(prompt.forceSubmission)
+        }
+    }
+
+    fun dismissDuplicateStudent() {
+        _uiState.update { it.copy(studentDuplicatePrompt = null) }
+    }
+
     private suspend fun createLesson(request: LessonCreateRequest) {
         _uiState.update { it.copy(isSubmitting = true, errors = emptyMap()) }
         runCatching {
@@ -456,12 +611,13 @@ class LessonCreationViewModel @Inject constructor(
                 }
             }
             val formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm", _uiState.value.locale)
-            val message = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            val baseMessage = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            val newStudentName = pendingNewStudentName
             _uiState.update {
                 it.copy(
                     isSubmitting = false,
                     isVisible = false,
-                    snackbarMessage = message,
+                    errors = emptyMap(),
                     showConflictDialog = null,
                     selectedStudent = null,
                     studentQuery = "",
@@ -472,6 +628,11 @@ class LessonCreationViewModel @Inject constructor(
             currentStudentBaseRateCents = null
             currentStudentBaseRateDuration = null
             conflictRequest = null
+            if (newStudentName != null) {
+                enqueueSnackbar("Новый ученик \"$newStudentName\" сохранён.", actionLabel = "Отменить")
+            }
+            enqueueSnackbar(baseMessage)
+            pendingNewStudentName = null
             _events.tryEmit(
                 LessonCreationEvent.Created(
                     start = start,
@@ -482,10 +643,100 @@ class LessonCreationViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isSubmitting = false,
-                    snackbarMessage = error.message ?: "Не удалось сохранить занятие"
+                    snackbarMessage = error.message ?: "Не удалось сохранить занятие",
+                    snackbarActionLabel = null
                 )
             }
         }
+    }
+
+    private suspend fun createStudentFromInput(
+        rawName: String,
+        sourceState: LessonCreationUiState
+    ): StudentOption? {
+        val trimmed = rawName.trim()
+        val name = trimmed.ifEmpty { DEFAULT_NEW_STUDENT_NAME }
+        val subjectName = resolveStudentSubject(sourceState)
+        val grade = resolveStudentGrade(sourceState)
+        val rateCents = sourceState.priceCents.takeIf { it > 0 }
+        val newStudent = Student(
+            name = name,
+            rateCents = rateCents,
+            subject = subjectName,
+            grade = grade
+        )
+        val newId = runCatching { studentsRepository.upsert(newStudent) }
+            .onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        snackbarMessage = error.message ?: "Не удалось сохранить ученика",
+                        snackbarActionLabel = null
+                    )
+                }
+            }
+            .getOrNull() ?: return null
+        pendingNewStudentName = name
+        return studentsRepository.getByIdSafe(newId)?.toOption() ?: newStudent.copy(id = newId).toOption()
+    }
+
+    private fun resolveStudentSubject(state: LessonCreationUiState): String? {
+        val selectedSubject = state.selectedSubjectId?.let { id ->
+            state.subjects.firstOrNull { it.id == id }?.name
+        }
+        val manualSubject = state.subjectInput.trim().takeIf { it.isNotEmpty() }
+        return (selectedSubject ?: manualSubject)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun resolveStudentGrade(state: LessonCreationUiState): String? {
+        return extractGrade(state.note) ?: extractGrade(state.subjectInput)
+    }
+
+    private fun extractGrade(source: String?): String? {
+        if (source.isNullOrBlank()) return null
+        val match = GRADE_REGEX.find(source)
+        val gradeNumber = match?.groups?.get(2)?.value
+        return gradeNumber?.let { "$it класс" }
+    }
+
+    private fun enqueueSnackbar(message: String, actionLabel: String? = null) {
+        val current = _uiState.value
+        if (current.snackbarMessage == null) {
+            _uiState.update {
+                it.copy(
+                    snackbarMessage = message,
+                    snackbarActionLabel = actionLabel
+                )
+            }
+        } else {
+            snackbarQueue.addLast(SnackbarPayload(message, actionLabel))
+        }
+    }
+
+    private suspend fun findSimilarStudent(name: String): StudentOption? {
+        val locale = _uiState.value.locale
+        val normalizedQuery = normalizeNameForComparison(name, locale)
+        if (normalizedQuery.isEmpty()) return null
+        val candidates = runCatching { studentsRepository.allActive() }.getOrDefault(emptyList())
+        var bestOption: StudentOption? = null
+        var bestScore = Int.MAX_VALUE
+        candidates.forEach { candidate ->
+            val option = candidate.toOption()
+            val normalizedCandidate = normalizeNameForComparison(option.name, locale)
+            if (normalizedCandidate.isEmpty()) return@forEach
+            val contains = normalizedCandidate.contains(normalizedQuery) || normalizedQuery.contains(normalizedCandidate)
+            val score = if (contains) {
+                0
+            } else {
+                tokenDistance(normalizedQuery, normalizedCandidate)
+            }
+            if (contains || score <= 2) {
+                if (score < bestScore) {
+                    bestScore = score
+                    bestOption = option
+                }
+            }
+        }
+        return bestOption
     }
 
     private suspend fun loadStudents(query: String): List<StudentOption> {
@@ -619,11 +870,53 @@ private fun roundToStep(start: ZonedDateTime, stepMinutes: Int): ZonedDateTime {
     return start.plusMinutes(adjust.toLong()).withSecond(0).withNano(0)
 }
 
-private fun roundTimeToStep(time: LocalTime, stepMinutes: Int): LocalTime {
+private fun alignTimeToStep(time: LocalTime, stepMinutes: Int): LocalTime {
     val remainder = time.minute % stepMinutes
-    val adjust = if (remainder == 0) 0 else stepMinutes - remainder
-    val adjusted = time.plusMinutes(adjust.toLong())
+    val adjusted = if (remainder == 0) {
+        time
+    } else {
+        time.minusMinutes(remainder.toLong())
+    }
     return adjusted.withSecond(0).withNano(0)
+}
+
+private fun formatTime(time: LocalTime, locale: Locale): String {
+    return time.format(DateTimeFormatter.ofPattern("HH:mm", locale))
+}
+
+private fun formatTimeInput(digits: String): String {
+    if (digits.isEmpty()) return ""
+    if (digits.length <= 2) return digits
+    val padded = digits.padStart(4, '0')
+    val hours = padded.substring(0, 2)
+    val minuteDigits = (digits.length - 2).coerceIn(0, 2)
+    if (minuteDigits == 0) return hours
+    val minutes = padded.substring(2, 2 + minuteDigits)
+    return "$hours:$minutes"
+}
+
+//private fun enforceCapitalized(value: String, locale: Locale): String {
+//    val index = value.indexOfFirst { it.isLetter() }
+//    if (index == -1) return value
+//    val current = value[index]
+//    val titleCased = current.titlecase(locale)
+//    if (current == titleCased) return value
+//    val chars = value.toCharArray()
+//    chars[index] = titleCased
+//    return String(chars)
+//}
+
+private fun gcd(a: Int, b: Int): Int {
+    var x = kotlin.math.abs(a)
+    var y = kotlin.math.abs(b)
+    if (x == 0) return y
+    if (y == 0) return x
+    while (y != 0) {
+        val temp = y
+        y = x % y
+        x = temp
+    }
+    return x
 }
 
 private suspend fun StudentsRepository.getByIdSafe(id: Long): Student? = runCatching { getById(id) }.getOrNull()
@@ -632,3 +925,59 @@ private fun mergeStudentOption(options: List<StudentOption>, selected: StudentOp
     val filtered = options.filterNot { it.id == selected.id }
     return listOf(selected) + filtered
 }
+
+private fun normalizeNameForComparison(value: String, locale: Locale): String {
+    return value
+        .lowercase(locale)
+        .replace(NON_WORD_REGEX, " ")
+        .replace(WHITESPACE_REGEX, " ")
+        .trim()
+}
+
+private fun tokenDistance(query: String, candidate: String): Int {
+    var best = levenshteinDistance(query, candidate)
+    val queryTokens = query.split(' ').filter { it.isNotBlank() }
+    val candidateTokens = candidate.split(' ').filter { it.isNotBlank() }
+    for (source in queryTokens) {
+        for (target in candidateTokens) {
+            val distance = levenshteinDistance(source, target)
+            if (distance < best) {
+                best = distance
+            }
+        }
+    }
+    return best
+}
+
+private fun levenshteinDistance(a: String, b: String): Int {
+    if (a == b) return 0
+    if (a.isEmpty()) return b.length
+    if (b.isEmpty()) return a.length
+    var previous = IntArray(b.length + 1) { it }
+    var current = IntArray(b.length + 1)
+    for (i in 1..a.length) {
+        current[0] = i
+        for (j in 1..b.length) {
+            val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+            current[j] = minOf(
+                current[j - 1] + 1,
+                previous[j] + 1,
+                previous[j - 1] + cost
+            )
+        }
+        val temp = previous
+        previous = current
+        current = temp
+    }
+    return previous[b.length]
+}
+
+private const val DEFAULT_NEW_STUDENT_NAME = "Ученик"
+private val NON_WORD_REGEX = Regex("[^\\p{L}\\p{Nd}]")
+private val WHITESPACE_REGEX = Regex("\\s+")
+private val GRADE_REGEX = Regex("""(?i)(\n|^|\s)(\d{1,2})\s*(класс|кл\\.?)""")
+
+private data class SnackbarPayload(
+    val message: String,
+    val actionLabel: String?
+)

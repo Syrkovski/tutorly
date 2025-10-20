@@ -245,7 +245,7 @@ fun StudentsScreen(
                 if (!formState.isSaving) {
                     closeEditor()
                 }
-            }
+            },
         )
     }
 }
