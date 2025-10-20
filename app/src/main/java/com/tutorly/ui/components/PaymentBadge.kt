@@ -2,17 +2,16 @@ package com.tutorly.ui.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
-import com.tutorly.ui.theme.extendedColors
 
 enum class PaymentBadgeStatus {
     PAID,
@@ -25,15 +24,15 @@ fun PaymentBadge(
     status: PaymentBadgeStatus,
     modifier: Modifier = Modifier
 ) {
-    val accent = MaterialTheme.extendedColors.accent
+    val paidColor = Color(0xFF4E998C)
     val (txt, container, content) = when (status) {
-        PaymentBadgeStatus.PAID -> Triple("Оплачено", accent, PaidChipContent)
+        PaymentBadgeStatus.PAID -> Triple("Оплачено", paidColor, PaidChipContent)
 
         PaymentBadgeStatus.DEBT -> Triple("Долг", DebtChipFill, DebtChipContent)
 
         PaymentBadgeStatus.PREPAID -> Triple(
             "Предоплата",
-            accent,
+            paidColor,
             PaidChipContent
         )
     }

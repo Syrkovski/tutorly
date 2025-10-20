@@ -21,7 +21,6 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
-import com.tutorly.ui.theme.extendedColors
 import java.time.ZonedDateTime
 
 /** Visual parameters for the payment status indicator. */
@@ -63,6 +62,7 @@ fun statusChipData(
     val colorScheme = MaterialTheme.colorScheme
     val plannedColor = colorScheme.primary
     val cancelledColor = colorScheme.outline
+    val paidColor = Color(0xFF4E998C)
 
     fun defaultContentColor(background: Color): Color =
         if (background.luminance() < 0.5f) Color.White else colorScheme.onSurface
@@ -80,7 +80,7 @@ fun statusChipData(
     } else if (now.isBefore(start)) {
         if (paymentStatus == PaymentStatus.PAID) {
             description = stringResource(R.string.calendar_status_prepaid)
-            background = MaterialTheme.extendedColors.accent
+            background = paidColor
             content = PaidChipContent
             label = "₽"
         } else {
@@ -92,14 +92,14 @@ fun statusChipData(
     } else if (now.isAfter(end)) {
         if (paymentStatus == PaymentStatus.PAID) {
             description = stringResource(R.string.lesson_status_paid)
-            background = MaterialTheme.extendedColors.accent
+            background = paidColor
             content = PaidChipContent
             label = "₽"
         } else {
             description = stringResource(R.string.lesson_status_due)
             background = DebtChipFill
             content = DebtChipContent
-            label = "!"
+            label = "₽"
         }
     } else {
         description = stringResource(R.string.calendar_status_in_progress)

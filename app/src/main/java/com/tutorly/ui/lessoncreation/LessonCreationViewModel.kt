@@ -174,7 +174,26 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentQueryChange(query: String) {
-        _uiState.update { it.copy(studentQuery = query) }
+        val isCleared = query.isBlank()
+        if (isCleared) {
+            currentRateHistory = emptyList()
+            currentStudentBaseRateCents = null
+            currentStudentBaseRateDuration = null
+        }
+
+        _uiState.update { current ->
+            val baseState = current.copy(studentQuery = query)
+            if (!isCleared) {
+                baseState
+            } else {
+                val keepSubjectIds = baseState.selectedSubjectChips.mapNotNull { it.id }.toSet()
+                baseState.copy(
+                    selectedStudent = null,
+                    availableSubjects = resolveAvailableSubjects(null, baseState.locale, keepSubjectIds),
+                    pricePresets = emptyList()
+                )
+            }
+        }
         viewModelScope.launch {
             val students = loadStudents(query)
             _uiState.update { current ->
