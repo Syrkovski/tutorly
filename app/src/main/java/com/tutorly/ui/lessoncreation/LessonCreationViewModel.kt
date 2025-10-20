@@ -63,11 +63,27 @@ class LessonCreationViewModel @Inject constructor(
             cachedSubjects = subjectPresetsRepository.all()
             _uiState.update { state ->
                 val options = cachedSubjects.map { it.toOption() }
+                val sanitizedChips = state.selectedSubjectChips
+                    .mapNotNull { chip ->
+                        when {
+                            chip.id == null -> chip
+                            options.any { it.id == chip.id } -> chip
+                            else -> null
+                        }
+                    }
                 val selected = state.selectedSubjectId?.takeIf { id -> options.any { it.id == id } }
+                val withPrimaryChip = if (selected != null && sanitizedChips.none { it.id == selected }) {
+                    val option = options.firstOrNull { it.id == selected }
+                    if (option != null) sanitizedChips + option.toChip() else sanitizedChips
+                } else {
+                    sanitizedChips
+                }
+                val keepIds = withPrimaryChip.mapNotNull { it.id }.toSet()
                 state.copy(
                     subjects = options,
-                    availableSubjects = resolveAvailableSubjects(state.selectedStudent, state.locale, selected),
-                    selectedSubjectId = selected
+                    availableSubjects = resolveAvailableSubjects(state.selectedStudent, state.locale, keepIds),
+                    selectedSubjectId = selected,
+                    selectedSubjectChips = withPrimaryChip
                 )
             }
             val currentSelected = _uiState.value.selectedSubjectId
@@ -111,6 +127,7 @@ class LessonCreationViewModel @Inject constructor(
                 subjects = subjectOptions,
                 availableSubjects = subjectOptions,
                 selectedSubjectId = null,
+                selectedSubjectChips = emptyList(),
                 date = roundedStart.toLocalDate(),
                 time = roundedStart.toLocalTime(),
                 durationMinutes = baseDuration,
@@ -203,7 +220,11 @@ class LessonCreationViewModel @Inject constructor(
         currentStudentBaseRateDuration = studentRate?.let { duration.takeIf { it > 0 } }
         val pricePresets = computePricePresets(duration)
 
-        val availableSubjectOptions = resolveAvailableSubjects(selected, state.locale, subjectId)
+        val keepSubjectIds = mutableSetOf<Long>().apply {
+            state.selectedSubjectChips.mapNotNullTo(this) { it.id }
+            subjectId?.let { add(it) }
+        }
+        val availableSubjectOptions = resolveAvailableSubjects(selected, state.locale, keepSubjectIds)
         val resolvedSubjectId = when {
             subjectId != null && availableSubjectOptions.any { it.id == subjectId } -> subjectId
             applyDefaults && availableSubjectOptions.isNotEmpty() -> availableSubjectOptions.first().id
@@ -218,28 +239,32 @@ class LessonCreationViewModel @Inject constructor(
         } ?: firstStudentSubject
 
         _uiState.update {
+            val sanitizedChips = it.selectedSubjectChips.filter { chip ->
+                chip.id == null || availableSubjectOptions.any { option -> option.id == chip.id }
+            }
+            val nextChips = if (applyDefaults) emptyList() else sanitizedChips
             it.copy(
                 selectedStudent = selected,
                 students = mergeStudentOption(it.students, selected),
                 studentQuery = selected.name,
                 selectedSubjectId = resolvedSubjectId,
+                selectedSubjectChips = nextChips,
                 durationMinutes = duration,
                 priceCents = price,
                 pricePresets = pricePresets,
                 availableSubjects = availableSubjectOptions,
                 subjectInput = if (applyDefaults || it.selectedStudent?.id != selected.id) {
-                    resolvedSubjectName
+                    ""
                 } else {
-                    it.subjectInput.ifBlank { resolvedSubjectName }
+                    it.subjectInput
                 }
             )
         }
 
         if (applyDefaults) {
-            if (resolvedSubjectId != null) {
-                onSubjectSelected(resolvedSubjectId)
-            } else if (resolvedSubjectName.isNotBlank()) {
-                onSubjectInputChanged(resolvedSubjectName)
+            when {
+                resolvedSubjectId != null -> onSubjectSelected(resolvedSubjectId)
+                resolvedSubjectName.isNotBlank() -> onSubjectSuggestionToggled(resolvedSubjectName)
             }
         }
     }
@@ -247,77 +272,123 @@ class LessonCreationViewModel @Inject constructor(
     private fun resolveAvailableSubjects(
         student: StudentOption?,
         locale: Locale,
-        keepSubjectId: Long? = null
+        keepSubjectIds: Set<Long> = emptySet()
     ): List<SubjectOption> {
         if (cachedSubjects.isEmpty()) return emptyList()
         val allOptions = cachedSubjects.map { it.toOption() }
         val subjects = student?.subjects.orEmpty()
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-        if (subjects.isEmpty()) return includeSubjectIfNeeded(allOptions, allOptions, keepSubjectId)
+        if (subjects.isEmpty()) return includeSubjectIfNeeded(allOptions, allOptions, keepSubjectIds)
 
         val normalized = subjects.map { it.lowercase(locale) }.toSet()
         val filtered = cachedSubjects.filter { preset ->
             normalized.contains(preset.name.lowercase(locale))
         }
         val options = (if (filtered.isEmpty()) cachedSubjects else filtered).map { it.toOption() }
-        return includeSubjectIfNeeded(options, allOptions, keepSubjectId)
+        return includeSubjectIfNeeded(options, allOptions, keepSubjectIds)
     }
 
     private fun includeSubjectIfNeeded(
         primary: List<SubjectOption>,
         allOptions: List<SubjectOption>,
-        keepSubjectId: Long?
+        keepSubjectIds: Set<Long>
     ): List<SubjectOption> {
-        if (keepSubjectId == null || primary.any { it.id == keepSubjectId }) {
-            return primary
-        }
-        val fallback = allOptions.firstOrNull { it.id == keepSubjectId } ?: return primary
-        return primary + fallback
+        if (keepSubjectIds.isEmpty()) return primary
+        val missing = keepSubjectIds.filterNot { id -> primary.any { it.id == id } }
+        if (missing.isEmpty()) return primary
+        val extras = missing.mapNotNull { id -> allOptions.firstOrNull { it.id == id } }
+        if (extras.isEmpty()) return primary
+        return primary + extras
     }
 
-    fun onSubjectSelected(subjectId: Long?) {
+    fun onSubjectSelected(subjectId: Long) {
         val state = _uiState.value
-        if (subjectId == null) {
-            _uiState.update { it.copy(selectedSubjectId = null) }
+        val option = state.subjects.firstOrNull { it.id == subjectId } ?: return
+        val existingIndex = state.selectedSubjectChips.indexOfFirst { it.id == subjectId }
+        if (existingIndex >= 0) {
+            val updatedChips = state.selectedSubjectChips.toMutableList().apply { removeAt(existingIndex) }
+            val newPrimary = if (state.selectedSubjectId == subjectId) {
+                updatedChips.firstOrNull { it.id != null }?.id
+            } else {
+                state.selectedSubjectId
+            }
+            _uiState.update {
+                it.copy(
+                    selectedSubjectChips = updatedChips,
+                    selectedSubjectId = newPrimary
+                )
+            }
             return
         }
-        val subject = state.subjects.firstOrNull { it.id == subjectId }
-        if (subject == null) {
-            _uiState.update { it.copy(selectedSubjectId = null) }
+        addSubjectChip(option, state)
+    }
+
+    fun onSubjectSuggestionToggled(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            _uiState.update { it.copy(subjectInput = "") }
             return
         }
-        applySubjectOption(subject, state)
+        val state = _uiState.value
+        val existingIndex = state.selectedSubjectChips.indexOfFirst { chip ->
+            chip.id == null && chip.name.equals(trimmed, ignoreCase = true)
+        }
+        if (existingIndex >= 0) {
+            val updated = state.selectedSubjectChips.toMutableList().apply { removeAt(existingIndex) }
+            _uiState.update { it.copy(selectedSubjectChips = updated, subjectInput = "") }
+            return
+        }
+        if (state.selectedSubjectChips.any { chip -> chip.name.equals(trimmed, ignoreCase = true) }) {
+            _uiState.update { it.copy(subjectInput = "") }
+            return
+        }
+        _uiState.update { current ->
+            current.copy(
+                selectedSubjectChips = current.selectedSubjectChips + SelectedSubjectChip(
+                    id = null,
+                    name = trimmed,
+                    colorArgb = null
+                ),
+                subjectInput = ""
+            )
+        }
+    }
+
+    fun onSubjectChipRemoved(id: Long?, name: String) {
+        val state = _uiState.value
+        val updated = if (id != null) {
+            state.selectedSubjectChips.filterNot { it.id == id }
+        } else {
+            val normalized = name.trim()
+            state.selectedSubjectChips.filterNot { chip ->
+                chip.id == null && chip.name.equals(normalized, ignoreCase = true)
+            }
+        }
+        val newPrimary = if (id != null && state.selectedSubjectId == id) {
+            updated.firstOrNull { it.id != null }?.id
+        } else {
+            state.selectedSubjectId
+        }
+        _uiState.update { it.copy(selectedSubjectChips = updated, selectedSubjectId = newPrimary) }
     }
 
     fun onSubjectInputChanged(value: String) {
-        val state = _uiState.value
-        val normalized = value.trim()
-        if (normalized.isEmpty()) {
-            _uiState.update { it.copy(subjectInput = value, selectedSubjectId = null) }
-            return
-        }
-        val match = state.availableSubjects.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
-            ?: state.subjects.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
-        if (match != null) {
-            applySubjectOption(match, state)
-        } else {
-            _uiState.update {
-                it.copy(
-                    subjectInput = value,
-                    selectedSubjectId = null
-                )
-            }
-        }
+        _uiState.update { it.copy(subjectInput = value) }
     }
 
-    private fun applySubjectOption(option: SubjectOption, state: LessonCreationUiState) {
+    private fun addSubjectChip(option: SubjectOption, state: LessonCreationUiState) {
+        if (state.selectedSubjectChips.any { it.id == option.id }) {
+            _uiState.update { it.copy(subjectInput = "") }
+            return
+        }
         val newDuration = if (durationEdited) state.durationMinutes else option.durationMinutes
         val newPrice = if (priceEdited) state.priceCents else option.defaultPriceCents
         _uiState.update {
             it.copy(
                 selectedSubjectId = option.id,
-                subjectInput = option.name,
+                selectedSubjectChips = it.selectedSubjectChips + option.toChip(),
+                subjectInput = "",
                 durationMinutes = newDuration,
                 priceCents = newPrice,
                 pricePresets = computePricePresets(newDuration)
@@ -398,10 +469,23 @@ class LessonCreationViewModel @Inject constructor(
             return
         }
 
-        val normalizedSubjectInput = state.subjectInput.trim()
-        val selectedSubjectName = state.subjects.firstOrNull { it.id == state.selectedSubjectId }?.name
-        val title = normalizedSubjectInput.takeUnless {
-            it.isEmpty() || (selectedSubjectName != null && selectedSubjectName.equals(it, ignoreCase = true))
+        val normalizedQuery = state.subjectInput.trim()
+        val selectedChips = state.selectedSubjectChips
+        val primaryName = selectedChips.firstOrNull { it.id == state.selectedSubjectId }?.name
+        val additionalNames = selectedChips
+            .filterNot { chip -> chip.id != null && chip.id == state.selectedSubjectId }
+            .map { it.name }
+        val titleParts = mutableListOf<String>().apply {
+            additionalNames.mapNotNull { name ->
+                name.trim().takeIf { it.isNotEmpty() }
+            }.forEach { add(it) }
+            normalizedQuery.takeIf { it.isNotEmpty() && (primaryName == null || !primaryName.equals(it, ignoreCase = true)) }?.let { add(it) }
+        }
+        val distinctTitleParts = titleParts.distinctBy { it.lowercase(state.locale) }
+        val title = when {
+            distinctTitleParts.isEmpty() -> null
+            distinctTitleParts.size == 1 -> distinctTitleParts.first()
+            else -> distinctTitleParts.joinToString(separator = ", ")
         }
 
         val request = LessonCreateRequest(
@@ -632,3 +716,6 @@ private fun mergeStudentOption(options: List<StudentOption>, selected: StudentOp
     val filtered = options.filterNot { it.id == selected.id }
     return listOf(selected) + filtered
 }
+
+private fun SubjectOption.toChip(): SelectedSubjectChip =
+    SelectedSubjectChip(id = id, name = name, colorArgb = colorArgb)

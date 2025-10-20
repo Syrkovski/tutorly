@@ -16,6 +16,7 @@ data class LessonCreationUiState(
     val subjects: List<SubjectOption> = emptyList(),
     val availableSubjects: List<SubjectOption> = emptyList(),
     val selectedSubjectId: Long? = null,
+    val selectedSubjectChips: List<SelectedSubjectChip> = emptyList(),
     val subjectInput: String = "",
     val date: LocalDate = LocalDate.now(),
     val time: LocalTime = LocalTime.now(),
@@ -61,6 +62,12 @@ data class SubjectOption(
     val colorArgb: Int,
     val durationMinutes: Int,
     val defaultPriceCents: Int
+)
+
+data class SelectedSubjectChip(
+    val id: Long?,
+    val name: String,
+    val colorArgb: Int?
 )
 
 data class StudentOption(

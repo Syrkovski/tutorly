@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,8 +48,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +71,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
@@ -78,6 +83,42 @@ import java.util.Locale
 
 private val SectionSpacing = 12.dp
 
+private val SubjectSuggestionDefaults = listOf(
+    "Математика",
+    "Русский язык",
+    "Английский язык",
+    "Физика",
+    "Химия",
+    "Биология",
+    "История",
+    "Обществознание",
+    "Литература",
+    "География",
+    "Информатика",
+    "Алгебра",
+    "Геометрия",
+    "Экономика",
+    "Право",
+    "Немецкий язык",
+    "Французский язык",
+    "Испанский язык",
+    "Китайский язык",
+    "Итальянский язык",
+    "Турецкий язык",
+    "Программирование",
+    "Шахматы",
+    "Музыка",
+    "Вокал",
+    "Фортепиано",
+    "Гитара",
+    "Логопед",
+    "Подготовка к школе",
+    "Начальная школа",
+    "ЕГЭ",
+    "ОГЭ",
+    "Олимпиады"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonCreationSheet(
@@ -87,7 +128,9 @@ fun LessonCreationSheet(
     onStudentSelect: (Long) -> Unit,
     onAddStudent: () -> Unit,
     onSubjectInputChange: (String) -> Unit,
-    onSubjectSelect: (Long?) -> Unit,
+    onSubjectSelect: (Long) -> Unit,
+    onSubjectSuggestionToggle: (String) -> Unit,
+    onSubjectChipRemove: (Long?, String) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationChange: (Int) -> Unit,
@@ -131,7 +174,9 @@ fun LessonCreationSheet(
                 SubjectSection(
                     state = state,
                     onSubjectInputChange = onSubjectInputChange,
-                    onSubjectSelect = onSubjectSelect
+                    onSubjectSelect = onSubjectSelect,
+                    onSubjectSuggestionToggle = onSubjectSuggestionToggle,
+                    onSubjectChipRemove = onSubjectChipRemove
                 )
                 PriceSection(state = state, onPriceChange = onPriceChange)
                 NoteSection(state = state, onNoteChange = onNoteChange)
@@ -299,11 +344,14 @@ private fun StudentAvatar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SubjectSection(
     state: LessonCreationUiState,
     onSubjectInputChange: (String) -> Unit,
-    onSubjectSelect: (Long?) -> Unit
+    onSubjectSelect: (Long) -> Unit,
+    onSubjectSuggestionToggle: (String) -> Unit,
+    onSubjectChipRemove: (Long?, String) -> Unit
 ) {
     val availableSubjects = state.availableSubjects
     val studentSubjectNames = state.selectedStudent?.subjects.orEmpty()
@@ -312,11 +360,28 @@ private fun SubjectSection(
     val additionalNames = studentSubjectNames.filter { name ->
         availableSubjects.none { option -> option.name.equals(name, ignoreCase = true) }
     }
-    val hasSuggestions = availableSubjects.isNotEmpty() || additionalNames.isNotEmpty()
+    val locale = state.locale
+    val query = state.subjectInput
+    val normalizedQuery = query.trim().lowercase(locale)
+    val hasQuery = normalizedQuery.isNotEmpty()
+    val matchingSubjects = availableSubjects.filter { option ->
+        hasQuery && option.name.lowercase(locale).startsWith(normalizedQuery)
+    }
+    val matchingAdditional = additionalNames.filter { name ->
+        hasQuery && name.lowercase(locale).startsWith(normalizedQuery)
+    }
+    val defaultSuggestions = SubjectSuggestionDefaults.filter { name ->
+        hasQuery && name.lowercase(locale).startsWith(normalizedQuery)
+    }.filterNot { suggestion ->
+        matchingSubjects.any { it.name.equals(suggestion, ignoreCase = true) } ||
+            matchingAdditional.any { it.equals(suggestion, ignoreCase = true) }
+    }
+    val hasSuggestions = matchingSubjects.isNotEmpty() || matchingAdditional.isNotEmpty() || defaultSuggestions.isNotEmpty()
     var expanded by remember(state.selectedStudent, availableSubjects, additionalNames) { mutableStateOf(false) }
     var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
     val dropdownWidth = with(LocalDensity.current) { textFieldSize.width.toDp() }
     val dropdownModifier = if (dropdownWidth > 0.dp) Modifier.width(dropdownWidth) else Modifier
+    val selectedChips = state.selectedSubjectChips
 
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
         Box {
@@ -324,26 +389,55 @@ private fun SubjectSection(
                 value = state.subjectInput,
                 onValueChange = {
                     onSubjectInputChange(it)
-                    expanded = hasSuggestions
+                    expanded = it.trim().isNotEmpty()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onGloballyPositioned { textFieldSize = it.size },
+                    .onGloballyPositioned { textFieldSize = it.size }
+                    .onFocusChanged { focusState ->
+                        expanded = focusState.isFocused && hasSuggestions
+                    },
                 label = { Text(text = stringResource(id = R.string.lesson_create_subject_label)) },
-                placeholder = {
-                    Text(text = stringResource(id = R.string.lesson_create_subject_placeholder))
-                },
                 singleLine = true,
                 leadingIcon = {
                     Icon(imageVector = Icons.Filled.Book, contentDescription = null)
                 },
-                trailingIcon = {
-                    if (hasSuggestions) {
-                        IconButton(onClick = { expanded = !expanded }) {
-                            Icon(
-                                imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                                contentDescription = null
-                            )
+                prefix = {
+                    if (selectedChips.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            selectedChips.forEach { chip ->
+                                FilterChip(
+                                    selected = true,
+                                    onClick = {
+                                        expanded = false
+                                        onSubjectChipRemove(chip.id, chip.name)
+                                    },
+                                    label = { Text(text = chip.name) },
+                                    leadingIcon = {
+                                        chip.colorArgb?.let { color ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .background(Color(color), CircleShape)
+                                            )
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.Close,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                            }
                         }
                     }
                 },
@@ -362,20 +456,27 @@ private fun SubjectSection(
                 expanded = expanded && hasSuggestions,
                 onDismissRequest = { expanded = false },
                 modifier = dropdownModifier,
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface,
+                properties = PopupProperties(focusable = false)
             ) {
-                availableSubjects.forEach { subject ->
+                matchingSubjects.forEach { subject ->
+                    val isSelected = selectedChips.any { it.id == subject.id }
                     DropdownMenuItem(
-                        text = { Text(text = subject.name) },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(Color(subject.colorArgb), CircleShape)
-                            )
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .background(Color(subject.colorArgb), CircleShape)
+                                )
+                                Text(text = subject.name)
+                            }
                         },
                         trailingIcon = {
-                            if (state.selectedSubjectId == subject.id) {
+                            if (isSelected) {
                                 Icon(imageVector = Icons.Filled.Check, contentDescription = null)
                             }
                         },
@@ -385,16 +486,48 @@ private fun SubjectSection(
                         }
                     )
                 }
-                additionalNames.forEach { subjectName ->
+                matchingAdditional.forEach { subjectName ->
+                    val isSelected = selectedChips.any { chip ->
+                        chip.id == null && chip.name.equals(subjectName, ignoreCase = true)
+                    }
                     DropdownMenuItem(
                         text = { Text(text = subjectName) },
+                        trailingIcon = {
+                            if (isSelected) {
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            }
+                        },
                         onClick = {
                             expanded = false
-                            onSubjectInputChange(subjectName)
+                            onSubjectSuggestionToggle(subjectName)
+                        }
+                    )
+                }
+                defaultSuggestions.forEach { suggestion ->
+                    val isSelected = selectedChips.any { chip ->
+                        chip.id == null && chip.name.equals(suggestion, ignoreCase = true)
+                    }
+                    DropdownMenuItem(
+                        text = { Text(text = suggestion) },
+                        trailingIcon = {
+                            if (isSelected) {
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            }
+                        },
+                        onClick = {
+                            expanded = false
+                            onSubjectSuggestionToggle(suggestion)
                         }
                     )
                 }
             }
+        }
+
+    }
+
+    LaunchedEffect(hasSuggestions) {
+        if (!hasSuggestions) {
+            expanded = false
         }
     }
 }

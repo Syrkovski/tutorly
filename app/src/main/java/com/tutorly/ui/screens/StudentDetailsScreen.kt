@@ -189,6 +189,8 @@ fun StudentDetailsScreen(
         },
         onSubjectInputChange = creationViewModel::onSubjectInputChanged,
         onSubjectSelect = creationViewModel::onSubjectSelected,
+        onSubjectSuggestionToggle = creationViewModel::onSubjectSuggestionToggled,
+        onSubjectChipRemove = creationViewModel::onSubjectChipRemoved,
         onDateSelect = creationViewModel::onDateSelected,
         onTimeSelect = creationViewModel::onTimeSelected,
         onDurationChange = creationViewModel::onDurationChanged,
