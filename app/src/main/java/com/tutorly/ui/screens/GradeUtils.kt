@@ -2,7 +2,7 @@ package com.tutorly.ui.screens
 
 private val gradeKeywordRegex = Regex("(?i)\\b(класс|кл\\.?)(\\b|$)")
 
-private fun titleCaseWords(value: String): String {
+internal fun titleCaseWords(value: String): String {
     if (value.isEmpty()) return value
     return value
         .split(Regex("\\s+"))

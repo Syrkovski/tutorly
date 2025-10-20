@@ -117,12 +117,12 @@ class StudentsViewModel @Inject constructor(
         editingStudent = null
         _editorFormState.value = StudentEditorFormState(
             studentId = null,
-            name = name,
+            name = titleCaseWords(name),
             phone = phone,
             messenger = messenger,
             rate = rate,
-            subject = subject,
-            grade = grade,
+            subject = titleCaseWords(subject),
+            grade = normalizeGrade(grade).orEmpty(),
             note = note,
             isArchived = isArchived,
             isActive = isActive
@@ -133,12 +133,12 @@ class StudentsViewModel @Inject constructor(
         editingStudent = student
         _editorFormState.value = StudentEditorFormState(
             studentId = student.id,
-            name = student.name,
+            name = titleCaseWords(student.name),
             phone = student.phone.orEmpty(),
             messenger = student.messenger.orEmpty(),
             rate = formatMoneyInput(student.rateCents),
-            subject = student.subject.orEmpty(),
-            grade = student.grade.orEmpty(),
+            subject = student.subject?.let { titleCaseWords(it) }.orEmpty(),
+            grade = normalizeGrade(student.grade).orEmpty(),
             note = student.note.orEmpty(),
             isArchived = student.isArchived,
             isActive = student.active
@@ -197,9 +197,11 @@ class StudentsViewModel @Inject constructor(
             return
         }
 
+        val normalizedName = titleCaseWords(trimmedName)
         val trimmedPhone = state.phone.trim().ifBlank { null }
         val trimmedMessenger = state.messenger.trim().ifBlank { null }
         val trimmedSubject = state.subject.trim().ifBlank { null }
+        val normalizedSubject = trimmedSubject?.let { titleCaseWords(it) }
         val normalizedGrade = normalizeGrade(state.grade)
         val trimmedNote = state.note.trim().ifBlank { null }
         val rateInput = state.rate.trim()
@@ -215,11 +217,11 @@ class StudentsViewModel @Inject constructor(
         viewModelScope.launch {
             _editorFormState.update {
                 it.copy(
-                    name = trimmedName,
+                    name = normalizedName,
                     phone = trimmedPhone.orEmpty(),
                     messenger = trimmedMessenger.orEmpty(),
                     rate = normalizedRate,
-                    subject = trimmedSubject.orEmpty(),
+                    subject = normalizedSubject.orEmpty(),
                     grade = normalizedGrade.orEmpty(),
                     note = trimmedNote.orEmpty(),
                     nameError = false,
@@ -239,11 +241,11 @@ class StudentsViewModel @Inject constructor(
                 }
 
                 val updated = base.copy(
-                    name = trimmedName,
+                    name = normalizedName,
                     phone = trimmedPhone,
                     messenger = trimmedMessenger,
                     rateCents = parsedRate,
-                    subject = trimmedSubject,
+                    subject = normalizedSubject,
                     grade = normalizedGrade,
                     note = trimmedNote,
                     isArchived = state.isArchived,
@@ -255,7 +257,7 @@ class StudentsViewModel @Inject constructor(
                     .onSuccess { id ->
                         editingStudent = updated.copy(id = id)
                         _editorFormState.update { it.copy(isSaving = false) }
-                        onSuccess(id, trimmedName, false)
+                        onSuccess(id, normalizedName, false)
                     }
                     .onFailure { throwable ->
                         _editorFormState.update { it.copy(isSaving = false) }
@@ -263,11 +265,11 @@ class StudentsViewModel @Inject constructor(
                     }
             } else {
                 val student = Student(
-                    name = trimmedName,
+                    name = normalizedName,
                     phone = trimmedPhone,
                     messenger = trimmedMessenger,
                     rateCents = parsedRate,
-                    subject = trimmedSubject,
+                    subject = normalizedSubject,
                     grade = normalizedGrade,
                     note = trimmedNote,
                     isArchived = state.isArchived,
@@ -278,7 +280,7 @@ class StudentsViewModel @Inject constructor(
                 runCatching { repo.upsert(student) }
                     .onSuccess { newId ->
                         _editorFormState.value = StudentEditorFormState()
-                        onSuccess(newId, trimmedName, true)
+                        onSuccess(newId, normalizedName, true)
                     }
                     .onFailure { throwable ->
                         _editorFormState.update { it.copy(isSaving = false) }
@@ -422,8 +424,9 @@ class StudentsViewModel @Inject constructor(
 
         val grade = normalizeGrade(student.grade)
             ?: student.note.extractGrade()
+        val normalizedSubject = subject?.let { titleCaseWords(it) }
 
-        return StudentCardProfile(subject = subject, grade = grade)
+        return StudentCardProfile(subject = normalizedSubject, grade = grade)
     }
 }
 

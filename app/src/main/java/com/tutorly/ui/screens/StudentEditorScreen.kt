@@ -15,8 +15,8 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
-import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
+import com.tutorly.models.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -116,6 +116,7 @@ class StudentEditorVM @Inject constructor(
             return
         }
 
+        val normalizedName = titleCaseWords(trimmedName)
         val trimmedPhone = formState.phone.trim().ifBlank { null }
         val trimmedMessenger = formState.messenger.trim().ifBlank { null }
         val rateInput = formState.rate.trim()
@@ -126,37 +127,38 @@ class StudentEditorVM @Inject constructor(
             rateInput
         }
         val trimmedSubject = formState.subject.trim().ifBlank { null }
+        val normalizedSubject = trimmedSubject?.let { titleCaseWords(it) }
         val normalizedGrade = normalizeGrade(formState.grade)
         val trimmedNote = formState.note.trim().ifBlank { null }
 
         viewModelScope.launch {
             formState = formState.copy(
                 isSaving = true,
-                name = trimmedName,
+                name = normalizedName,
                 phone = trimmedPhone.orEmpty(),
                 messenger = trimmedMessenger.orEmpty(),
                 rate = normalizedRate,
-                subject = trimmedSubject.orEmpty(),
+                subject = normalizedSubject.orEmpty(),
                 grade = normalizedGrade.orEmpty(),
                 note = trimmedNote.orEmpty(),
                 nameError = false
             )
             val student = (loadedStudent?.copy(
-                name = trimmedName,
+                name = normalizedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
                 rateCents = parsedRate,
-                subject = trimmedSubject,
+                subject = normalizedSubject,
                 grade = normalizedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
                 active = formState.isActive,
             ) ?: Student(
-                name = trimmedName,
+                name = normalizedName,
                 phone = trimmedPhone,
                 messenger = trimmedMessenger,
                 rateCents = parsedRate,
-                subject = trimmedSubject,
+                subject = normalizedSubject,
                 grade = normalizedGrade,
                 note = trimmedNote,
                 isArchived = formState.isArchived,
@@ -178,11 +180,11 @@ class StudentEditorVM @Inject constructor(
 
     private fun Student.toFormState(): StudentEditorFormState = StudentEditorFormState(
         studentId = id,
-        name = name,
+        name = titleCaseWords(name),
         phone = phone.orEmpty(),
         messenger = messenger.orEmpty(),
         rate = formatMoneyInput(rateCents),
-        subject = subject.orEmpty(),
+        subject = subject?.let { titleCaseWords(it) }.orEmpty(),
         grade = normalizeGrade(grade).orEmpty(),
         note = note.orEmpty(),
         isArchived = isArchived,

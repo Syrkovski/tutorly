@@ -853,8 +853,17 @@ private fun LessonCard(
     val timeText = remember(startTime) { timeFormatter.format(startTime) }
     val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
     val amount = remember(lesson.priceCents) { formatCurrency(lesson.priceCents.toLong(), currencyFormatter) }
-    val subjectTitle = lesson.lessonTitle?.takeIf { it.isNotBlank() }?.trim()
-        ?: lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
+    val studentName = remember(lesson.studentName) { titleCaseWords(lesson.studentName) }
+    val normalizedLessonTitle = lesson.lessonTitle
+        ?.takeIf { it.isNotBlank() }
+        ?.trim()
+        ?.let { titleCaseWords(it) }
+    val normalizedSubjectName = lesson.subjectName
+        ?.takeIf { it.isNotBlank() }
+        ?.trim()
+        ?.let { titleCaseWords(it) }
+    val subjectTitle = normalizedLessonTitle
+        ?: normalizedSubjectName
         ?: stringResource(id = R.string.lesson_card_subject_placeholder)
     val grade = normalizeGrade(lesson.studentGrade)
     val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
@@ -883,7 +892,7 @@ private fun LessonCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = lesson.studentName,
+                        text = studentName,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
