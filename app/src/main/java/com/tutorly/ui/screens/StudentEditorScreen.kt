@@ -14,7 +14,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.StudentsRepository
+import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.models.Student
+import com.tutorly.models.SubjectPreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -24,7 +26,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class StudentEditorVM @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val repo: StudentsRepository
+    private val repo: StudentsRepository,
+    private val subjectPresetsRepository: SubjectPresetsRepository
 ) : ViewModel() {
     private val id: Long? = savedStateHandle.get<Long>("studentId")
     private val editTargetName: String? = savedStateHandle.get<String>("editTarget")
@@ -36,9 +39,14 @@ class StudentEditorVM @Inject constructor(
         private set
     var formState by mutableStateOf(StudentEditorFormState())
         private set
+    var subjectPresets by mutableStateOf<List<SubjectPreset>>(emptyList())
+        private set
     private var loadedStudent: Student? = null
 
     init {
+        viewModelScope.launch {
+            subjectPresets = subjectPresetsRepository.all()
+        }
         id?.let {
             viewModelScope.launch {
                 repo.observeStudent(it).collect { s ->
@@ -221,6 +229,7 @@ fun StudentEditorDialog(
         onPhoneChange = vm::onPhoneChange,
         onMessengerChange = vm::onMessengerChange,
         onRateChange = vm::onRateChange,
+        subjectPresets = vm.subjectPresets,
         onSubjectChange = vm::onSubjectChange,
         onGradeChange = vm::onGradeChange,
         onNoteChange = vm::onNoteChange,

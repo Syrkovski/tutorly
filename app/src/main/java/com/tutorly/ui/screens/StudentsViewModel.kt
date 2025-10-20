@@ -44,12 +44,21 @@ class StudentsViewModel @Inject constructor(
     private val _isArchiveMode = MutableStateFlow(false)
     val isArchiveMode: StateFlow<Boolean> = _isArchiveMode.asStateFlow()
 
+    private val _subjectPresets = MutableStateFlow<List<SubjectPreset>>(emptyList())
+    val subjectPresets: StateFlow<List<SubjectPreset>> = _subjectPresets.asStateFlow()
+
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
     private val lessonObservers = mutableMapOf<Long, Job>()
     private val _lessonSummaries = MutableStateFlow<Map<Long, LessonSummary>>(emptyMap())
     private val _subjects = MutableStateFlow<Map<Long, SubjectPreset>>(emptyMap())
     private var editingStudent: Student? = null
+
+    init {
+        viewModelScope.launch {
+            _subjectPresets.value = subjectPresetsRepository.all()
+        }
+    }
 
     private val studentsStream = combine(
         _query.map { it.trim() },

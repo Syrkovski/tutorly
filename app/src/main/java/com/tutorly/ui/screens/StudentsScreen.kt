@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
+import com.tutorly.models.SubjectPreset
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
@@ -100,6 +101,7 @@ fun StudentsScreen(
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
     val isArchiveMode by vm.isArchiveMode.collectAsState()
+    val subjectPresets by vm.subjectPresets.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -242,6 +244,7 @@ fun StudentsScreen(
             onPhoneChange = vm::onEditorPhoneChange,
             onMessengerChange = vm::onEditorMessengerChange,
             onRateChange = vm::onEditorRateChange,
+            subjectPresets = subjectPresets,
             onSubjectChange = vm::onEditorSubjectChange,
             onGradeChange = vm::onEditorGradeChange,
             onNoteChange = vm::onEditorNoteChange,
@@ -263,6 +266,7 @@ fun StudentEditorSheet(
     onPhoneChange: (String) -> Unit,
     onMessengerChange: (String) -> Unit,
     onRateChange: (String) -> Unit,
+    subjectPresets: List<SubjectPreset>,
     onSubjectChange: (String) -> Unit,
     onGradeChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -331,6 +335,7 @@ fun StudentEditorSheet(
                     onPhoneChange = onPhoneChange,
                     onMessengerChange = onMessengerChange,
                     onRateChange = onRateChange,
+                    subjectPresets = subjectPresets,
                     onSubjectChange = onSubjectChange,
                     onGradeChange = onGradeChange,
                     onNoteChange = onNoteChange,

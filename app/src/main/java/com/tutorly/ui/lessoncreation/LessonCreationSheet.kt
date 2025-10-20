@@ -80,6 +80,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.tutorly.R
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.lessoncreation.StudentOption
+import com.tutorly.ui.subject.SubjectSuggestionDefaults
 import com.tutorly.ui.theme.extendedColors
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -89,42 +90,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val SectionSpacing = 12.dp
-
-private val SubjectSuggestionDefaults = listOf(
-    "Математика",
-    "Русский язык",
-    "Английский язык",
-    "Физика",
-    "Химия",
-    "Биология",
-    "История",
-    "Обществознание",
-    "Литература",
-    "География",
-    "Информатика",
-    "Алгебра",
-    "Геометрия",
-    "Экономика",
-    "Право",
-    "Немецкий язык",
-    "Французский язык",
-    "Испанский язык",
-    "Китайский язык",
-    "Итальянский язык",
-    "Турецкий язык",
-    "Программирование",
-    "Шахматы",
-    "Музыка",
-    "Вокал",
-    "Фортепиано",
-    "Гитара",
-    "Логопед",
-    "Подготовка к школе",
-    "Начальная школа",
-    "ЕГЭ",
-    "ОГЭ",
-    "Олимпиады"
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
