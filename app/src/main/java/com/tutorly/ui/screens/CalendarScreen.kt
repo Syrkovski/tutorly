@@ -370,11 +370,10 @@ private fun CalendarTopBar(
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
     val backgroundColor = Color(0xFFFEFEFE)
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = backgroundColor,
-        shadowElevation = 12.dp,
-        tonalElevation = 0.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
     ) {
         Column(
             modifier = Modifier
@@ -468,6 +467,7 @@ private fun CalendarModeToggle(
     val options = remember { listOf(CalendarMode.DAY, CalendarMode.WEEK) }
     val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
     val accent = MaterialTheme.extendedColors.accent
+    val inactiveColor = Color(0xFFB9BCC7)
     TabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier,
@@ -519,7 +519,7 @@ private fun CalendarModeToggle(
                         color = if (isSelected) {
                             MaterialTheme.colorScheme.onSurface
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            inactiveColor
                         }
                     )
                 }
