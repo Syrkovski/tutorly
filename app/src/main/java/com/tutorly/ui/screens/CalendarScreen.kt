@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -202,6 +203,8 @@ fun CalendarScreen(
         topBar = {
             CalendarTopBar(
                 anchor = anchor,
+                weekendDays = uiState.weekendDays,
+                currentDateTime = uiState.currentDateTime,
                 onSelectDate = { selected ->
                     direction = when {
                         selected.isAfter(anchor) -> 1
@@ -210,6 +213,8 @@ fun CalendarScreen(
                     }
                     viewModel.selectDate(selected)
                 },
+                onPrevPeriod = prevPeriod,
+                onNextPeriod = nextPeriod,
                 onOpenSettings = onOpenSettings
             )
         },
@@ -244,20 +249,7 @@ fun CalendarScreen(
         ) {
         // Хедер: тут же свайп (чтобы не конфликтовал со скроллом списка)
         PlanScreenHeader(
-            anchor = anchor,
             mode = mode,
-            weekendDays = uiState.weekendDays,
-            currentDateTime = uiState.currentDateTime,
-            onPrevPeriod = prevPeriod,
-            onNextPeriod = nextPeriod,
-            onSelectDate = { selected ->
-                direction = when {
-                    selected.isAfter(anchor) -> 1
-                    selected.isBefore(anchor) -> -1
-                    else -> 0
-                }
-                viewModel.selectDate(selected)
-            },
             onSwipeLeft = nextPeriod,
             onSwipeRight = prevPeriod,
             onSelectMode = { newMode ->
@@ -373,7 +365,11 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 @Composable
 private fun CalendarTopBar(
     anchor: LocalDate,
+    weekendDays: Set<DayOfWeek>,
+    currentDateTime: ZonedDateTime,
     onSelectDate: (LocalDate) -> Unit,
+    onPrevPeriod: () -> Unit,
+    onNextPeriod: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val locale = remember { Locale("ru") }
@@ -385,6 +381,10 @@ private fun CalendarTopBar(
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    val weekStart = remember(anchor) { anchor.with(DayOfWeek.MONDAY) }
+    val weekDays = remember(weekStart) { (0 until 7).map { weekStart.plusDays(it.toLong()) } }
+    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
+
     val backgroundColor = Color(0xFFFEFEFE)
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -395,12 +395,13 @@ private fun CalendarTopBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .statusBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = monthLabel,
@@ -408,22 +409,61 @@ private fun CalendarTopBar(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = 48.dp)
                         .clickable { showDatePicker = true },
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                TextButton(
+                IconButton(
                     onClick = onOpenSettings,
                     modifier = Modifier.align(Alignment.CenterEnd),
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = Color(0xFF2A2F63)
                     )
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.settings_title),
-                        style = MaterialTheme.typography.labelLarge
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = stringResource(id = R.string.settings_title)
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onPrevPeriod) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChevronLeft,
+                        contentDescription = stringResource(id = R.string.calendar_prev_period)
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    weekDays.forEach { day ->
+                        WeekDayCell(
+                            date = day,
+                            isSelected = day == anchor,
+                            isToday = day == today,
+                            isWeekend = day.dayOfWeek in weekendDays,
+                            locale = locale,
+                            onClick = { onSelectDate(day) }
+                        )
+                    }
+                }
+                IconButton(onClick = onNextPeriod) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChevronRight,
+                        contentDescription = stringResource(id = R.string.calendar_next_period)
                     )
                 }
             }
@@ -512,23 +552,12 @@ private fun CalendarModeToggle(
 
 @Composable
 fun PlanScreenHeader(
-    anchor: LocalDate,
     mode: CalendarMode,
-    weekendDays: Set<DayOfWeek>,
-    currentDateTime: ZonedDateTime,
-    onPrevPeriod: () -> Unit,
-    onNextPeriod: () -> Unit,
-    onSelectDate: (LocalDate) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
     onSelectMode: (CalendarMode) -> Unit,
     onTodayClick: () -> Unit
 ) {
-    val locale = remember { Locale("ru") }
-    val weekStart = remember(anchor) { anchor.with(DayOfWeek.MONDAY) }
-    val weekDays = remember(weekStart) { (0 until 7).map { weekStart.plusDays(it.toLong()) } }
-    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -586,52 +615,6 @@ fun PlanScreenHeader(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 Text(text = stringResource(id = R.string.calendar_today_button))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPrevPeriod) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronLeft,
-                        contentDescription = stringResource(id = R.string.calendar_prev_period)
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    weekDays.forEach { day ->
-                        WeekDayCell(
-                            date = day,
-                            isSelected = day == anchor,
-                            isToday = day == today,
-                            isWeekend = day.dayOfWeek in weekendDays,
-                            locale = locale,
-                            onClick = { onSelectDate(day) }
-                        )
-                    }
-                }
-                IconButton(onClick = onNextPeriod) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = stringResource(id = R.string.calendar_next_period)
-                    )
-                }
             }
         }
     }
