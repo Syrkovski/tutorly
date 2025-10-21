@@ -130,6 +130,7 @@
     <string name="calendar_prev_period">Предыдущий период</string>
     <string name="calendar_next_period">Следующий период</string>
     <string name="calendar_open_day_picker">Открыть календарь</string>
+    <string name="calendar_today_button">Сегодня</string>
     <string name="calendar_status_planned">Запланировано</string>
     <string name="calendar_status_prepaid">Предоплачено</string>
     <string name="calendar_status_in_progress">Идёт сейчас</string>
