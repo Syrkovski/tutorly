@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -201,7 +202,6 @@ fun CalendarScreen(
         topBar = {
             CalendarTopBar(
                 anchor = anchor,
-                weekendDays = uiState.weekendDays,
                 currentDateTime = uiState.currentDateTime,
                 onSelectDate = { selected ->
                     direction = when {
@@ -251,15 +251,6 @@ fun CalendarScreen(
             onSelectMode = { newMode ->
                 direction = 0
                 viewModel.setMode(newMode)
-            },
-            onTodayClick = {
-                val today = uiState.currentDateTime.toLocalDate()
-                direction = when {
-                    today.isAfter(anchor) -> 1
-                    today.isBefore(anchor) -> -1
-                    else -> 0
-                }
-                viewModel.selectDate(today)
             }
         )
 
@@ -361,7 +352,6 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 @Composable
 private fun CalendarTopBar(
     anchor: LocalDate,
-    weekendDays: Set<DayOfWeek>,
     currentDateTime: ZonedDateTime,
     onSelectDate: (LocalDate) -> Unit,
     onOpenSettings: () -> Unit
@@ -437,7 +427,6 @@ private fun CalendarTopBar(
                         date = day,
                         isSelected = day == anchor,
                         isToday = day == today,
-                        isWeekend = day.dayOfWeek in weekendDays,
                         locale = locale,
                         onClick = { onSelectDate(day) }
                     )
@@ -477,47 +466,63 @@ private fun CalendarModeToggle(
     modifier: Modifier = Modifier
 ) {
     val options = remember { listOf(CalendarMode.DAY, CalendarMode.WEEK) }
-    Row(
-        modifier = modifier
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val accent = MaterialTheme.extendedColors.accent
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = modifier,
+        containerColor = Color(0xFFFEFEFE),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        divider = {},
+        indicator = { tabPositions ->
+            if (selectedIndex in tabPositions.indices) {
+                val position = tabPositions[selectedIndex]
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentSize(Alignment.BottomStart)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .tabIndicatorOffset(position)
+                            .padding(horizontal = 28.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                            .background(accent)
+                    )
+                }
+            }
+        }
     ) {
-        options.forEach { option ->
-            val isSelected = option == selected
-            val segmentShape = RoundedCornerShape(20.dp)
-            val accent = MaterialTheme.extendedColors.accent
-            val background = if (isSelected) {
-                accent
+        options.forEachIndexed { index, option ->
+            val labelRes = if (option == CalendarMode.DAY) {
+                R.string.calendar_mode_day
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                R.string.calendar_mode_week
             }
-            val contentColor = if (isSelected) {
-                Color.White
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-
-            Surface(
+            val isSelected = index == selectedIndex
+            Tab(
+                selected = isSelected,
                 onClick = {
                     if (!isSelected) onSelect(option)
-                },
-                shape = segmentShape,
-                color = background,
-                contentColor = contentColor,
-                tonalElevation = 0.dp,
-                shadowElevation = if (isSelected) 6.dp else 0.dp
-            ) {
-                val labelRes = if (option == CalendarMode.DAY) {
-                    R.string.calendar_mode_day
-                } else {
-                    R.string.calendar_mode_week
                 }
-                Text(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                    text = stringResource(id = labelRes),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = contentColor
-                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(id = labelRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
             }
         }
     }
@@ -531,13 +536,14 @@ fun PlanScreenHeader(
     mode: CalendarMode,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
-    onSelectMode: (CalendarMode) -> Unit,
-    onTodayClick: () -> Unit
+    onSelectMode: (CalendarMode) -> Unit
 ) {
+    val headerBackground = Color(0xFFFEFEFE)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .background(headerBackground)
+            .padding(vertical = 12.dp)
             .pointerInput(mode) {
                 val threshold = 48.dp.toPx()
                 var totalDrag = 0f
@@ -568,31 +574,11 @@ fun PlanScreenHeader(
                 )
             }
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 6.dp
-            ) {
-                CalendarModeToggle(
-                    selected = mode,
-                    onSelect = onSelectMode,
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp, vertical = 6.dp)
-                )
-            }
-            FilledTonalButton(
-                onClick = onTodayClick,
-                shape = RoundedCornerShape(20.dp),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
-            ) {
-                Text(text = stringResource(id = R.string.calendar_today_button))
-            }
-        }
+        CalendarModeToggle(
+            selected = mode,
+            onSelect = onSelectMode,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -602,7 +588,6 @@ private fun WeekDayCell(
     date: LocalDate,
     isSelected: Boolean,
     isToday: Boolean,
-    isWeekend: Boolean,
     locale: Locale,
     onClick: () -> Unit
 ) {
@@ -613,15 +598,8 @@ private fun WeekDayCell(
     }
     val number = remember(date) { date.dayOfMonth.toString() }
     val circleColor = if (isSelected) accent else Color.Transparent
-    val numberColor = when {
-        isSelected -> Color.White
-        isWeekend -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val labelColor = when {
-        isWeekend -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val numberColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val labelColor = Color(0xFFB9BCC7)
 
     Column(
         modifier = modifier
