@@ -24,10 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -50,7 +48,6 @@ import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
 import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
@@ -388,42 +385,45 @@ private fun CalendarTopBar(
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    GradientTopBarContainer {
+    val backgroundColor = Color(0xFFFEFEFE)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = backgroundColor,
+        shadowElevation = 12.dp,
+        tonalElevation = 0.dp
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(onClick = { showDatePicker = true }) {
-                    Icon(
-                        imageVector = Icons.Outlined.CalendarToday,
-                        contentDescription = stringResource(id = R.string.calendar_open_day_picker),
-                        tint = Color.White
-                    )
-                }
                 Text(
                     text = monthLabel,
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 16.dp)
+                        .align(Alignment.Center)
+                        .padding(horizontal = 24.dp)
                         .clickable { showDatePicker = true },
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = stringResource(id = R.string.calendar_open_settings),
-                        tint = Color.White
+                TextButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.settings_title),
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
