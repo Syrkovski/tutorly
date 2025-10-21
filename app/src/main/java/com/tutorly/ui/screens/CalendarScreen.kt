@@ -47,10 +47,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
-import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
-import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
@@ -865,12 +863,6 @@ private fun LessonBlock(
     val statusInfo = lesson.statusPresentation(now)
     val subjectColor = lesson.subjectColorArgb?.let { Color(it) } ?: MaterialTheme.extendedColors.accent
     val statusColor = statusInfo.background
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    val timeRange = remember(lesson.start, lesson.end) {
-        val startLabel = timeFormatter.format(lesson.start.toLocalTime())
-        val endLabel = timeFormatter.format(lesson.end.toLocalTime())
-        "$startLabel – $endLabel"
-    }
     val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
         val grade = normalizeGrade(lesson.studentGrade)
         val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
@@ -888,7 +880,12 @@ private fun LessonBlock(
     ) {
         Card(
             onClick = { onLessonClick(lesson) },
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(
+                topStart = 0.dp,
+                topEnd = 24.dp,
+                bottomEnd = 24.dp,
+                bottomStart = 0.dp
+            ),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
@@ -906,28 +903,15 @@ private fun LessonBlock(
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(6.dp)
-                        .clip(RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp))
+                        .width(8.dp)
                         .background(subjectColor)
                 )
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = timeRange,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        StatusChip(data = statusInfo)
-                    }
                     Text(
                         text = lesson.studentName,
                         style = MaterialTheme.typography.titleMedium,
@@ -956,10 +940,16 @@ private fun LessonBlock(
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(6.dp)
-                        .clip(RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
-                        .background(statusColor)
-                )
+                        .width(96.dp)
+                        .background(statusColor, RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
+                ) {
+                    Text(
+                        text = statusInfo.label,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = statusInfo.content,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
             }
         }
     }
