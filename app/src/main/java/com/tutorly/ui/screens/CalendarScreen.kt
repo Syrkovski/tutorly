@@ -32,8 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
@@ -861,7 +866,6 @@ private fun LessonBlock(
     val height = minuteHeight * durationMinutes.toInt().toFloat()
 
     val statusInfo = lesson.statusPresentation(now)
-    val subjectColor = lesson.subjectColorArgb?.let { Color(it) } ?: MaterialTheme.extendedColors.accent
     val statusColor = statusInfo.background
     val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
         val grade = normalizeGrade(lesson.studentGrade)
@@ -878,34 +882,29 @@ private fun LessonBlock(
             .height(height)
             .padding(start = LabelWidth + 16.dp, end = 16.dp)
     ) {
-        Card(
-            onClick = { onLessonClick(lesson) },
-            shape = RoundedCornerShape(
-                topStart = 0.dp,
-                topEnd = 24.dp,
-                bottomEnd = 24.dp,
-                bottomStart = 0.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 2.dp,
-                focusedElevation = 3.dp,
-                hoveredElevation = 3.dp,
-                pressedElevation = 2.dp,
-                draggedElevation = 4.dp,
-                disabledElevation = 0.dp
-            ),
-            modifier = Modifier.fillMaxSize()
+        val cardShape = RoundedCornerShape(10.dp)
+        val innerStrokeWidth = 1.dp
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .shadow(elevation = 6.dp, shape = cardShape, clip = false)
+                .clip(cardShape)
+                .background(Color.White)
+                .drawBehind {
+                    val strokeWidth = innerStrokeWidth.toPx()
+                    val radius = 10.dp.toPx().coerceAtLeast(0f)
+                    val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
+                    drawRoundRect(
+                        color = Color(0x14000000),
+                        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                        cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
+                        style = Stroke(width = strokeWidth)
+                    )
+                }
+                .clickable { onLessonClick(lesson) }
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(8.dp)
-                        .background(subjectColor)
-                )
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -936,20 +935,20 @@ private fun LessonBlock(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Text(
+                        text = statusInfo.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(96.dp)
-                        .background(statusColor, RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
-                ) {
-                    Text(
-                        text = statusInfo.label,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = statusInfo.content,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                        .width(10.dp)
+                        .background(statusColor)
+                )
             }
         }
     }
