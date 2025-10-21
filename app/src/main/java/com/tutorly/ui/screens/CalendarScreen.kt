@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.wrapContentSize
@@ -619,6 +620,7 @@ private fun WeekDayCell(
         Box(
             modifier = Modifier
                 .size(42.dp)
+                .shadow(if (isSelected) 6.dp else 0.dp, CircleShape, clip = false)
                 .clip(CircleShape)
                 .background(circleColor),
             contentAlignment = Alignment.Center
