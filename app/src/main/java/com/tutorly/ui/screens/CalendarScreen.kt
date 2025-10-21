@@ -880,7 +880,7 @@ private fun LessonBlock(
             .fillMaxWidth()
             .offset(y = top)
             .height(height)
-            .padding(start = LabelWidth + 16.dp, end = 16.dp)
+            .padding(start = LabelWidth + 4.dp, end = 24.dp)
     ) {
         val cardShape = RoundedCornerShape(10.dp)
         val innerStrokeWidth = 1.dp
@@ -943,14 +943,18 @@ private fun LessonBlock(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(10.dp)
-                        .background(statusColor)
-                )
+                Spacer(modifier = Modifier.width(10.dp))
             }
         }
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = 8.dp)
+                .fillMaxHeight()
+                .width(10.dp)
+                .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
+                .background(statusColor)
+        )
     }
 }
 
