@@ -880,7 +880,7 @@ private fun LessonBlock(
             .fillMaxWidth()
             .offset(y = top)
             .height(height)
-            .padding(start = LabelWidth + 4.dp, end = 24.dp)
+            .padding(start = LabelWidth + 4.dp, end = 8.dp)
     ) {
         val cardShape = RoundedCornerShape(10.dp)
         val innerStrokeWidth = 1.dp
@@ -908,7 +908,7 @@ private fun LessonBlock(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 16.dp, vertical = 20.dp),
+                        .padding(horizontal = 12.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
