@@ -416,7 +416,7 @@ private fun CalendarTopBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -542,8 +542,9 @@ fun PlanScreenHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
             .background(headerBackground)
-            .padding(vertical = 12.dp)
+            .padding(top = 6.dp, bottom = 12.dp)
             .pointerInput(mode) {
                 val threshold = 48.dp.toPx()
                 var totalDrag = 0f
