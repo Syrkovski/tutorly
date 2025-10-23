@@ -57,6 +57,7 @@ import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
+import com.tutorly.ui.screens.normalizeGrade
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
@@ -865,15 +866,7 @@ private fun LessonBlock(
     val top = minuteHeight * offsetMinutes.toFloat()
     val height = minuteHeight * durationMinutes.toInt().toFloat()
 
-    val statusInfo = lesson.statusPresentation(now)
-    val statusColor = statusInfo.background
-    val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
-        val grade = normalizeGrade(lesson.studentGrade)
-        val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
-        listOfNotNull(grade, subject)
-            .takeIf { it.isNotEmpty() }
-            ?.joinToString(separator = " • ")
-    }
+    val lessonUi = remember(lesson, now) { lesson.toLessonUi(now) }
 
     Box(
         Modifier
@@ -884,26 +877,29 @@ private fun LessonBlock(
     ) {
         val cardShape = RoundedCornerShape(10.dp)
         val innerStrokeWidth = 1.dp
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .shadow(elevation = 6.dp, shape = cardShape, clip = false)
-                .clip(cardShape)
-                .background(Color.White)
-                .drawBehind {
-                    val strokeWidth = innerStrokeWidth.toPx()
-                    val radius = 10.dp.toPx().coerceAtLeast(0f)
-                    val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
-                    drawRoundRect(
-                        color = Color(0x14000000),
-                        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                        cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
-                        style = Stroke(width = strokeWidth)
-                    )
-                }
-                .clickable { onLessonClick(lesson) }
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            onClick = { onLessonClick(lesson) },
+            shape = cardShape,
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        val strokeWidth = innerStrokeWidth.toPx()
+                        val radius = 10.dp.toPx().coerceAtLeast(0f)
+                        val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
+                        drawRoundRect(
+                            color = Color(0x14000000),
+                            topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                            size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                            cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
+                            style = Stroke(width = strokeWidth)
+                        )
+                    }
+            ) {
             Row(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -912,12 +908,12 @@ private fun LessonBlock(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = lesson.studentName,
+                        text = lessonUi.studentName,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (!secondaryLine.isNullOrBlank()) {
+                    lessonUi.secondaryLine?.let { secondaryLine ->
                         Text(
                             text = secondaryLine,
                             style = MaterialTheme.typography.bodyMedium,
@@ -926,9 +922,9 @@ private fun LessonBlock(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    lesson.lessonNote?.takeIf { it.isNotBlank() }?.let { note ->
+                    lessonUi.note?.let { note ->
                         Text(
-                            text = note.trim(),
+                            text = note,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -936,7 +932,7 @@ private fun LessonBlock(
                         )
                     }
                     Text(
-                        text = statusInfo.description,
+                        text = lessonUi.statusDescription,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -944,6 +940,7 @@ private fun LessonBlock(
                     )
                 }
                 Spacer(modifier = Modifier.width(10.dp))
+            }
             }
         }
         Box(
@@ -953,7 +950,7 @@ private fun LessonBlock(
                 .fillMaxHeight()
                 .width(10.dp)
                 .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
-                .background(statusColor)
+                .background(lessonUi.statusColor)
         )
     }
 }
@@ -961,3 +958,29 @@ private fun LessonBlock(
 @Composable
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
+
+private data class LessonUi(
+    val studentName: String,
+    val secondaryLine: String?,
+    val note: String?,
+    val statusDescription: String,
+    val statusColor: Color
+)
+
+private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
+    val status = statusPresentation(now)
+    val grade = normalizeGrade(studentGrade)
+    val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
+    val secondaryLine = listOfNotNull(grade, subject)
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(separator = " • ")
+    val note = lessonNote?.takeIf { it.isNotBlank() }?.trim()
+
+    return LessonUi(
+        studentName = studentName,
+        secondaryLine = secondaryLine,
+        note = note,
+        statusDescription = status.description,
+        statusColor = status.background
+    )
+}
