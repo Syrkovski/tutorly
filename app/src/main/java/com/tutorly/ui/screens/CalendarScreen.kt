@@ -866,7 +866,7 @@ private fun LessonBlock(
     val top = minuteHeight * offsetMinutes.toFloat()
     val height = minuteHeight * durationMinutes.toInt().toFloat()
 
-    val lessonUi = remember(lesson, now) { lesson.toLessonUi(now) }
+    val lessonUi = lesson.toLessonUi(now)
 
     Box(
         Modifier
