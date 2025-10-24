@@ -208,6 +208,7 @@ fun CalendarScreen(
             CalendarTopBar(
                 anchor = anchor,
                 currentDateTime = uiState.currentDateTime,
+                mode = mode,
                 onSelectDate = { selected ->
                     direction = when {
                         selected.isAfter(anchor) -> 1
@@ -216,6 +217,12 @@ fun CalendarScreen(
                     }
                     viewModel.selectDate(selected)
                 },
+                onSelectMode = { newMode ->
+                    direction = 0
+                    viewModel.setMode(newMode)
+                },
+                onSwipeLeft = nextPeriod,
+                onSwipeRight = prevPeriod,
                 onOpenSettings = onOpenSettings
             )
         },
@@ -248,17 +255,6 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-        // Хедер: тут же свайп (чтобы не конфликтовал со скроллом списка)
-        PlanScreenHeader(
-            mode = mode,
-            onSwipeLeft = nextPeriod,
-            onSwipeRight = prevPeriod,
-            onSelectMode = { newMode ->
-                direction = 0
-                viewModel.setMode(newMode)
-            }
-        )
-
         // Контент занимает остаток экрана и скроллится внутри
         Box(
             Modifier
@@ -358,7 +354,11 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 private fun CalendarTopBar(
     anchor: LocalDate,
     currentDateTime: ZonedDateTime,
+    mode: CalendarMode,
     onSelectDate: (LocalDate) -> Unit,
+    onSelectMode: (CalendarMode) -> Unit,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val locale = remember { Locale("ru") }
@@ -375,9 +375,10 @@ private fun CalendarTopBar(
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
     val backgroundColor = Color(0xFFFEFEFE)
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
             .background(backgroundColor)
     ) {
         Column(
@@ -421,7 +422,7 @@ private fun CalendarTopBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 6.dp),
+                    .padding(bottom = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -437,6 +438,43 @@ private fun CalendarTopBar(
                 }
             }
         }
+
+        CalendarModeToggle(
+            selected = mode,
+            onSelect = onSelectMode,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
+                .pointerInput(mode) {
+                    val threshold = 48.dp.toPx()
+                    var totalDrag = 0f
+                    var handled = false
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            totalDrag = 0f
+                            handled = false
+                        },
+                        onDragEnd = {
+                            totalDrag = 0f
+                            handled = false
+                        },
+                        onDragCancel = {
+                            totalDrag = 0f
+                            handled = false
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            if (handled) return@detectHorizontalDragGestures
+
+                            totalDrag += dragAmount
+                            if (abs(totalDrag) > threshold) {
+                                if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
+                                handled = true
+                                change.consume()
+                            }
+                        }
+                    )
+                }
+        )
     }
 
     if (showDatePicker) {
@@ -533,60 +571,6 @@ private fun CalendarModeToggle(
     }
 }
 
-
-/* ----------------------------- HEADER ----------------------------------- */
-
-@Composable
-fun PlanScreenHeader(
-    mode: CalendarMode,
-    onSwipeLeft: () -> Unit,
-    onSwipeRight: () -> Unit,
-    onSelectMode: (CalendarMode) -> Unit
-) {
-    val headerBackground = Color(0xFFFEFEFE)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
-            .background(headerBackground)
-            .padding(top = 6.dp, bottom = 12.dp)
-            .pointerInput(mode) {
-                val threshold = 48.dp.toPx()
-                var totalDrag = 0f
-                var handled = false
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        totalDrag = 0f
-                        handled = false
-                    },
-                    onDragEnd = {
-                        totalDrag = 0f
-                        handled = false
-                    },
-                    onDragCancel = {
-                        totalDrag = 0f
-                        handled = false
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        if (handled) return@detectHorizontalDragGestures
-
-                        totalDrag += dragAmount
-                        if (abs(totalDrag) > threshold) {
-                            if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
-                            handled = true
-                            change.consume()
-                        }
-                    }
-                )
-            }
-    ) {
-        CalendarModeToggle(
-            selected = mode,
-            onSelect = onSelectMode,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
 
 @Composable
 private fun WeekDayCell(
