@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -21,15 +22,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.CurrencyRuble
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -47,13 +48,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,10 +66,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -654,13 +655,18 @@ private fun PastDebtorsCollapsible(
     }
     CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
-        subtitle = subtitle
+        subtitle = subtitle,
+        titleTextStyle = MaterialTheme.typography.titleSmall,
+        titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+        headerPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
     ) {
         if (lessons.isEmpty()) {
             Text(
                 text = stringResource(R.string.today_debtors_past_empty),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         } else {
             LessonsList(
@@ -669,7 +675,8 @@ private fun PastDebtorsCollapsible(
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
-                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                showLessonDate = true
             )
         }
         if (hasMore) {
@@ -685,6 +692,10 @@ private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    titleTextStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    headerPadding: PaddingValues = PaddingValues(vertical = 6.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -697,7 +708,7 @@ private fun CollapsibleSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
+                .padding(headerPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
@@ -706,7 +717,8 @@ private fun CollapsibleSection(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = titleTextStyle,
+                    color = titleColor
                 )
                 if (subtitle != null) {
                     Text(
@@ -719,7 +731,7 @@ private fun CollapsibleSection(
             Icon(
                 imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = iconTint
             )
         }
         if (expanded) {
@@ -740,7 +752,8 @@ private fun LessonsList(
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -752,7 +765,8 @@ private fun LessonsList(
                 onSwipeLeft = onSwipeLeft,
                 onClick = { onLessonOpen(lesson.id) },
                 onLongPress = { onOpenStudentProfile(lesson.studentId) },
-                cardElevation = cardElevation
+                cardElevation = cardElevation,
+                showLessonDate = showLessonDate
             )
         }
     }
@@ -766,7 +780,8 @@ private fun TodayLessonRow(
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -795,46 +810,76 @@ private fun TodayLessonRow(
                     onClick = onClick,
                     onLongClick = onLongPress
                 ),
-            cardElevation = cardElevation
+            cardElevation = cardElevation,
+            showLessonDate = showLessonDate
         )
     }
 }
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
-    val target = state.targetValue
-    if (target == SwipeToDismissBoxValue.Settled) {
+    val direction = state.dismissDirection
+        ?: when (state.targetValue) {
+            SwipeToDismissBoxValue.StartToEnd -> SwipeToDismissBoxValue.StartToEnd
+            SwipeToDismissBoxValue.EndToStart -> SwipeToDismissBoxValue.EndToStart
+            else -> null
+        }
+        ?: return
+
+    val progressFraction = if (state.targetValue == SwipeToDismissBoxValue.Settled) {
+        state.progress
+    } else {
+        1f
+    }
+
+    if (progressFraction <= 0f) {
         return
     }
-    val color: Color
-    val icon: ImageVector
+
+    val revealAlpha = progressFraction.coerceIn(0.35f, 1f)
+    val circleAlpha = revealAlpha.coerceAtLeast(0.5f)
+    val iconAlpha = revealAlpha.coerceAtLeast(0.7f)
+
+    val containerColor: Color
+    val circleColor: Color
     val tint: Color
     val alignment: Alignment
-    if (target == SwipeToDismissBoxValue.StartToEnd) {
-        color = MaterialTheme.colorScheme.tertiaryContainer
-        icon = Icons.Filled.Check
-        tint = MaterialTheme.colorScheme.onTertiaryContainer
-        alignment = Alignment.CenterStart
-    } else {
-        color = MaterialTheme.colorScheme.errorContainer
-        icon = Icons.Outlined.WarningAmber
-        tint = MaterialTheme.colorScheme.onErrorContainer
-        alignment = Alignment.CenterEnd
+    when (direction) {
+        SwipeToDismissBoxValue.StartToEnd -> {
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            circleColor = MaterialTheme.colorScheme.tertiary
+            tint = MaterialTheme.colorScheme.onTertiary
+            alignment = Alignment.CenterStart
+        }
+        SwipeToDismissBoxValue.EndToStart -> {
+            containerColor = MaterialTheme.colorScheme.errorContainer
+            circleColor = MaterialTheme.colorScheme.error
+            tint = MaterialTheme.colorScheme.onError
+            alignment = Alignment.CenterEnd
+        }
+        else -> return
     }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(color),
+            .background(containerColor.copy(alpha = revealAlpha)),
         contentAlignment = alignment
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
+        Box(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .size(28.dp)
-        )
+                .size(40.dp)
+                .background(color = circleColor.copy(alpha = circleAlpha), shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CurrencyRuble,
+                contentDescription = null,
+                tint = tint.copy(alpha = iconAlpha),
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
@@ -844,7 +889,8 @@ private fun LessonCard(
     lesson: LessonForToday,
     modifier: Modifier = Modifier,
     cardColors: CardColors = TutorlyCardDefaults.colors(containerColor = Color.White),
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false
 ) {
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -853,6 +899,18 @@ private fun LessonCard(
     val timeText = remember(startTime) { timeFormatter.format(startTime) }
     val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
     val amount = remember(lesson.priceCents) { formatCurrency(lesson.priceCents.toLong(), currencyFormatter) }
+    val locale = remember { Locale.getDefault() }
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
+    val lessonDateLabel = remember(lesson.startAt) {
+        val rawLabel = dateFormatter.format(lesson.startAt.atZone(zoneId))
+        rawLabel.replaceFirstChar { char ->
+            if (char.isLowerCase()) {
+                char.titlecase(locale)
+            } else {
+                char.toString()
+            }
+        }
+    }
     val studentName = remember(lesson.studentName) { lesson.studentName }
     val normalizedLessonTitle = lesson.lessonTitle
         ?.takeIf { it.isNotBlank() }
@@ -880,6 +938,26 @@ private fun LessonCard(
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (showLessonDate) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = lessonDateLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PaymentStatusChip(
+                        status = lesson.paymentStatus,
+                        isFutureLesson = isFutureLesson
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -905,10 +983,12 @@ private fun LessonCard(
                         )
                     }
                 }
-                PaymentStatusChip(
-                    status = lesson.paymentStatus,
-                    isFutureLesson = isFutureLesson
-                )
+                if (!showLessonDate) {
+                    PaymentStatusChip(
+                        status = lesson.paymentStatus,
+                        isFutureLesson = isFutureLesson
+                    )
+                }
             }
             androidx.compose.foundation.layout.FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -986,6 +1066,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, MaterialTheme.extendedColors.chipSelected),
         modifier = modifier
     ) {
         Text(
