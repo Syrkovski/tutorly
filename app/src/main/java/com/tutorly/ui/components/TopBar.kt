@@ -74,23 +74,23 @@ fun AppTopBar(
                 navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
             ),
             windowInsets = WindowInsets(0, 0, 0, 0),
-                actions = {
-                    actions()
-                    onAddClick?.let {
-                        FilledTonalIconButton(
-                            onClick = it,
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.extendedColors.accent,
-                                contentColor = MaterialTheme.colorScheme.onSecondary
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = stringResource(id = R.string.add_student)
-                            )
-                        }
-                    }
-                }
+//                actions = {
+//                    actions()
+//                    onAddClick?.let {
+//                        FilledTonalIconButton(
+//                            onClick = it,
+//                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+//                                containerColor = MaterialTheme.extendedColors.accent,
+//                                contentColor = MaterialTheme.colorScheme.onSecondary
+//                            )
+//                        ) {
+//                            Icon(
+//                                Icons.Default.Add,
+//                                contentDescription = stringResource(id = R.string.add_student)
+//                            )
+//                        }
+//                    }
+//                }
         )
     }
 }

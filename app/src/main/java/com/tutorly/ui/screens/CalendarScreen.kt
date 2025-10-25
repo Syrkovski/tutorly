@@ -40,7 +40,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.wrapContentSize
+//import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -72,6 +72,7 @@ import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -378,7 +379,7 @@ private fun CalendarTopBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+            .clip(RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp))
             .background(backgroundColor)
     ) {
         Column(
@@ -390,7 +391,7 @@ private fun CalendarTopBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(top = 16.dp, bottom = 0.dp, start = 16.dp, end = 16.dp)
             ) {
                 Text(
                     text = monthLabel,
@@ -417,6 +418,7 @@ private fun CalendarTopBar(
                     )
                 }
             }
+            Spacer(Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier
@@ -444,7 +446,7 @@ private fun CalendarTopBar(
             onSelect = onSelectMode,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
+                .padding(bottom = 4.dp)
                 .pointerInput(mode) {
                     val threshold = 48.dp.toPx()
                     var totalDrag = 0f
@@ -514,7 +516,7 @@ private fun CalendarModeToggle(
     TabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier,
-        containerColor = Color(0xFFFEFEFE),
+//        containerColor = Color(0xFFFEFEFE),
         contentColor = MaterialTheme.colorScheme.onSurface,
         divider = {},
         indicator = { tabPositions ->
@@ -528,7 +530,7 @@ private fun CalendarModeToggle(
                     Box(
                         modifier = Modifier
                             .tabIndicatorOffset(position)
-                            .padding(horizontal = 28.dp)
+                            .padding(horizontal = 38.dp)
                             .height(3.dp)
                             .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
                             .background(accent)
@@ -583,7 +585,7 @@ private fun WeekDayCell(
 ) {
     val accent = MaterialTheme.extendedColors.accent
     val label = remember(date, locale) {
-        date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale)
+        date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
     }
     val number = remember(date) { date.dayOfMonth.toString() }
@@ -593,10 +595,10 @@ private fun WeekDayCell(
 
     Column(
         modifier = modifier
-            .widthIn(min = 44.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .width(40.dp)
+
             .clickable(onClick = onClick)
-            .padding(vertical = 6.dp, horizontal = 4.dp),
+            .padding(vertical = 0.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
     ) {
@@ -607,9 +609,10 @@ private fun WeekDayCell(
         )
         Box(
             modifier = Modifier
-                .size(42.dp)
-                .shadow(if (isSelected) 6.dp else 0.dp, CircleShape, clip = false)
+                .height(40.dp)
+                .width(40.dp)
                 .clip(CircleShape)
+                .shadow(if (isSelected) 6.dp else 0.dp, CircleShape, clip = false)
                 .background(circleColor),
             contentAlignment = Alignment.Center
         ) {
@@ -721,25 +724,26 @@ private fun DayTimeline(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+//            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 0.dp, vertical = 0.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+//            shape = RoundedCornerShape(28.dp),
+//            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+//            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scroll)
             ) {
+                Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .height(totalHeight)
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 0.dp, vertical = 0.dp)
                         .pointerInput(dayLessons, startMinutes, endMinutes, lessonRegions) {
                             detectTapGestures { offset ->
                                 if (offset.x < labelWidthPx) return@detectTapGestures
@@ -765,6 +769,7 @@ private fun DayTimeline(
                 ) {
                     val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
                     val accent = MaterialTheme.extendedColors.accent
+                    val circleColor = MaterialTheme.colorScheme.background
                     Canvas(Modifier.matchParentSize()) {
                         val leftPad = LabelWidth.toPx()
                         val spineW = 2.dp.toPx()
@@ -772,23 +777,63 @@ private fun DayTimeline(
                             val y = (minute - startMinutes) * minuteHeightPx
                             drawLine(
                                 color = gridLineColor,
-                                start = androidx.compose.ui.geometry.Offset(leftPad, y),
-                                end = androidx.compose.ui.geometry.Offset(size.width, y),
+                                start = Offset(20f, y),
+                                end = Offset(size.width-20, y),
                                 strokeWidth = 1.dp.toPx()
                             )
                         }
                         drawRect(
                             color = accent,
-                            topLeft = androidx.compose.ui.geometry.Offset(leftPad - spineW / 2f, 0f),
-                            size = androidx.compose.ui.geometry.Size(spineW, size.height)
+                            topLeft = Offset(leftPad - spineW / 2f, 0f),
+                            size = Size(spineW, size.height)
                         )
+//                        nowMinutesFromStart?.let { minutes ->
+//                            val y = minutes * minuteHeightPx
+//                            drawLine(
+//                                color = accent,
+//                                start = Offset(leftPad, y),
+//                                end = Offset(size.width, y),
+//                                strokeWidth = 2.dp.toPx()
+//                            )
+//                        }
                         nowMinutesFromStart?.let { minutes ->
                             val y = minutes * minuteHeightPx
-                            drawLine(
+
+                            val lineWidth = 2.dp.toPx()
+                            val ringStroke = 2.dp.toPx()
+                            val circleRadiusWhite = 12.dp.toPx()
+                            val circleRadiusAccentRing = 8.dp.toPx()
+                            val circleRadiusAccent = 5.dp.toPx()// подберёшь по вкусу
+                            val circleCx = leftPad                   // центр кружка на оси времени
+
+                            // 1) Линия от кружка вправо (чтобы не «перечёркивала» центр)
+//                            drawLine(
+//                                color = accent,
+//                                start = Offset(circleCx + circleRadius, y),
+//                                end   = Offset(size.width, y),
+//                                strokeWidth = lineWidth
+//                            )
+
+                            // 2) Белый «фон» кружка (чтобы перекрыть вертикальную ось/линии под ним)
+                            drawCircle(
+                                color = circleColor,
+                                radius = circleRadiusWhite,
+                                center = Offset(circleCx, y)
+                            )
+
+                            // 3) Акцентное кольцо (как на скрине)
+                            drawCircle(
                                 color = accent,
-                                start = androidx.compose.ui.geometry.Offset(leftPad, y),
-                                end = androidx.compose.ui.geometry.Offset(size.width, y),
-                                strokeWidth = 2.dp.toPx()
+                                radius = circleRadiusAccentRing,
+                                center = Offset(circleCx, y),
+                                style = Stroke(width = ringStroke)
+                            )
+
+                            drawCircle(
+                                color = accent,
+                                radius = circleRadiusAccent,
+                                center = Offset(circleCx, y),
+//                                style = Stroke(width = ringStroke)
                             )
                         }
                     }
@@ -816,13 +861,13 @@ private fun DayTimeline(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
-                                    .offset(y = minuteHeight * (minute - startMinutes).toFloat())
+                                    .offset(y = minuteHeight * (minute - startMinutes).toFloat(), x=8.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+
             }
         }
     }
@@ -855,11 +900,11 @@ private fun LessonBlock(
     Box(
         Modifier
             .fillMaxWidth()
-            .offset(y = top)
-            .height(height)
-            .padding(start = LabelWidth + 4.dp, end = 8.dp)
+            .offset(y = top+4.dp)
+            .height(height-8.dp)
+            .padding(start = LabelWidth + 16.dp, end = 28.dp)
     ) {
-        val cardShape = RoundedCornerShape(10.dp)
+        val cardShape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp)
         val innerStrokeWidth = 1.dp
         Card(
             modifier = Modifier.fillMaxSize(),
@@ -878,7 +923,7 @@ private fun LessonBlock(
                         drawRoundRect(
                             color = Color(0x14000000),
                             topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                            size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                            size = Size(size.width - strokeWidth+20, size.height - strokeWidth),
                             cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
                             style = Stroke(width = strokeWidth)
                         )
@@ -888,8 +933,8 @@ private fun LessonBlock(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 12.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     Text(
                         text = lessonUi.studentName,
@@ -906,22 +951,22 @@ private fun LessonBlock(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    lessonUi.note?.let { note ->
-                        Text(
-                            text = note,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Text(
-                        text = lessonUi.statusDescription,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+//                    lessonUi.note?.let { note ->
+//                        Text(
+//                            text = note,
+//                            style = MaterialTheme.typography.bodySmall,
+//                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                            maxLines = 1,
+//                            overflow = TextOverflow.Ellipsis
+//                        )
+//                    }
+//                    Text(
+//                        text = lessonUi.statusDescription,
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                        maxLines = 1,
+//                        overflow = TextOverflow.Ellipsis
+//                    )
                 }
                 Spacer(modifier = Modifier.width(10.dp))
             }
@@ -930,11 +975,12 @@ private fun LessonBlock(
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .offset(x = 8.dp)
+                .offset(x = 10.dp)
                 .fillMaxHeight()
                 .width(10.dp)
                 .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
-                .background(lessonUi.statusColor)
+                .background(lessonUi.statusColor),
+
         )
     }
 }
@@ -951,6 +997,7 @@ private data class LessonUi(
     val statusColor: Color
 )
 
+@Composable
 private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
     val status = statusPresentation(now)
     val grade = normalizeGrade(studentGrade)
