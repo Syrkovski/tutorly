@@ -42,7 +42,7 @@ val CardSurface = Color(0xFFFFFFFF)
 val PrimaryTextColor = Color(0xFF2C2C33)
 val SecondaryTextColor = Color(0xFF49484E)
 val OutlineLavender = Color(0xFFB9C9C4)
-val OutlineVariantLavender = Color(0xFFE3ECE8)
+val OutlineVariantLavender = Color(0xFFEEF9F6)
 
 val PaidChipContent = Color(0xFFFFFFFF)
 val DebtChipContent = Color(0xFFFFFFFF)

@@ -17,27 +17,30 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.ChevronLeft
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+//import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -49,14 +52,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
-import com.tutorly.domain.model.PaymentStatusIcon
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.GradientTopBarContainer
 import com.tutorly.ui.components.LessonBrief
-import com.tutorly.ui.components.StatusChip
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
+import com.tutorly.ui.screens.normalizeGrade
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
@@ -64,7 +65,6 @@ import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
-import com.tutorly.ui.theme.CardSurface
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -72,6 +72,7 @@ import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -206,11 +207,23 @@ fun CalendarScreen(
         modifier = modifier,
         topBar = {
             CalendarTopBar(
-                selectedMode = mode,
+                anchor = anchor,
+                currentDateTime = uiState.currentDateTime,
+                mode = mode,
+                onSelectDate = { selected ->
+                    direction = when {
+                        selected.isAfter(anchor) -> 1
+                        selected.isBefore(anchor) -> -1
+                        else -> 0
+                    }
+                    viewModel.selectDate(selected)
+                },
                 onSelectMode = { newMode ->
                     direction = 0
                     viewModel.setMode(newMode)
                 },
+                onSwipeLeft = nextPeriod,
+                onSwipeRight = prevPeriod,
                 onOpenSettings = onOpenSettings
             )
         },
@@ -243,26 +256,6 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-        // Хедер: тут же свайп (чтобы не конфликтовал со скроллом списка)
-        PlanScreenHeader(
-            anchor = anchor,
-            mode = mode,
-            weekendDays = uiState.weekendDays,
-            currentDateTime = uiState.currentDateTime,
-            onPrevPeriod = prevPeriod,
-            onNextPeriod = nextPeriod,
-            onSelectDate = { selected ->
-                direction = when {
-                    selected.isAfter(anchor) -> 1
-                    selected.isBefore(anchor) -> -1
-                    else -> 0
-                }
-                viewModel.selectDate(selected)
-            },
-            onSwipeLeft = nextPeriod,
-            onSwipeRight = prevPeriod
-        )
-
         // Контент занимает остаток экрана и скроллится внутри
         Box(
             Modifier
@@ -360,32 +353,151 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 
 @Composable
 private fun CalendarTopBar(
-    selectedMode: CalendarMode,
+    anchor: LocalDate,
+    currentDateTime: ZonedDateTime,
+    mode: CalendarMode,
+    onSelectDate: (LocalDate) -> Unit,
     onSelectMode: (CalendarMode) -> Unit,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    val displayMode = remember(selectedMode) { selectedMode }
+    val locale = remember { Locale("ru") }
+    val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
+    val monthLabel = remember(anchor, locale) {
+        val raw = monthFormatter.format(anchor)
+        raw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    GradientTopBarContainer {
-        Row(
+    val weekStart = remember(anchor) { anchor.with(DayOfWeek.MONDAY) }
+    val weekDays = remember(weekStart) { (0 until 7).map { weekStart.plusDays(it.toLong()) } }
+    val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
+
+    val backgroundColor = Color(0xFFFEFEFE)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp))
+            .background(backgroundColor)
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
+                .statusBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CalendarModeToggle(
-                selected = displayMode,
-                onSelect = onSelectMode
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = stringResource(id = R.string.calendar_open_settings),
-                    tint = Color.White
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 0.dp, start = 16.dp, end = 16.dp)
+            ) {
+                Text(
+                    text = monthLabel,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 48.dp)
+                        .clickable { showDatePicker = true },
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = Color(0xFF2A2F63)
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = stringResource(id = R.string.settings_title)
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                weekDays.forEach { day ->
+                    WeekDayCell(
+                        modifier = Modifier.weight(1f),
+                        date = day,
+                        isSelected = day == anchor,
+                        isToday = day == today,
+                        locale = locale,
+                        onClick = { onSelectDate(day) }
+                    )
+                }
+            }
+        }
+
+        CalendarModeToggle(
+            selected = mode,
+            onSelect = onSelectMode,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp)
+                .pointerInput(mode) {
+                    val threshold = 48.dp.toPx()
+                    var totalDrag = 0f
+                    var handled = false
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            totalDrag = 0f
+                            handled = false
+                        },
+                        onDragEnd = {
+                            totalDrag = 0f
+                            handled = false
+                        },
+                        onDragCancel = {
+                            totalDrag = 0f
+                            handled = false
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            if (handled) return@detectHorizontalDragGestures
+
+                            totalDrag += dragAmount
+                            if (abs(totalDrag) > threshold) {
+                                if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
+                                handled = true
+                                change.consume()
+                            }
+                        }
+                    )
+                }
+        )
+    }
+
+    if (showDatePicker) {
+        DisposableEffect(anchor) {
+            val picker = DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    showDatePicker = false
+                    onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
+                },
+                anchor.year,
+                anchor.monthValue - 1,
+                anchor.dayOfMonth
+            )
+            picker.setOnDismissListener { showDatePicker = false }
+            picker.show()
+            onDispose {
+                picker.setOnDismissListener(null)
+                if (picker.isShowing) {
+                    picker.dismiss()
+                }
             }
         }
     }
@@ -398,212 +510,125 @@ private fun CalendarModeToggle(
     modifier: Modifier = Modifier
 ) {
     val options = remember { listOf(CalendarMode.DAY, CalendarMode.WEEK) }
-    Row(
-        modifier = modifier
-            .selectableGroup()
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val accent = MaterialTheme.extendedColors.accent
+    val inactiveColor = Color(0xFFB9BCC7)
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = modifier,
+//        containerColor = Color(0xFFFEFEFE),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        divider = {},
+        indicator = { tabPositions ->
+            if (selectedIndex in tabPositions.indices) {
+                val position = tabPositions[selectedIndex]
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentSize(Alignment.BottomStart)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .tabIndicatorOffset(position)
+                            .padding(horizontal = 38.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                            .background(accent)
+                    )
+                }
+            }
+        }
     ) {
-        options.forEach { option ->
-            val isSelected = option == selected
-            val segmentShape = RoundedCornerShape(20.dp)
-            val background = if (isSelected) {
-                Color.White
+        options.forEachIndexed { index, option ->
+            val labelRes = if (option == CalendarMode.DAY) {
+                R.string.calendar_mode_day
             } else {
-                Color.White.copy(alpha = 0.12f)
+                R.string.calendar_mode_week
             }
-            val contentColor = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onPrimary
-            }
-
-            Surface(
+            val isSelected = index == selectedIndex
+            Tab(
+                selected = isSelected,
                 onClick = {
                     if (!isSelected) onSelect(option)
-                },
-                shape = segmentShape,
-                color = background,
-                contentColor = contentColor,
-                tonalElevation = 0.dp,
-                shadowElevation = if (isSelected) 2.dp else 0.dp
-            ) {
-                val labelRes = if (option == CalendarMode.DAY) {
-                    R.string.calendar_mode_day
-                } else {
-                    R.string.calendar_mode_week
                 }
-                Text(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                    text = stringResource(id = labelRes),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = contentColor
-                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(id = labelRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            inactiveColor
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 
-/* ----------------------------- HEADER ----------------------------------- */
-
 @Composable
-fun PlanScreenHeader(
-    anchor: LocalDate,
-    mode: CalendarMode,
-    weekendDays: Set<DayOfWeek>,
-    currentDateTime: ZonedDateTime,
-    onPrevPeriod: () -> Unit,
-    onNextPeriod: () -> Unit,
-    onSelectDate: (LocalDate) -> Unit,
-    onSwipeLeft: () -> Unit,
-    onSwipeRight: () -> Unit
+private fun WeekDayCell(
+    modifier: Modifier = Modifier,
+    date: LocalDate,
+    isSelected: Boolean,
+    isToday: Boolean,
+    locale: Locale,
+    onClick: () -> Unit
 ) {
-    val locale = remember { Locale("ru") }
-    val dayFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
-    val dayMonthFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM", locale) }
-    val periodLabel = remember(anchor, mode) {
-        when (mode) {
-            CalendarMode.WEEK -> {
-                val weekStart = anchor.with(DayOfWeek.MONDAY)
-                val weekEnd = weekStart.plusDays(6)
-                when {
-                    weekStart.month == weekEnd.month && weekStart.year == weekEnd.year -> {
-                        val endText = dayFormatter.format(weekEnd)
-                        "${weekStart.dayOfMonth} – $endText"
-                    }
-                    weekStart.year == weekEnd.year -> {
-                        val startText = dayMonthFormatter.format(weekStart)
-                        val endText = dayFormatter.format(weekEnd)
-                        "$startText – $endText"
-                    }
-                    else -> {
-                        val startText = dayFormatter.format(weekStart)
-                        val endText = dayFormatter.format(weekEnd)
-                        "$startText – $endText"
-                    }
-                }
-            }
-            else -> dayFormatter.format(anchor)
-        }
+    val accent = MaterialTheme.extendedColors.accent
+    val label = remember(date, locale) {
+        date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
     }
-
-    var showDatePicker by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    val number = remember(date) { date.dayOfMonth.toString() }
+    val circleColor = if (isSelected) accent else Color.Transparent
+    val numberColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val labelColor = Color(0xFFB9BCC7)
 
     Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)
-            // свайп только на хедере — не мешает вертикальному скроллу списка
-            .pointerInput(mode) {
-                val threshold = 48.dp.toPx()
-                var totalDrag = 0f
-                var handled = false
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        totalDrag = 0f
-                        handled = false
-                    },
-                    onDragEnd = {
-                        totalDrag = 0f
-                        handled = false
-                    },
-                    onDragCancel = {
-                        totalDrag = 0f
-                        handled = false
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        if (handled) return@detectHorizontalDragGestures
+        modifier = modifier
+            .width(40.dp)
 
-                        totalDrag += dragAmount
-                        if (abs(totalDrag) > threshold) {
-                            if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
-                            handled = true
-                            change.consume()
-                        }
-                    }
-                )
-            }
+            .clickable(onClick = onClick)
+            .padding(vertical = 0.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = labelColor
+        )
+        Box(
+            modifier = Modifier
+                .height(40.dp)
+                .width(40.dp)
+                .clip(CircleShape)
+                .shadow(if (isSelected) 6.dp else 0.dp, CircleShape, clip = false)
+                .background(circleColor),
+            contentAlignment = Alignment.Center
         ) {
-            IconButton(onClick = onPrevPeriod) {
-                Icon(
-                    imageVector = Icons.Outlined.ChevronLeft,
-                    contentDescription = stringResource(id = R.string.calendar_prev_period)
-                )
-            }
-
+            Text(
+                text = number,
+                style = MaterialTheme.typography.titleMedium,
+                color = numberColor
+            )
+        }
+        if (isToday && !isSelected) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-            ) {
-                Surface(
-                    onClick = { showDatePicker = true },
-                    shape = RoundedCornerShape(24.dp),
-                    color = CardSurface,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-//                    tonalElevation = 2.dp,
-                    shadowElevation = 4.dp
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CalendarToday,
-                            contentDescription = null
-                        )
-                        Text(
-                            text = periodLabel,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Icon(
-                            imageVector = Icons.Outlined.ExpandMore,
-                            contentDescription = stringResource(id = R.string.calendar_open_day_picker)
-                        )
-                    }
-                }
-
-                if (showDatePicker) {
-                    DisposableEffect(Unit) {
-                        val picker = DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                showDatePicker = false
-                                onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
-                            },
-                            anchor.year,
-                            anchor.monthValue - 1,
-                            anchor.dayOfMonth
-                        )
-                        picker.setOnDismissListener { showDatePicker = false }
-                        picker.show()
-                        onDispose {
-                            picker.setOnDismissListener(null)
-                            if (picker.isShowing) {
-                                picker.dismiss()
-                            }
-                        }
-                    }
-                }
-            }
-
-            IconButton(onClick = onNextPeriod) {
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = stringResource(id = R.string.calendar_next_period)
-                )
-            }
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(accent)
+            )
         }
     }
 }
@@ -647,7 +672,7 @@ private fun DayTimeline(
     val density = LocalDensity.current
     val minuteHeightPx = remember(density) { with(density) { minuteHeight.toPx() } }
     val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
-    val cardInsetPx = remember(density) { with(density) { 8.dp.toPx() } }
+    val cardInsetPx = remember(density) { with(density) { 16.dp.toPx() } }
     val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
     val nowMinutesFromStart = remember(isToday, currentDateTime, startMinutes, totalMinutes) {
         if (!isToday) {
@@ -697,96 +722,152 @@ private fun DayTimeline(
     }
 
     Box(
-        Modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFFFFF))
-            .verticalScroll(scroll)
+//            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 0.dp, vertical = 0.dp)
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(totalHeight)
-                .padding(horizontal = 8.dp)
-                .pointerInput(dayLessons, startMinutes, endMinutes, lessonRegions) {
-                    detectTapGestures { offset ->
-                        if (offset.x < labelWidthPx) return@detectTapGestures
-                        if (lessonRegions.any { region ->
-                                offset.x >= region.leftPx && offset.y in region.topPx..region.bottomPx
-                            }
-                        ) {
-                            return@detectTapGestures
-                        }
+        Card(
+            modifier = Modifier.fillMaxSize(),
+//            shape = RoundedCornerShape(28.dp),
+//            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+//            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scroll)
+            ) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(totalHeight)
+                        .padding(horizontal = 0.dp, vertical = 0.dp)
+                        .pointerInput(dayLessons, startMinutes, endMinutes, lessonRegions) {
+                            detectTapGestures { offset ->
+                                if (offset.x < labelWidthPx) return@detectTapGestures
+                                if (lessonRegions.any { region ->
+                                        offset.x >= region.leftPx && offset.y in region.topPx..region.bottomPx
+                                    }
+                                ) {
+                                    return@detectTapGestures
+                                }
 
-                        val clampedY = offset.y.coerceIn(0f, totalHeightPx)
-                        val minutesWithin = (clampedY / minuteHeightPx).roundToInt()
-                        val candidate = startMinutes + minutesWithin
-                        val maxSelectable = (endMinutes - SlotIncrementMinutes).coerceAtLeast(startMinutes)
-                        val normalized = candidate.coerceIn(startMinutes, maxSelectable)
-                        val slots = (normalized - startMinutes) / SlotIncrementMinutes
-                        val rounded = startMinutes + slots * SlotIncrementMinutes
-                        val hour = rounded / MinutesPerHour
-                        val minute = rounded % MinutesPerHour
-                        onEmptySlot(LocalTime.of(hour, minute))
+                                val clampedY = offset.y.coerceIn(0f, totalHeightPx)
+                                val minutesWithin = (clampedY / minuteHeightPx).roundToInt()
+                                val candidate = startMinutes + minutesWithin
+                                val maxSelectable = (endMinutes - SlotIncrementMinutes).coerceAtLeast(startMinutes)
+                                val normalized = candidate.coerceIn(startMinutes, maxSelectable)
+                                val slots = (normalized - startMinutes) / SlotIncrementMinutes
+                                val rounded = startMinutes + slots * SlotIncrementMinutes
+                                val hour = rounded / MinutesPerHour
+                                val minute = rounded % MinutesPerHour
+                                onEmptySlot(LocalTime.of(hour, minute))
+                            }
+                        }
+                ) {
+                    val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                    val accent = MaterialTheme.extendedColors.accent
+                    val circleColor = MaterialTheme.colorScheme.background
+                    Canvas(Modifier.matchParentSize()) {
+                        val leftPad = LabelWidth.toPx()
+                        val spineW = 2.dp.toPx()
+                        hourMarks.forEach { minute ->
+                            val y = (minute - startMinutes) * minuteHeightPx
+                            drawLine(
+                                color = gridLineColor,
+                                start = Offset(20f, y),
+                                end = Offset(size.width-20, y),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                        }
+                        drawRect(
+                            color = accent,
+                            topLeft = Offset(leftPad - spineW / 2f, 0f),
+                            size = Size(spineW, size.height)
+                        )
+//                        nowMinutesFromStart?.let { minutes ->
+//                            val y = minutes * minuteHeightPx
+//                            drawLine(
+//                                color = accent,
+//                                start = Offset(leftPad, y),
+//                                end = Offset(size.width, y),
+//                                strokeWidth = 2.dp.toPx()
+//                            )
+//                        }
+                        nowMinutesFromStart?.let { minutes ->
+                            val y = minutes * minuteHeightPx
+
+                            val lineWidth = 2.dp.toPx()
+                            val ringStroke = 2.dp.toPx()
+                            val circleRadiusWhite = 12.dp.toPx()
+                            val circleRadiusAccentRing = 8.dp.toPx()
+                            val circleRadiusAccent = 5.dp.toPx()// подберёшь по вкусу
+                            val circleCx = leftPad                   // центр кружка на оси времени
+
+                            // 1) Линия от кружка вправо (чтобы не «перечёркивала» центр)
+//                            drawLine(
+//                                color = accent,
+//                                start = Offset(circleCx + circleRadius, y),
+//                                end   = Offset(size.width, y),
+//                                strokeWidth = lineWidth
+//                            )
+
+                            // 2) Белый «фон» кружка (чтобы перекрыть вертикальную ось/линии под ним)
+                            drawCircle(
+                                color = circleColor,
+                                radius = circleRadiusWhite,
+                                center = Offset(circleCx, y)
+                            )
+
+                            // 3) Акцентное кольцо (как на скрине)
+                            drawCircle(
+                                color = accent,
+                                radius = circleRadiusAccentRing,
+                                center = Offset(circleCx, y),
+                                style = Stroke(width = ringStroke)
+                            )
+
+                            drawCircle(
+                                color = accent,
+                                radius = circleRadiusAccent,
+                                center = Offset(circleCx, y),
+//                                style = Stroke(width = ringStroke)
+                            )
+                        }
+                    }
+
+                    dayLessons.forEach { lesson ->
+                        LessonBlock(
+                            lesson = lesson,
+                            baseMinutes = startMinutes,
+                            minuteHeight = minuteHeight,
+                            now = currentDateTime,
+                            onLessonClick = onLessonClick
+                        )
+                    }
+
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(LabelWidth)
+                    ) {
+                        labelMinutes.forEach { minute ->
+                            val label = "%02d:%02d".format(minute / MinutesPerHour, minute % MinutesPerHour)
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(y = minuteHeight * (minute - startMinutes).toFloat(), x=8.dp)
+                            )
+                        }
                     }
                 }
-        ) {
-            val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-            val spineColor = MaterialTheme.colorScheme.primary
-            val accent = MaterialTheme.extendedColors.accent
-            Canvas(Modifier.matchParentSize()) {
-                val leftPad = LabelWidth.toPx()
-                val spineW = 2.dp.toPx()
-                hourMarks.forEach { minute ->
-                    val y = (minute - startMinutes) * minuteHeightPx
-                    drawLine(
-                        color = gridLineColor,
-                        start = androidx.compose.ui.geometry.Offset(0f, y),
-                        end = androidx.compose.ui.geometry.Offset(size.width, y),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                }
-                drawRect(
-                    color = spineColor,
-                    topLeft = androidx.compose.ui.geometry.Offset(leftPad, 0f),
-                    size = androidx.compose.ui.geometry.Size(spineW, size.height)
-                )
-                nowMinutesFromStart?.let { minutes ->
-                    val y = minutes * minuteHeightPx
-                    drawLine(
-                        color = accent,
-                        start = androidx.compose.ui.geometry.Offset(0f, y),
-                        end = androidx.compose.ui.geometry.Offset(size.width, y),
-                        strokeWidth = 2.dp.toPx()
-                    )
-                }
-            }
 
-            dayLessons.forEach { lesson ->
-                LessonBlock(
-                    lesson = lesson,
-                    baseMinutes = startMinutes,
-                    minuteHeight = minuteHeight,
-                    now = currentDateTime,
-                    onLessonClick = onLessonClick
-                )
-            }
 
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .width(LabelWidth)
-            ) {
-                labelMinutes.forEach { minute ->
-                    val label = "%02d:%02d".format(minute / MinutesPerHour, minute % MinutesPerHour)
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .offset(y = minuteHeight * (minute - startMinutes).toFloat())
-                    )
-                }
             }
         }
     }
@@ -814,77 +895,123 @@ private fun LessonBlock(
     val top = minuteHeight * offsetMinutes.toFloat()
     val height = minuteHeight * durationMinutes.toInt().toFloat()
 
-    val statusInfo = lesson.statusPresentation(now)
-    val secondaryLine = remember(lesson.studentGrade, lesson.subjectName) {
-        val grade = normalizeGrade(lesson.studentGrade)
-        val subject = lesson.subjectName?.takeIf { it.isNotBlank() }?.trim()
-        listOfNotNull(grade, subject)
-            .takeIf { it.isNotEmpty() }
-            ?.joinToString(separator = " • ")
-    }
+    val lessonUi = lesson.toLessonUi(now)
 
     Box(
         Modifier
             .fillMaxWidth()
-            .offset(y = top)
-            .height(height)
-            .padding(start = LabelWidth + 8.dp, end = 8.dp)
+            .offset(y = top+4.dp)
+            .height(height-8.dp)
+            .padding(start = LabelWidth + 16.dp, end = 28.dp)
     ) {
+        val cardShape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp)
+        val innerStrokeWidth = 1.dp
         Card(
+            modifier = Modifier.fillMaxSize(),
             onClick = { onLessonClick(lesson) },
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 1.dp,
-                focusedElevation = 2.dp,
-                hoveredElevation = 2.dp,
-                pressedElevation = 1.dp,
-                draggedElevation = 3.dp,
-                disabledElevation = 0.dp
-            ),
-            modifier = Modifier.fillMaxSize()
+            shape = cardShape,
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
-            Column(
-                Modifier
+            Box(
+                modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = if (secondaryLine.isNullOrBlank()) {
-                    Arrangement.Center
-                } else {
-                    Arrangement.spacedBy(4.dp)
-                }
+                    .drawBehind {
+                        val strokeWidth = innerStrokeWidth.toPx()
+                        val radius = 10.dp.toPx().coerceAtLeast(0f)
+                        val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
+                        drawRoundRect(
+                            color = Color(0x14000000),
+                            topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                            size = Size(size.width - strokeWidth+20, size.height - strokeWidth),
+                            cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
+                            style = Stroke(width = strokeWidth)
+                        )
+                    }
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Row(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     Text(
-                        text = lesson.studentName,
+                        text = lessonUi.studentName,
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatusChip(
-                        data = statusInfo
-                    )
-                }
-                if (!secondaryLine.isNullOrBlank()) {
-                    Text(
-                        text = secondaryLine,
-                        style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    lessonUi.secondaryLine?.let { secondaryLine ->
+                        Text(
+                            text = secondaryLine,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+//                    lessonUi.note?.let { note ->
+//                        Text(
+//                            text = note,
+//                            style = MaterialTheme.typography.bodySmall,
+//                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                            maxLines = 1,
+//                            overflow = TextOverflow.Ellipsis
+//                        )
+//                    }
+//                    Text(
+//                        text = lessonUi.statusDescription,
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                        maxLines = 1,
+//                        overflow = TextOverflow.Ellipsis
+//                    )
                 }
+                Spacer(modifier = Modifier.width(10.dp))
+            }
             }
         }
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = 10.dp)
+                .fillMaxHeight()
+                .width(10.dp)
+                .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
+                .background(lessonUi.statusColor),
+
+        )
     }
 }
 
 @Composable
 private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipData =
     statusChipData(paymentStatus, start, end, now)
+
+private data class LessonUi(
+    val studentName: String,
+    val secondaryLine: String?,
+    val note: String?,
+    val statusDescription: String,
+    val statusColor: Color
+)
+
+@Composable
+private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
+    val status = statusPresentation(now)
+    val grade = normalizeGrade(studentGrade)
+    val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
+    val secondaryLine = listOfNotNull(grade, subject)
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(separator = " • ")
+    val note = lessonNote?.takeIf { it.isNotBlank() }?.trim()
+
+    return LessonUi(
+        studentName = studentName,
+        secondaryLine = secondaryLine,
+        note = note,
+        statusDescription = status.description,
+        statusColor = status.background
+    )
+}
