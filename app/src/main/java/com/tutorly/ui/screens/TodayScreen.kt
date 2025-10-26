@@ -846,6 +846,8 @@ private fun PastDebtorsCollapsible(
     }
     CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
+        titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleTextAlign = TextAlign.Center,
         subtitle = subtitle
     ) {
         if (lessons.isEmpty()) {
@@ -877,6 +879,8 @@ private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    titleTextAlign: TextAlign = TextAlign.Start,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -898,7 +902,10 @@ private fun CollapsibleSection(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = titleColor,
+                    textAlign = titleTextAlign,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 if (subtitle != null) {
                     Text(
