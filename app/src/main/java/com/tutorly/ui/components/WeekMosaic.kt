@@ -1,11 +1,13 @@
 package com.tutorly.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.theme.extendedColors
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZonedDateTime
@@ -41,7 +44,7 @@ fun WeekMosaic(
     dayDataProvider: (LocalDate) -> List<LessonBrief> = { demoLessonsFor(it) },
     currentDateTime: ZonedDateTime,
     onLessonClick: (LessonBrief) -> Unit = {},
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 0.dp),
     itemSpacing: Dp = 12.dp
 ) {
     val monday = anchor.with(DayOfWeek.MONDAY)
@@ -59,10 +62,11 @@ fun WeekMosaic(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().fillMaxWidth(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(itemSpacing)
+//        verticalArrangement = Arrangement.spacedBy(itemSpacing),
     ) {
+
         items(dayCards, key = { it.date }) { model ->
             DayTile(
                 model = model,
@@ -92,93 +96,99 @@ private fun DayTile(
     }
 
     // Белая подложка только для сегодняшнего дня
-    val bg: Color = Color.White
+    val bg: Color = Color.Transparent
 
     val dayShape = MaterialTheme.shapes.medium
     Surface(
         color = bg,
-        shape = dayShape,
+//        shape = dayShape,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = DayTileMinHeight)
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            val locale = remember { Locale("ru") }
-            val dayOfWeekLabel = remember(model.date, locale) {
-                model.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
-                    .replaceFirstChar { it.titlecase(locale) }
-            }
+        if (model.totalLessons != 0) {
+//                    EmptyDayPlaceholder()
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+//                .heightIn(min = DayTileMinHeight)
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = dayOfWeekLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = model.date.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (isToday) {
-                    MiniBadge(text = "Сегодня")
+                val locale = remember { Locale("ru") }
+                val dayOfWeekLabel = remember(model.date, locale) {
+                    model.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+                        .replaceFirstChar { it.titlecase(locale) }
                 }
-            }
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val toShow = if (isToday) others else model.brief
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Spacer(Modifier.height(10.dp))
+                    if (isToday) {
+                        MiniBadge()
+                    }
+                    Text(
+                        text = dayOfWeekLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = model.date.dayOfMonth.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                if (model.totalLessons == 0) {
-                    EmptyDayPlaceholder()
-                } else {
-                    if (isToday && ongoing.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = "Идут сейчас",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            ongoing.forEach {
-                                LessonRowCompact(
-                                    lesson = it,
-                                    tone = LessonTone.Ongoing,
-                                    currentDateTime = now,
-                                    onClick = { onLessonClick(it) }
-                                )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val toShow = if (isToday) others else model.brief
+
+                    if (model.totalLessons == 0) {
+//                    EmptyDayPlaceholder()
+                    } else {
+                        if (isToday && ongoing.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+//                            Text(
+//                                text = "Идут сейчас",
+//                                style = MaterialTheme.typography.labelSmall,
+//                                color = MaterialTheme.colorScheme.primary
+//                            )
+                                ongoing.forEach {
+                                    LessonRowCompact(
+                                        lesson = it,
+                                        tone = LessonTone.Default,
+                                        currentDateTime = now,
+                                        onClick = { onLessonClick(it) }
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    toShow.forEach {
-                        LessonRowCompact(
-                            lesson = it,
-                            tone = LessonTone.Default,
-                            currentDateTime = now,
-                            onClick = { onLessonClick(it) }
-                        )
-                    }
+                        toShow.forEach {
+                            LessonRowCompact(
+                                lesson = it,
+                                tone = LessonTone.Default,
+                                currentDateTime = now,
+                                onClick = { onLessonClick(it) }
+                            )
+                        }
 
-                    val shown = (if (isToday) ongoing.size else 0) + toShow.size
-                    if (model.totalLessons > shown) {
-                        Text(
-                            text = "+${model.totalLessons - shown} ещё…",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        val shown = (if (isToday) ongoing.size else 0) + toShow.size
+                        if (model.totalLessons > shown) {
+                            Text(
+                                text = "+${model.totalLessons - shown} ещё…",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -205,14 +215,16 @@ private fun LessonRowCompact(
     val subjectColor = lesson.subjectColorArgb?.let { Color(it) }
     val baseSurface = MaterialTheme.colorScheme.surface
 
-    val containerColor = when {
-        tone == LessonTone.Ongoing -> MaterialTheme.colorScheme.primaryContainer
-        subjectColor != null -> subjectColor.copy(alpha = 0.12f).compositeOver(baseSurface)
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f).compositeOver(baseSurface)
-    }
+    val containerColor = MaterialTheme.colorScheme.onPrimaryContainer
+//
+//        when {
+//        tone == LessonTone.Ongoing -> MaterialTheme.colorScheme.primaryContainer
+//        subjectColor != null -> subjectColor.copy(alpha = 0.12f).compositeOver(baseSurface)
+//        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f).compositeOver(baseSurface)
+//    }
 
     val titleColor = when {
-        tone == LessonTone.Ongoing -> MaterialTheme.colorScheme.onPrimaryContainer
+        tone == LessonTone.Ongoing -> MaterialTheme.colorScheme.onSurface
         subjectColor != null -> subjectColor
         else -> MaterialTheme.colorScheme.onSurface
     }
@@ -236,16 +248,14 @@ private fun LessonRowCompact(
     }
 
     val hasSubject = !lesson.subjectName.isNullOrBlank()
-    val title = if (hasSubject) {
-        lesson.subjectName!!.trim()
-    } else {
-        lesson.student
-    }
+    val title = lesson.student
+
 
     val subtitleParts = mutableListOf<String>()
     if (hasSubject) {
-        subtitleParts += lesson.student
         lesson.grade?.takeIf { it.isNotBlank() }?.let { subtitleParts += it.trim() }
+        subtitleParts += lesson.subjectName!!.trim()
+
     } else {
         lesson.grade?.takeIf { it.isNotBlank() }?.let { subtitleParts += it.trim() }
     }
@@ -253,15 +263,15 @@ private fun LessonRowCompact(
     val subtitle = subtitleParts.takeIf { it.isNotEmpty() }?.joinToString(separator = " • ")
 
     Surface(
-        color = containerColor,
+//        color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         border = border,
-        tonalElevation = if (tone == LessonTone.Ongoing) 2.dp else 0.dp,
+//        tonalElevation = if (tone == LessonTone.Ongoing) 2.dp else 0.dp,
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 64.dp)
-            .clip(RoundedCornerShape(18.dp))
+//            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
     ) {
         Row(
@@ -295,13 +305,13 @@ private fun LessonRowCompact(
                     )
                 }
 
-                Text(
-                    text = status.description,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = secondaryColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+//                Text(
+//                    text = status.description,
+//                    style = MaterialTheme.typography.labelSmall,
+//                    color = secondaryColor,
+//                    maxLines = 1,
+//                    overflow = TextOverflow.Ellipsis
+//                )
 
                 Text(
                     text = timeRange,
@@ -318,8 +328,8 @@ private fun LessonRowCompact(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(8.dp)
-                    .clip(RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp))
+                    .width(12.dp)
+                    .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
                     .background(status.background)
             )
         }
@@ -327,23 +337,20 @@ private fun LessonRowCompact(
 }
 
 @Composable
-private fun MiniBadge(text: String) {
-    Text(
-        text,
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.labelSmall,
+private fun MiniBadge() {
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .size(16.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.extendedColors.accent)
     )
 }
 
 @Composable
 private fun EmptyDayPlaceholder() {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-            .compositeOver(MaterialTheme.colorScheme.surface),
+//        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+//            .compositeOver(MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Box(
