@@ -85,11 +85,12 @@ fun statusChipData(
 
         PaymentStatus.DUE, PaymentStatus.UNPAID -> {
             if (isFutureLesson) {
+                val futureUnpaid = Color(0xFF727272)
                 StatusChipData(
                     label = "₽",
                     description = stringResource(R.string.lesson_status_unpaid),
-                    background = colorScheme.surfaceVariant,
-                    content = colorScheme.onSurfaceVariant
+                    background = futureUnpaid,
+                    content = defaultContentColor(futureUnpaid)
                 )
             } else {
                 StatusChipData(
