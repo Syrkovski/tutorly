@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -49,7 +50,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBox
@@ -64,7 +65,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -239,31 +239,36 @@ private fun EmptyState(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item(key = "empty_state_header") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-//                    .padding(horizontal = 32.dp, vertical = 48.dp)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clip(RoundedCornerShape(20.dp)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+                elevation = TutorlyCardDefaults.elevation()
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.undraw_relaxation_jsge),
-                    contentDescription = null,
-                    modifier = Modifier.size(width = 320.dp, height = 240.dp)
-                )
-                Text(
-                    text = stringResource(R.string.today_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(R.string.today_empty_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+//                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.vacation),
+                        contentDescription = null,
+                        modifier = Modifier.size(width = 256.dp, height = 192.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.today_empty_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.today_empty_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         item(key = "past_debtors") {
@@ -842,7 +847,10 @@ private fun PastDebtorsCollapsible(
     }
     CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
-        subtitle = subtitle
+        titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleTextAlign = TextAlign.Center,
+        subtitle = subtitle,
+        inlineIndicator = true
     ) {
         if (lessons.isEmpty()) {
             Text(
@@ -873,6 +881,9 @@ private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    titleTextAlign: TextAlign = TextAlign.Start,
+    inlineIndicator: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -881,34 +892,81 @@ private fun CollapsibleSection(
             .fillMaxWidth()
             .animateContentSize()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        if (inlineIndicator) {
+            val boxAlignment = when (titleTextAlign) {
+                TextAlign.Center -> Alignment.Center
+                TextAlign.End -> Alignment.CenterEnd
+                else -> Alignment.CenterStart
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Column(
+                    modifier = Modifier.align(boxAlignment),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = titleColor,
+                            textAlign = titleTextAlign
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
-            Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = titleColor,
+                        textAlign = titleTextAlign,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (expanded) {
             Spacer(modifier = Modifier.height(12.dp))
@@ -1193,23 +1251,15 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             else -> R.string.today_title
         }
         val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
-        TopAppBar(
+        CenterAlignedTopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp),
             title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    contentAlignment = Alignment.Center
-
-                ) {
-                    Text(
-                        text = stringResource(titleRes),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = stringResource(titleRes),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
             actions = {
                 if (canReopen) {
