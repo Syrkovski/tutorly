@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -49,7 +50,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBox
@@ -68,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -179,6 +181,16 @@ fun TodayScreen(
                     onOpenStudentProfile = onOpenStudentProfile,
                     onOpenDebtors = onOpenDebtors
                 )
+                is TodayUiState.ReviewPending -> ReviewPendingContent(
+                    state = state,
+                    onSwipeRight = viewModel::onSwipeRight,
+                    onSwipeLeft = viewModel::onSwipeLeft,
+                    onLessonOpen = { lessonId ->
+                        lessonCardViewModel.open(lessonId)
+                    },
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    onOpenDebtors = onOpenDebtors
+                )
                 is TodayUiState.DayInProgress -> DayInProgressContent(
                     state = state,
                     onSwipeRight = viewModel::onSwipeRight,
@@ -227,30 +239,36 @@ private fun EmptyState(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item(key = "empty_state_header") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 48.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+                elevation = TutorlyCardDefaults.elevation()
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = stringResource(R.string.today_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(R.string.today_empty_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+//                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.vacation),
+                        contentDescription = null,
+                        modifier = Modifier.size(width = 256.dp, height = 192.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.today_empty_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.today_empty_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         item(key = "past_debtors") {
@@ -339,6 +357,181 @@ private fun DayInProgressContent(
                 onOpenStudentProfile = onOpenStudentProfile,
                 onOpenDebtors = onOpenDebtors,
                 hasMore = state.hasMorePastDueLessons
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewPendingContent(
+    state: TodayUiState.ReviewPending,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit,
+    onOpenDebtors: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item(key = "review_summary") {
+            ReviewSummaryCard(
+                remaining = state.reviewLessons.size,
+                total = state.totalLessons
+            )
+        }
+        if (state.reviewLessons.isNotEmpty()) {
+            item(key = "review_carousel") {
+                LessonsReviewCarousel(
+                    lessons = state.reviewLessons,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onLessonOpen = onLessonOpen,
+                    onOpenStudentProfile = onOpenStudentProfile
+                )
+            }
+        }
+        item(key = "review_marked_header") {
+            SectionHeader(text = stringResource(id = R.string.today_review_marked_section))
+        }
+        item(key = "review_marked_list") {
+            if (state.markedLessons.isEmpty()) {
+                ReviewEmptyMarkedCard()
+            } else {
+                LessonsList(
+                    lessons = state.markedLessons,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onLessonOpen = onLessonOpen,
+                    onOpenStudentProfile = onOpenStudentProfile
+                )
+            }
+        }
+        item(key = "past_debtors") {
+            PastDebtorsCollapsible(
+                lessons = state.pastDueLessonsPreview,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile,
+                onOpenDebtors = onOpenDebtors,
+                hasMore = state.hasMorePastDueLessons
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewSummaryCard(remaining: Int, total: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
+                contentDescription = null,
+                modifier = Modifier.size(width = 160.dp, height = 120.dp)
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.today_review_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = stringResource(id = R.string.today_review_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                if (total > 0) {
+                    Text(
+                        text = stringResource(id = R.string.today_review_progress, remaining, total),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun LessonsReviewCarousel(
+    lessons: List<LessonForToday>,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit
+) {
+    val currentLesson = lessons.firstOrNull()
+    if (currentLesson == null) {
+        return
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TodayLessonRow(
+            lesson = currentLesson,
+            onSwipeRight = onSwipeRight,
+            onSwipeLeft = onSwipeLeft,
+            onClick = { onLessonOpen(currentLesson.id) },
+            onLongPress = { onOpenStudentProfile(currentLesson.studentId) },
+            cardElevation = TutorlyCardDefaults.elevation()
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(id = R.string.today_review_hint_due),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = stringResource(id = R.string.today_review_hint_paid),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewEmptyMarkedCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(id = R.string.today_review_empty_marked),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -654,7 +847,10 @@ private fun PastDebtorsCollapsible(
     }
     CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
-        subtitle = subtitle
+        titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleTextAlign = TextAlign.Center,
+        subtitle = subtitle,
+        inlineIndicator = true
     ) {
         if (lessons.isEmpty()) {
             Text(
@@ -685,6 +881,9 @@ private fun CollapsibleSection(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    titleTextAlign: TextAlign = TextAlign.Start,
+    inlineIndicator: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -693,34 +892,81 @@ private fun CollapsibleSection(
             .fillMaxWidth()
             .animateContentSize()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        if (inlineIndicator) {
+            val boxAlignment = when (titleTextAlign) {
+                TextAlign.Center -> Alignment.Center
+                TextAlign.End -> Alignment.CenterEnd
+                else -> Alignment.CenterStart
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Column(
+                    modifier = Modifier.align(boxAlignment),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = titleColor,
+                            textAlign = titleTextAlign
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
-            Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = titleColor,
+                        textAlign = titleTextAlign,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (expanded) {
             Spacer(modifier = Modifier.height(12.dp))
@@ -1004,38 +1250,32 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             is TodayUiState.DayClosed -> R.string.today_topbar_closed
             else -> R.string.today_title
         }
-        TopAppBar(
+        val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
+        CenterAlignedTopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp),
             title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(start = 30.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = stringResource(titleRes),
-                        color = Color.White
-                    )
-                }
+                Text(
+                    text = stringResource(titleRes),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
             actions = {
-                if (state is TodayUiState.DayClosed) {
+                if (canReopen) {
                     IconButton(onClick = onReopenDay) {
                         Icon(
                             imageVector = Icons.Outlined.LockOpen,
                             contentDescription = stringResource(R.string.today_reopen_day_action),
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.surface,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White
+                titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
         )
