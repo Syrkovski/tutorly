@@ -1,6 +1,7 @@
 package com.tutorly.ui.screens
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
@@ -25,12 +27,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -66,7 +67,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
@@ -79,6 +79,7 @@ import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.GradientTopBarContainer
+import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.theme.DebtChipContent
@@ -87,8 +88,8 @@ import com.tutorly.ui.theme.PaidChipContent
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
-import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
@@ -1077,24 +1078,21 @@ private fun TodayLessonRow(
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
-    val target = state.targetValue
-    if (target == SwipeToDismissBoxValue.Settled) {
+    val progress = state.progress
+    val direction = when {
+        progress.from == SwipeToDismissBoxValue.Settled &&
+            progress.to != SwipeToDismissBoxValue.Settled -> progress.to
+
+        state.targetValue != SwipeToDismissBoxValue.Settled -> state.targetValue
+        else -> null
+    }
+    if (direction == null) {
         return
     }
-    val color: Color
-    val icon: ImageVector
-    val tint: Color
-    val alignment: Alignment
-    if (target == SwipeToDismissBoxValue.StartToEnd) {
-        color = MaterialTheme.colorScheme.tertiaryContainer
-        icon = Icons.Filled.Check
-        tint = MaterialTheme.colorScheme.onTertiaryContainer
-        alignment = Alignment.CenterStart
+    val (color, alignment, tint) = if (direction == SwipeToDismissBoxValue.StartToEnd) {
+        Triple(MaterialTheme.extendedColors.accent, Alignment.CenterStart, PaidChipContent)
     } else {
-        color = MaterialTheme.colorScheme.errorContainer
-        icon = Icons.Outlined.WarningAmber
-        tint = MaterialTheme.colorScheme.onErrorContainer
-        alignment = Alignment.CenterEnd
+        Triple(DebtChipFill, Alignment.CenterEnd, DebtChipContent)
     }
     Box(
         modifier = Modifier
@@ -1103,7 +1101,7 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
         contentAlignment = alignment
     ) {
         Icon(
-            imageVector = icon,
+            imageVector = Icons.Outlined.CurrencyRuble,
             contentDescription = null,
             tint = tint,
             modifier = Modifier
@@ -1124,7 +1122,9 @@ private fun LessonCard(
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val currencyFormatter = rememberCurrencyFormatter()
-    val startTime = remember(lesson.startAt) { lesson.startAt.atZone(zoneId).toLocalTime() }
+    val start = remember(lesson.startAt) { lesson.startAt.atZone(zoneId) }
+    val end = remember(lesson.endAt) { lesson.endAt.atZone(zoneId) }
+    val startTime = remember(start) { start.toLocalTime() }
     val timeText = remember(startTime) { timeFormatter.format(startTime) }
     val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
     val amount = remember(lesson.priceCents) { formatCurrency(lesson.priceCents.toLong(), currencyFormatter) }
@@ -1141,7 +1141,12 @@ private fun LessonCard(
     val grade = normalizeGrade(lesson.studentGrade)
     val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
     val durationLabel = stringResource(R.string.today_duration_format, durationMinutes)
-    val isFutureLesson = remember(lesson.startAt) { lesson.startAt.isAfter(Instant.now()) }
+    val statusData = statusChipData(
+        paymentStatus = lesson.paymentStatus,
+        start = start,
+        end = end,
+        now = ZonedDateTime.now(zoneId)
+    )
 
     Card(
         modifier = modifier,
@@ -1149,19 +1154,19 @@ private fun LessonCard(
         colors = cardColors,
         elevation = cardElevation
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Top
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Column(
-                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
@@ -1180,78 +1185,45 @@ private fun LessonCard(
                         )
                     }
                 }
-                PaymentStatusChip(
-                    status = lesson.paymentStatus,
-                    isFutureLesson = isFutureLesson
-                )
-            }
-            androidx.compose.foundation.layout.FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                LessonMetaPill(text = timeText)
-                LessonMetaPill(text = durationLabel)
-                LessonMetaPill(text = amount)
-            }
-            val note = lesson.note?.takeIf { it.isNotBlank() }
-            if (note != null) {
-                Row(
+                androidx.compose.foundation.layout.FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.StickyNote2,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    LessonMetaPill(text = timeText)
+                    LessonMetaPill(text = durationLabel)
+                    LessonMetaPill(text = amount)
+                }
+                val note = lesson.note?.takeIf { it.isNotBlank() }
+                if (note != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.StickyNote2,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(12.dp)
+                    .background(statusData.background)
+            )
         }
-    }
-}
-
-@Composable
-private fun PaymentStatusChip(
-    status: PaymentStatus,
-    isFutureLesson: Boolean,
-    modifier: Modifier = Modifier
-) {
-    if (status == PaymentStatus.UNPAID) return
-    val label = when (status) {
-        PaymentStatus.PAID -> stringResource(
-            if (isFutureLesson) R.string.lesson_card_status_prepaid else R.string.lesson_status_paid
-        )
-        PaymentStatus.DUE -> stringResource(R.string.lesson_status_due)
-        PaymentStatus.CANCELLED -> stringResource(R.string.lesson_status_cancelled)
-        PaymentStatus.UNPAID -> return
-    }
-    val (container, content) = when (status) {
-        PaymentStatus.PAID -> MaterialTheme.extendedColors.accent to PaidChipContent
-        PaymentStatus.DUE -> DebtChipFill to DebtChipContent
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Surface(
-        color = container,
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 4.dp,
-        modifier = modifier
-    ) {
-        Text(
-            text = label,
-            color = content,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
     }
 }
 
@@ -1261,6 +1233,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = modifier
     ) {
         Text(
