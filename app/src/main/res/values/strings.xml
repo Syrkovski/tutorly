@@ -189,7 +189,7 @@
     <string name="today_debtors_more_cta">Перейти к должникам</string>
     <string name="today_close_day_title">Готовы закрыть день?</string>
     <string name="today_close_day_subtitle">Убедитесь, что статусы всех занятий выставлены, затем закройте день.</string>
-    <string name="today_close_day_action">Закрыть день</string>
+    <string name="today_close_day_action">Подвести итоги дня</string>
     <string name="today_close_day_dialog_title">Закрыть день?</string>
     <string name="today_close_day_dialog_body">После закрытия дня вы сможете посмотреть итоги и задолженности. Продолжить?</string>
     <string name="today_close_day_dialog_confirm">Закрыть</string>
@@ -199,9 +199,11 @@
     <string name="today_debtors_past_subtitle">Занятий: %1$d</string>
     <string name="today_debtors_past_subtitle_more">Занятий: %1$d+</string>
     <string name="today_debtors_past_empty">За прошлые дни долгов нет — отличная работа!</string>
-    <string name="today_review_title">Все занятия прошли</string>
-    <string name="today_review_subtitle">Отметьте, как прошли уроки. Свайп вправо — оплачено, влево — долг.</string>
+    <string name="today_review_title">Проверьте занятия</string>
+    <string name="today_review_subtitle">Отметьте статус каждого урока: свайп вправо — оплачено, влево — долг.</string>
     <string name="today_review_progress">Осталось отметить: %1$d из %2$d</string>
+    <string name="today_review_ready_title">Все занятия отмечены</string>
+    <string name="today_review_ready_subtitle">Подведите итоги дня, чтобы посмотреть результаты и задолженности.</string>
     <string name="today_review_empty_marked">Здесь появятся отмеченные занятия</string>
     <string name="today_review_marked_section">Отмеченные занятия</string>
     <string name="today_review_hint_paid">Свайп вправо — оплачено</string>

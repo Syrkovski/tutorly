@@ -1,7 +1,9 @@
 package com.tutorly.ui.screens
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
@@ -25,12 +28,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -57,17 +59,21 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -79,6 +85,7 @@ import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.GradientTopBarContainer
+import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
 import com.tutorly.ui.theme.DebtChipContent
@@ -87,11 +94,12 @@ import com.tutorly.ui.theme.PaidChipContent
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
-import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,7 +197,8 @@ fun TodayScreen(
                         lessonCardViewModel.open(lessonId)
                     },
                     onOpenStudentProfile = onOpenStudentProfile,
-                    onOpenDebtors = onOpenDebtors
+                    onOpenDebtors = onOpenDebtors,
+                    onRequestCloseDay = { showCloseDayDialog = true }
                 )
                 is TodayUiState.DayInProgress -> DayInProgressContent(
                     state = state,
@@ -279,7 +288,8 @@ private fun EmptyState(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 onOpenDebtors = onOpenDebtors,
-                hasMore = state.hasMorePastDueLessons
+                hasMore = state.hasMorePastDueLessons,
+                titleTextAlign = TextAlign.Start
             )
         }
     }
@@ -325,26 +335,32 @@ private fun DayInProgressContent(
                 CloseDayCallout(onRequestCloseDay = onRequestCloseDay)
             }
         }
-        items(pendingLessons, key = { it.id }) { lesson ->
-            TodayLessonRow(
-                lesson = lesson,
-                onSwipeRight = onSwipeRight,
-                onSwipeLeft = onSwipeLeft,
-                onClick = { onLessonOpen(lesson.id) },
-                onLongPress = { onLessonOpen(lesson.id) }
-            )
+        if (pendingLessons.isNotEmpty()) {
+            item(key = "pending_lessons") {
+                LessonsList(
+                    lessons = pendingLessons,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onLessonOpen = onLessonOpen,
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    showTimeline = true,
+                    onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
+                )
+            }
         }
         if (markedLessons.isNotEmpty()) {
             item(key = "marked_header") {
                 SectionHeader(text = stringResource(id = R.string.today_marked_section_title))
             }
-            items(markedLessons, key = { it.id }) { lesson ->
-                TodayLessonRow(
-                    lesson = lesson,
+            item(key = "marked_lessons") {
+                LessonsList(
+                    lessons = markedLessons,
                     onSwipeRight = onSwipeRight,
                     onSwipeLeft = onSwipeLeft,
-                    onClick = { onLessonOpen(lesson.id) },
-                    onLongPress = { onLessonOpen(lesson.id) }
+                    onLessonOpen = onLessonOpen,
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    showTimeline = true,
+                    onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
         }
@@ -356,7 +372,8 @@ private fun DayInProgressContent(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 onOpenDebtors = onOpenDebtors,
-                hasMore = state.hasMorePastDueLessons
+                hasMore = state.hasMorePastDueLessons,
+                titleTextAlign = TextAlign.Start
             )
         }
     }
@@ -369,7 +386,8 @@ private fun ReviewPendingContent(
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
-    onOpenDebtors: () -> Unit
+    onOpenDebtors: () -> Unit,
+    onRequestCloseDay: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -379,7 +397,9 @@ private fun ReviewPendingContent(
         item(key = "review_summary") {
             ReviewSummaryCard(
                 remaining = state.reviewLessons.size,
-                total = state.totalLessons
+                total = state.totalLessons,
+                showCloseDayButton = state.showCloseDayButton,
+                onRequestCloseDay = onRequestCloseDay
             )
         }
         if (state.reviewLessons.isNotEmpty()) {
@@ -405,7 +425,8 @@ private fun ReviewPendingContent(
                     onSwipeRight = onSwipeRight,
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
-                    onOpenStudentProfile = onOpenStudentProfile
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    showTimeline = true
                 )
             }
         }
@@ -417,55 +438,84 @@ private fun ReviewPendingContent(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 onOpenDebtors = onOpenDebtors,
-                hasMore = state.hasMorePastDueLessons
+                hasMore = state.hasMorePastDueLessons,
+                titleTextAlign = TextAlign.Start
             )
         }
     }
 }
 
 @Composable
-private fun ReviewSummaryCard(remaining: Int, total: Int) {
-    Card(
+private fun ReviewSummaryCard(
+    remaining: Int,
+    total: Int,
+    showCloseDayButton: Boolean,
+    onRequestCloseDay: () -> Unit
+) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+            elevation = TutorlyCardDefaults.elevation()
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
-                contentDescription = null,
-                modifier = Modifier.size(width = 160.dp, height = 120.dp)
-            )
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = stringResource(id = R.string.today_review_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
+                Image(
+                    painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
+                    contentDescription = null,
+                    modifier = Modifier.size(width = 360.dp, height = 297.dp)
                 )
+
+                val titleRes = if (showCloseDayButton) {
+                    R.string.today_review_ready_title
+                } else {
+                    R.string.today_review_title
+                }
                 Text(
-                    text = stringResource(id = R.string.today_review_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    text = stringResource(id = titleRes),
+                    style = MaterialTheme.typography.titleMedium
                 )
-                if (total > 0) {
+                if (showCloseDayButton) {
+                    Text(
+                        text = stringResource(id = R.string.today_review_ready_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (total > 0 && remaining > 0) {
                     Text(
                         text = stringResource(id = R.string.today_review_progress, remaining, total),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+                if (showCloseDayButton) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onRequestCloseDay
+                    ) {
+                        Text(text = stringResource(id = R.string.today_close_day_action))
+                    }
+                }
+
             }
+        }
+        if (!showCloseDayButton) {
+            Text(
+                text = stringResource(id = R.string.today_review_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -566,8 +616,14 @@ private fun DayProgressSummary(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        )  {
+            Image(
+                painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
+                contentDescription = null,
+                modifier = Modifier.size(width = 178.dp, height = 154.dp)
+            )
             val summaryText = if (allLessonsCompleted) {
                 stringResource(id = R.string.today_progress_all_done)
             } else {
@@ -692,7 +748,8 @@ private fun DayClosedContent(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 onOpenDebtors = onOpenDebtors,
-                hasMore = state.hasMorePastDueLessons
+                hasMore = state.hasMorePastDueLessons,
+                titleTextAlign = TextAlign.Start
             )
         }
     }
@@ -799,7 +856,8 @@ private fun TodayDebtorsSection(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
-                onOpenStudentProfile = onOpenStudentProfile
+                onOpenStudentProfile = onOpenStudentProfile,
+                showTimeline = true
             )
         }
     }
@@ -838,7 +896,8 @@ private fun PastDebtorsCollapsible(
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
     onOpenDebtors: () -> Unit,
-    hasMore: Boolean
+    hasMore: Boolean,
+    titleTextAlign: TextAlign = TextAlign.Center
 ) {
     val subtitle = if (hasMore) {
         stringResource(R.string.today_debtors_past_subtitle_more, lessons.size)
@@ -848,7 +907,7 @@ private fun PastDebtorsCollapsible(
     CollapsibleSection(
         title = stringResource(R.string.today_debtors_past_title),
         titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        titleTextAlign = TextAlign.Center,
+        titleTextAlign = titleTextAlign,
         subtitle = subtitle,
         inlineIndicator = true
     ) {
@@ -865,7 +924,9 @@ private fun PastDebtorsCollapsible(
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
-                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                showTimeline = false,
+                onLessonLongPress = { lesson -> onOpenStudentProfile(lesson.studentId) }
             )
         }
         if (hasMore) {
@@ -986,21 +1047,109 @@ private fun LessonsList(
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showTimeline: Boolean = false,
+    onLessonLongPress: (LessonForToday) -> Unit = { lesson ->
+        onOpenStudentProfile(lesson.studentId)
+    }
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        lessons.forEach { lesson ->
+    if (lessons.isEmpty()) {
+        return
+    }
+    val timelineColor = MaterialTheme.colorScheme.primary
+    Column(modifier = Modifier.fillMaxWidth()) {
+        lessons.forEachIndexed { index, lesson ->
             TodayLessonRow(
                 lesson = lesson,
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onClick = { onLessonOpen(lesson.id) },
-                onLongPress = { onOpenStudentProfile(lesson.studentId) },
-                cardElevation = cardElevation
+                onLongPress = { onLessonLongPress(lesson) },
+                cardElevation = cardElevation,
+                showTimeline = showTimeline,
+                hasPrevious = showTimeline && index > 0,
+                hasNext = showTimeline && index < lessons.lastIndex,
+                timelineColor = timelineColor
+            )
+            if (index < lessons.lastIndex) {
+                if (showTimeline) {
+                    LessonTimelineConnector(color = timelineColor)
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LessonTimelineIndicator(
+    color: Color,
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val strokeWidth = with(LocalDensity.current) { 2.dp.toPx() }
+    val nodeRadius = with(LocalDensity.current) { 6.dp.toPx() }
+    Canvas(
+        modifier = modifier
+            .width(24.dp)
+            .fillMaxHeight()
+    ) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        if (hasPrevious) {
+            drawLine(
+                color = color,
+                start = Offset(centerX, 0f),
+                end = Offset(centerX, centerY - nodeRadius),
+                strokeWidth = strokeWidth
             )
         }
+        if (hasNext) {
+            drawLine(
+                color = color,
+                start = Offset(centerX, centerY + nodeRadius),
+                end = Offset(centerX, size.height),
+                strokeWidth = strokeWidth
+            )
+        }
+        drawCircle(
+            color = surfaceColor,
+            radius = nodeRadius + strokeWidth / 2f,
+            center = Offset(centerX, centerY)
+        )
+        drawCircle(
+            color = color,
+            radius = nodeRadius,
+            center = Offset(centerX, centerY)
+        )
+    }
+}
+
+@Composable
+private fun LessonTimelineConnector(color: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Canvas(
+            modifier = Modifier
+                .width(24.dp)
+                .fillMaxHeight()
+        ) {
+            val centerX = size.width / 2f
+            drawLine(
+                color = color,
+                start = Offset(centerX, 0f),
+                end = Offset(centerX, size.height),
+                strokeWidth = 2.dp.toPx()
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
     }
 }
 
@@ -1012,7 +1161,11 @@ private fun TodayLessonRow(
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showTimeline: Boolean = false,
+    hasPrevious: Boolean = false,
+    hasNext: Boolean = false,
+    timelineColor: Color = Color.Unspecified
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -1028,53 +1181,98 @@ private fun TodayLessonRow(
         }
     })
 
-    SwipeToDismissBox(
-        state = dismissState,
-        modifier = Modifier.fillMaxWidth(),
-        backgroundContent = { DismissBackground(state = dismissState) }
+    val resolvedTimelineColor = if (timelineColor == Color.Unspecified) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        timelineColor
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.Top
     ) {
-        LessonCard(
-            lesson = lesson,
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongPress
-                ),
-            cardElevation = cardElevation
-        )
+        if (showTimeline) {
+            LessonTimelineIndicator(
+                color = resolvedTimelineColor,
+                hasPrevious = hasPrevious,
+                hasNext = hasNext
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            SwipeToDismissBox(
+                state = dismissState,
+                modifier = Modifier.weight(1f),
+                backgroundContent = { DismissBackground(state = dismissState) }
+            ) {
+                LessonCard(
+                    lesson = lesson,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongPress
+                        ),
+                    cardElevation = cardElevation
+                )
+            }
+        } else {
+            SwipeToDismissBox(
+                state = dismissState,
+                modifier = Modifier.fillMaxWidth(),
+                backgroundContent = { DismissBackground(state = dismissState) }
+            ) {
+                LessonCard(
+                    lesson = lesson,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongPress
+                        ),
+                    cardElevation = cardElevation
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
-    val target = state.targetValue
-    if (target == SwipeToDismissBoxValue.Settled) {
-        return
-    }
-    val color: Color
-    val icon: ImageVector
-    val tint: Color
-    val alignment: Alignment
-    if (target == SwipeToDismissBoxValue.StartToEnd) {
-        color = MaterialTheme.colorScheme.tertiaryContainer
-        icon = Icons.Filled.Check
-        tint = MaterialTheme.colorScheme.onTertiaryContainer
-        alignment = Alignment.CenterStart
-    } else {
-        color = MaterialTheme.colorScheme.errorContainer
-        icon = Icons.Outlined.WarningAmber
-        tint = MaterialTheme.colorScheme.onErrorContainer
-        alignment = Alignment.CenterEnd
+    val offset by rememberDismissOffset(state)
+    val dismissValue = when (state.targetValue) {
+        SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> state.targetValue
+        else -> when {
+            (offset ?: 0f) > 0f -> SwipeToDismissBoxValue.StartToEnd
+            (offset ?: 0f) < 0f -> SwipeToDismissBoxValue.EndToStart
+            else -> null
+        }
+    } ?: return
+
+    val (color, alignment, tint) = when (dismissValue) {
+        SwipeToDismissBoxValue.StartToEnd -> Triple(
+            MaterialTheme.extendedColors.accent,
+            Alignment.CenterStart,
+            PaidChipContent
+        )
+
+        SwipeToDismissBoxValue.EndToStart -> Triple(
+            DebtChipFill,
+            Alignment.CenterEnd,
+            DebtChipContent
+        )
+
+        SwipeToDismissBoxValue.Settled -> return
     }
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(20.dp))
             .background(color),
         contentAlignment = alignment
     ) {
         Icon(
-            imageVector = icon,
+            imageVector = Icons.Outlined.CurrencyRuble,
             contentDescription = null,
             tint = tint,
             modifier = Modifier
@@ -1082,6 +1280,27 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
                 .size(28.dp)
         )
     }
+}
+
+@Composable
+private fun rememberDismissOffset(
+    state: androidx.compose.material3.SwipeToDismissBoxState
+): State<Float?> {
+    val offsetState = remember(state) { mutableStateOf<Float?>(null) }
+    LaunchedEffect(state) {
+        snapshotFlow {
+            try {
+                state.requireOffset()
+            } catch (_: IllegalStateException) {
+                null
+            }
+        }
+            .distinctUntilChanged()
+            .collect { value ->
+                offsetState.value = value
+            }
+    }
+    return offsetState
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1095,7 +1314,9 @@ private fun LessonCard(
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val currencyFormatter = rememberCurrencyFormatter()
-    val startTime = remember(lesson.startAt) { lesson.startAt.atZone(zoneId).toLocalTime() }
+    val start = remember(lesson.startAt) { lesson.startAt.atZone(zoneId) }
+    val end = remember(lesson.endAt) { lesson.endAt.atZone(zoneId) }
+    val startTime = remember(start) { start.toLocalTime() }
     val timeText = remember(startTime) { timeFormatter.format(startTime) }
     val durationMinutes = remember(lesson.duration) { lesson.duration.toMinutes().toInt().coerceAtLeast(0) }
     val amount = remember(lesson.priceCents) { formatCurrency(lesson.priceCents.toLong(), currencyFormatter) }
@@ -1112,7 +1333,12 @@ private fun LessonCard(
     val grade = normalizeGrade(lesson.studentGrade)
     val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
     val durationLabel = stringResource(R.string.today_duration_format, durationMinutes)
-    val isFutureLesson = remember(lesson.startAt) { lesson.startAt.isAfter(Instant.now()) }
+    val statusData = statusChipData(
+        paymentStatus = lesson.paymentStatus,
+        start = start,
+        end = end,
+        now = ZonedDateTime.now(zoneId)
+    )
 
     Card(
         modifier = modifier,
@@ -1120,19 +1346,19 @@ private fun LessonCard(
         colors = cardColors,
         elevation = cardElevation
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Top
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Column(
-                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
@@ -1151,78 +1377,45 @@ private fun LessonCard(
                         )
                     }
                 }
-                PaymentStatusChip(
-                    status = lesson.paymentStatus,
-                    isFutureLesson = isFutureLesson
-                )
-            }
-            androidx.compose.foundation.layout.FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                LessonMetaPill(text = timeText)
-                LessonMetaPill(text = durationLabel)
-                LessonMetaPill(text = amount)
-            }
-            val note = lesson.note?.takeIf { it.isNotBlank() }
-            if (note != null) {
-                Row(
+                androidx.compose.foundation.layout.FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.StickyNote2,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    LessonMetaPill(text = timeText)
+                    LessonMetaPill(text = durationLabel)
+                    LessonMetaPill(text = amount)
+                }
+                val note = lesson.note?.takeIf { it.isNotBlank() }
+                if (note != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.StickyNote2,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(12.dp)
+                    .background(statusData.background)
+            )
         }
-    }
-}
-
-@Composable
-private fun PaymentStatusChip(
-    status: PaymentStatus,
-    isFutureLesson: Boolean,
-    modifier: Modifier = Modifier
-) {
-    if (status == PaymentStatus.UNPAID) return
-    val label = when (status) {
-        PaymentStatus.PAID -> stringResource(
-            if (isFutureLesson) R.string.lesson_card_status_prepaid else R.string.lesson_status_paid
-        )
-        PaymentStatus.DUE -> stringResource(R.string.lesson_status_due)
-        PaymentStatus.CANCELLED -> stringResource(R.string.lesson_status_cancelled)
-        PaymentStatus.UNPAID -> return
-    }
-    val (container, content) = when (status) {
-        PaymentStatus.PAID -> MaterialTheme.extendedColors.accent to PaidChipContent
-        PaymentStatus.DUE -> DebtChipFill to DebtChipContent
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Surface(
-        color = container,
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 4.dp,
-        modifier = modifier
-    ) {
-        Text(
-            text = label,
-            color = content,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
     }
 }
 
@@ -1232,6 +1425,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = modifier
     ) {
         Text(
