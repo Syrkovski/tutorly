@@ -1078,11 +1078,12 @@ private fun TodayLessonRow(
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
+    val offset = state.requireOffset()
     val dismissValue = when (state.targetValue) {
         SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> state.targetValue
         else -> when {
-            state.offset.value > 0f -> SwipeToDismissBoxValue.StartToEnd
-            state.offset.value < 0f -> SwipeToDismissBoxValue.EndToStart
+            offset > 0f -> SwipeToDismissBoxValue.StartToEnd
+            offset < 0f -> SwipeToDismissBoxValue.EndToStart
             else -> null
         }
     } ?: return
