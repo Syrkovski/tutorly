@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -848,7 +849,8 @@ private fun PastDebtorsCollapsible(
         title = stringResource(R.string.today_debtors_past_title),
         titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
         titleTextAlign = TextAlign.Center,
-        subtitle = subtitle
+        subtitle = subtitle,
+        inlineIndicator = true
     ) {
         if (lessons.isEmpty()) {
             Text(
@@ -881,6 +883,7 @@ private fun CollapsibleSection(
     subtitle: String? = null,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     titleTextAlign: TextAlign = TextAlign.Start,
+    inlineIndicator: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -889,37 +892,84 @@ private fun CollapsibleSection(
             .fillMaxWidth()
             .animateContentSize()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        if (inlineIndicator) {
+            val horizontalAlignment = when (titleTextAlign) {
+                TextAlign.Center -> Alignment.CenterHorizontally
+                TextAlign.End -> Alignment.End
+                else -> Alignment.Start
+            }
+            val horizontalArrangement = when (titleTextAlign) {
+                TextAlign.Center -> Arrangement.Center
+                TextAlign.End -> Arrangement.End
+                else -> Arrangement.Start
+            }
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = horizontalAlignment,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = titleColor,
-                    textAlign = titleTextAlign,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = horizontalArrangement
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = titleColor,
+                        textAlign = titleTextAlign
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.Start)
                     )
                 }
             }
-            Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = titleColor,
+                        textAlign = titleTextAlign,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (expanded) {
             Spacer(modifier = Modifier.height(12.dp))
