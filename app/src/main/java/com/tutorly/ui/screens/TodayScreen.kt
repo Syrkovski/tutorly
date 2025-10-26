@@ -3,6 +3,7 @@ package com.tutorly.ui.screens
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -69,8 +70,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -340,6 +343,7 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
+                    showTimeline = true,
                     onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
@@ -355,6 +359,7 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
+                    showTimeline = true,
                     onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
@@ -420,7 +425,8 @@ private fun ReviewPendingContent(
                     onSwipeRight = onSwipeRight,
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
-                    onOpenStudentProfile = onOpenStudentProfile
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    showTimeline = true
                 )
             }
         }
@@ -460,50 +466,46 @@ private fun ReviewSummaryCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(width = 120.dp, height = 96.dp)
-                        .align(Alignment.CenterHorizontally)
+                    modifier = Modifier.size(width = 360.dp, height = 297.dp)
                 )
+
                 val titleRes = if (showCloseDayButton) {
                     R.string.today_review_ready_title
                 } else {
                     R.string.today_review_title
                 }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Text(
+                    text = stringResource(id = titleRes),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (showCloseDayButton) {
                     Text(
-                        text = stringResource(id = titleRes),
-                        style = MaterialTheme.typography.titleMedium
+                        text = stringResource(id = R.string.today_review_ready_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (showCloseDayButton) {
-                        Text(
-                            text = stringResource(id = R.string.today_review_ready_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else if (total > 0 && remaining > 0) {
-                        Text(
-                            text = stringResource(id = R.string.today_review_progress, remaining, total),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    if (showCloseDayButton) {
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = onRequestCloseDay
-                        ) {
-                            Text(text = stringResource(id = R.string.today_close_day_action))
-                        }
+                } else if (total > 0 && remaining > 0) {
+                    Text(
+                        text = stringResource(id = R.string.today_review_progress, remaining, total),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (showCloseDayButton) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onRequestCloseDay
+                    ) {
+                        Text(text = stringResource(id = R.string.today_close_day_action))
                     }
                 }
+
             }
         }
         if (!showCloseDayButton) {
@@ -614,14 +616,13 @@ private fun DayProgressSummary(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        )  {
             Image(
-                painter = painterResource(id = R.drawable.lesson_end_day),
+                painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(width = 112.dp, height = 96.dp)
-                    .align(Alignment.CenterHorizontally)
+                modifier = Modifier.size(width = 178.dp, height = 154.dp)
             )
             val summaryText = if (allLessonsCompleted) {
                 stringResource(id = R.string.today_progress_all_done)
@@ -855,7 +856,8 @@ private fun TodayDebtorsSection(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
-                onOpenStudentProfile = onOpenStudentProfile
+                onOpenStudentProfile = onOpenStudentProfile,
+                showTimeline = true
             )
         }
     }
@@ -923,6 +925,7 @@ private fun PastDebtorsCollapsible(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                showTimeline = false,
                 onLessonLongPress = { lesson -> onOpenStudentProfile(lesson.studentId) }
             )
         }
@@ -1045,6 +1048,7 @@ private fun LessonsList(
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
     cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showTimeline: Boolean = false,
     onLessonLongPress: (LessonForToday) -> Unit = { lesson ->
         onOpenStudentProfile(lesson.studentId)
     }
@@ -1052,20 +1056,100 @@ private fun LessonsList(
     if (lessons.isEmpty()) {
         return
     }
+    val timelineColor = MaterialTheme.colorScheme.primary
     Column(modifier = Modifier.fillMaxWidth()) {
         lessons.forEachIndexed { index, lesson ->
-            if (index > 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
             TodayLessonRow(
                 lesson = lesson,
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onClick = { onLessonOpen(lesson.id) },
                 onLongPress = { onLessonLongPress(lesson) },
-                cardElevation = cardElevation
+                cardElevation = cardElevation,
+                showTimeline = showTimeline,
+                hasPrevious = showTimeline && index > 0,
+                hasNext = showTimeline && index < lessons.lastIndex,
+                timelineColor = timelineColor
+            )
+            if (index < lessons.lastIndex) {
+                if (showTimeline) {
+                    LessonTimelineConnector(color = timelineColor)
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LessonTimelineIndicator(
+    color: Color,
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val strokeWidth = with(LocalDensity.current) { 2.dp.toPx() }
+    val nodeRadius = with(LocalDensity.current) { 6.dp.toPx() }
+    Canvas(
+        modifier = modifier
+            .width(24.dp)
+            .fillMaxHeight()
+    ) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        if (hasPrevious) {
+            drawLine(
+                color = color,
+                start = Offset(centerX, 0f),
+                end = Offset(centerX, centerY - nodeRadius),
+                strokeWidth = strokeWidth
             )
         }
+        if (hasNext) {
+            drawLine(
+                color = color,
+                start = Offset(centerX, centerY + nodeRadius),
+                end = Offset(centerX, size.height),
+                strokeWidth = strokeWidth
+            )
+        }
+        drawCircle(
+            color = surfaceColor,
+            radius = nodeRadius + strokeWidth / 2f,
+            center = Offset(centerX, centerY)
+        )
+        drawCircle(
+            color = color,
+            radius = nodeRadius,
+            center = Offset(centerX, centerY)
+        )
+    }
+}
+
+@Composable
+private fun LessonTimelineConnector(color: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Canvas(
+            modifier = Modifier
+                .width(24.dp)
+                .fillMaxHeight()
+        ) {
+            val centerX = size.width / 2f
+            drawLine(
+                color = color,
+                start = Offset(centerX, 0f),
+                end = Offset(centerX, size.height),
+                strokeWidth = 2.dp.toPx()
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
     }
 }
 
@@ -1077,7 +1161,11 @@ private fun TodayLessonRow(
     onSwipeLeft: (Long) -> Unit,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showTimeline: Boolean = false,
+    hasPrevious: Boolean = false,
+    hasNext: Boolean = false,
+    timelineColor: Color = Color.Unspecified
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -1093,21 +1181,59 @@ private fun TodayLessonRow(
         }
     })
 
-    SwipeToDismissBox(
-        state = dismissState,
-        modifier = Modifier.fillMaxWidth(),
-        backgroundContent = { DismissBackground(state = dismissState) }
+    val resolvedTimelineColor = if (timelineColor == Color.Unspecified) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        timelineColor
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.Top
     ) {
-        LessonCard(
-            lesson = lesson,
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongPress
-                ),
-            cardElevation = cardElevation
-        )
+        if (showTimeline) {
+            LessonTimelineIndicator(
+                color = resolvedTimelineColor,
+                hasPrevious = hasPrevious,
+                hasNext = hasNext
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            SwipeToDismissBox(
+                state = dismissState,
+                modifier = Modifier.weight(1f),
+                backgroundContent = { DismissBackground(state = dismissState) }
+            ) {
+                LessonCard(
+                    lesson = lesson,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongPress
+                        ),
+                    cardElevation = cardElevation
+                )
+            }
+        } else {
+            SwipeToDismissBox(
+                state = dismissState,
+                modifier = Modifier.fillMaxWidth(),
+                backgroundContent = { DismissBackground(state = dismissState) }
+            ) {
+                LessonCard(
+                    lesson = lesson,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongPress
+                        ),
+                    cardElevation = cardElevation
+                )
+            }
+        }
     }
 }
 
