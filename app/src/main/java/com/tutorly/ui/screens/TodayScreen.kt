@@ -314,6 +314,7 @@ private fun DayInProgressContent(
         state.totalLessons > 0 && state.completedLessons == state.totalLessons
     }
     val showProgressSummary = !state.showCloseDayCallout
+    val hasLessons = pendingLessons.isNotEmpty() || markedLessons.isNotEmpty()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -335,6 +336,11 @@ private fun DayInProgressContent(
                 CloseDayCallout(onRequestCloseDay = onRequestCloseDay)
             }
         }
+        if (hasLessons) {
+            item(key = "lessons_header") {
+                TodayLessonsHeader()
+            }
+        }
         if (pendingLessons.isNotEmpty()) {
             item(key = "pending_lessons") {
                 LessonsList(
@@ -343,7 +349,6 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    showTimeline = true,
                     onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
@@ -359,7 +364,6 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    showTimeline = true,
                     onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
@@ -389,6 +393,7 @@ private fun ReviewPendingContent(
     onOpenDebtors: () -> Unit,
     onRequestCloseDay: () -> Unit
 ) {
+    val hasLessons = state.reviewLessons.isNotEmpty() || state.markedLessons.isNotEmpty()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
@@ -401,6 +406,11 @@ private fun ReviewPendingContent(
                 showCloseDayButton = state.showCloseDayButton,
                 onRequestCloseDay = onRequestCloseDay
             )
+        }
+        if (hasLessons) {
+            item(key = "lessons_header") {
+                TodayLessonsHeader()
+            }
         }
         if (state.reviewLessons.isNotEmpty()) {
             item(key = "review_carousel") {
@@ -425,8 +435,7 @@ private fun ReviewPendingContent(
                     onSwipeRight = onSwipeRight,
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
-                    onOpenStudentProfile = onOpenStudentProfile,
-                    showTimeline = true
+                    onOpenStudentProfile = onOpenStudentProfile
                 )
             }
         }
@@ -596,6 +605,18 @@ private fun SectionHeader(text: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 4.dp)
+    )
+}
+
+@Composable
+private fun TodayLessonsHeader() {
+    Text(
+        text = stringResource(id = R.string.today_lessons_today_title),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
     )
 }
 
@@ -856,8 +877,7 @@ private fun TodayDebtorsSection(
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
-                onOpenStudentProfile = onOpenStudentProfile,
-                showTimeline = true
+                onOpenStudentProfile = onOpenStudentProfile
             )
         }
     }
@@ -1343,7 +1363,7 @@ private fun LessonCard(
 
     Card(
         modifier = modifier,
-        shape = MaterialTheme.shapes.large,
+        shape = RoundedCornerShape(16.dp),
         colors = cardColors,
         elevation = cardElevation
     ) {

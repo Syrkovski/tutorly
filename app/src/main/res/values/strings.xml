@@ -180,6 +180,7 @@
     <string name="today_empty_subtitle">Отличный день для отдыха!</string>
     <string name="today_progress_summary">Проведено %1$d из %2$d занятий</string>
     <string name="today_progress_all_done">Все уроки прошли</string>
+    <string name="today_lessons_today_title">Занятия на сегодня</string>
     <string name="today_closed_income_label">Доход</string>
     <string name="today_closed_debt_label">Долг</string>
     <string name="today_marked_section_title">Отмечено</string>
