@@ -68,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -1109,6 +1110,7 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(20.dp))
             .background(color),
         contentAlignment = alignment
     ) {
