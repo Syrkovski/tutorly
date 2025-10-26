@@ -189,7 +189,7 @@
     <string name="today_debtors_more_cta">Перейти к должникам</string>
     <string name="today_close_day_title">Готовы закрыть день?</string>
     <string name="today_close_day_subtitle">Убедитесь, что статусы всех занятий выставлены, затем закройте день.</string>
-    <string name="today_close_day_action">Закрыть день</string>
+    <string name="today_close_day_action">Подвести итоги дня</string>
     <string name="today_close_day_dialog_title">Закрыть день?</string>
     <string name="today_close_day_dialog_body">После закрытия дня вы сможете посмотреть итоги и задолженности. Продолжить?</string>
     <string name="today_close_day_dialog_confirm">Закрыть</string>

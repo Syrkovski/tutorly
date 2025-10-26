@@ -173,9 +173,7 @@ class TodayViewModel @Inject constructor(
             )
         }
 
-        val shouldShowSummary = dayClosed || (allLessonsCompleted && allMarked)
-
-        if (shouldShowSummary) {
+        if (dayClosed) {
             val paidAmountCents = todaySorted
                 .filter { it.paymentStatus == PaymentStatus.PAID }
                 .sumOf { it.priceCents.toLong() }
@@ -196,6 +194,18 @@ class TodayViewModel @Inject constructor(
         }
 
         val remainingLessons = (todaySorted.size - completedLessons).coerceAtLeast(0)
+
+        if (allLessonsCompleted && allMarked) {
+            return TodayUiState.DayInProgress(
+                lessons = todaySorted,
+                completedLessons = completedLessons,
+                totalLessons = todaySorted.size,
+                remainingLessons = remainingLessons,
+                showCloseDayCallout = true,
+                pastDueLessonsPreview = pastDueLessonsPreview,
+                hasMorePastDueLessons = hasMorePastLessons
+            )
+        }
 
         return TodayUiState.DayInProgress(
             lessons = todaySorted,
