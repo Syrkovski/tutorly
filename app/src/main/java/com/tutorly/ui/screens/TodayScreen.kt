@@ -250,12 +250,12 @@ private fun EmptyState(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+//                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.undraw_relaxation_jsge),
+                        painter = painterResource(id = R.drawable.vacation),
                         contentDescription = null,
-                        modifier = Modifier.size(width = 320.dp, height = 240.dp)
+                        modifier = Modifier.size(width = 256.dp, height = 192.dp)
                     )
                     Text(
                         text = stringResource(R.string.today_empty_title),
