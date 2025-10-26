@@ -150,6 +150,10 @@ class TodayViewModel @Inject constructor(
         }
 
         val todaySorted = todayLessons.sortedBy { it.startAt }
+        val completedLessons = todaySorted.count { it.endAt <= now }
+        val allLessonsCompleted = completedLessons == todaySorted.size && todaySorted.isNotEmpty()
+        val reviewLessons = todaySorted.filter { it.endAt <= now && it.paymentStatus == PaymentStatus.UNPAID }
+        val markedLessons = todaySorted.filter { it.paymentStatus != PaymentStatus.UNPAID }
         val allMarked = todaySorted.all { it.paymentStatus != PaymentStatus.UNPAID }
 
         var dayClosed = isDayClosed
@@ -159,10 +163,19 @@ class TodayViewModel @Inject constructor(
             dayClosed = false
         }
 
-        val completedLessons = todaySorted.count { it.endAt <= now }
-        val allLessonsCompleted = completedLessons == todaySorted.size && todaySorted.isNotEmpty()
+        if (allLessonsCompleted && reviewLessons.isNotEmpty()) {
+            return TodayUiState.ReviewPending(
+                reviewLessons = reviewLessons,
+                markedLessons = markedLessons,
+                totalLessons = todaySorted.size,
+                pastDueLessonsPreview = pastDueLessonsPreview,
+                hasMorePastDueLessons = hasMorePastLessons
+            )
+        }
 
-        if (dayClosed && allMarked) {
+        val shouldShowSummary = dayClosed || (allLessonsCompleted && allMarked)
+
+        if (shouldShowSummary) {
             val paidAmountCents = todaySorted
                 .filter { it.paymentStatus == PaymentStatus.PAID }
                 .sumOf { it.priceCents.toLong() }
@@ -177,7 +190,8 @@ class TodayViewModel @Inject constructor(
                 todayDueLessons = todayDueLessons,
                 pastDueLessonsPreview = pastDueLessonsPreview,
                 hasMorePastDueLessons = hasMorePastLessons,
-                lessons = todaySorted
+                lessons = todaySorted,
+                canReopen = dayClosed
             )
         }
 
@@ -188,7 +202,7 @@ class TodayViewModel @Inject constructor(
             completedLessons = completedLessons,
             totalLessons = todaySorted.size,
             remainingLessons = remainingLessons,
-            showCloseDayCallout = allLessonsCompleted && allMarked,
+            showCloseDayCallout = false,
             pastDueLessonsPreview = pastDueLessonsPreview,
             hasMorePastDueLessons = hasMorePastLessons
         )
@@ -218,13 +232,22 @@ sealed interface TodayUiState {
         val hasMorePastDueLessons: Boolean
     ) : TodayUiState
 
+    data class ReviewPending(
+        val reviewLessons: List<LessonForToday>,
+        val markedLessons: List<LessonForToday>,
+        val totalLessons: Int,
+        val pastDueLessonsPreview: List<LessonForToday>,
+        val hasMorePastDueLessons: Boolean
+    ) : TodayUiState
+
     data class DayClosed(
         val paidAmountCents: Long,
         val todayDueAmountCents: Long,
         val todayDueLessons: List<LessonForToday>,
         val pastDueLessonsPreview: List<LessonForToday>,
         val hasMorePastDueLessons: Boolean,
-        val lessons: List<LessonForToday>
+        val lessons: List<LessonForToday>,
+        val canReopen: Boolean
     ) : TodayUiState
 }
 

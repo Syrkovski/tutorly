@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -179,6 +180,16 @@ fun TodayScreen(
                     onOpenStudentProfile = onOpenStudentProfile,
                     onOpenDebtors = onOpenDebtors
                 )
+                is TodayUiState.ReviewPending -> ReviewPendingContent(
+                    state = state,
+                    onSwipeRight = viewModel::onSwipeRight,
+                    onSwipeLeft = viewModel::onSwipeLeft,
+                    onLessonOpen = { lessonId ->
+                        lessonCardViewModel.open(lessonId)
+                    },
+                    onOpenStudentProfile = onOpenStudentProfile,
+                    onOpenDebtors = onOpenDebtors
+                )
                 is TodayUiState.DayInProgress -> DayInProgressContent(
                     state = state,
                     onSwipeRight = viewModel::onSwipeRight,
@@ -234,11 +245,10 @@ private fun EmptyState(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
+                Image(
+                    painter = painterResource(id = R.drawable.lesson_free_day),
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(width = 160.dp, height = 120.dp)
                 )
                 Text(
                     text = stringResource(R.string.today_empty_title),
@@ -339,6 +349,181 @@ private fun DayInProgressContent(
                 onOpenStudentProfile = onOpenStudentProfile,
                 onOpenDebtors = onOpenDebtors,
                 hasMore = state.hasMorePastDueLessons
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewPendingContent(
+    state: TodayUiState.ReviewPending,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit,
+    onOpenDebtors: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item(key = "review_summary") {
+            ReviewSummaryCard(
+                remaining = state.reviewLessons.size,
+                total = state.totalLessons
+            )
+        }
+        if (state.reviewLessons.isNotEmpty()) {
+            item(key = "review_carousel") {
+                LessonsReviewCarousel(
+                    lessons = state.reviewLessons,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onLessonOpen = onLessonOpen,
+                    onOpenStudentProfile = onOpenStudentProfile
+                )
+            }
+        }
+        item(key = "review_marked_header") {
+            SectionHeader(text = stringResource(id = R.string.today_review_marked_section))
+        }
+        item(key = "review_marked_list") {
+            if (state.markedLessons.isEmpty()) {
+                ReviewEmptyMarkedCard()
+            } else {
+                LessonsList(
+                    lessons = state.markedLessons,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onLessonOpen = onLessonOpen,
+                    onOpenStudentProfile = onOpenStudentProfile
+                )
+            }
+        }
+        item(key = "past_debtors") {
+            PastDebtorsCollapsible(
+                lessons = state.pastDueLessonsPreview,
+                onSwipeRight = onSwipeRight,
+                onSwipeLeft = onSwipeLeft,
+                onLessonOpen = onLessonOpen,
+                onOpenStudentProfile = onOpenStudentProfile,
+                onOpenDebtors = onOpenDebtors,
+                hasMore = state.hasMorePastDueLessons
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewSummaryCard(remaining: Int, total: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.lesson_end_day),
+                contentDescription = null,
+                modifier = Modifier.size(width = 160.dp, height = 120.dp)
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.today_review_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = stringResource(id = R.string.today_review_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                if (total > 0) {
+                    Text(
+                        text = stringResource(id = R.string.today_review_progress, remaining, total),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun LessonsReviewCarousel(
+    lessons: List<LessonForToday>,
+    onSwipeRight: (Long) -> Unit,
+    onSwipeLeft: (Long) -> Unit,
+    onLessonOpen: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit
+) {
+    val currentLesson = lessons.firstOrNull()
+    if (currentLesson == null) {
+        return
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TodayLessonRow(
+            lesson = currentLesson,
+            onSwipeRight = onSwipeRight,
+            onSwipeLeft = onSwipeLeft,
+            onClick = { onLessonOpen(currentLesson.id) },
+            onLongPress = { onOpenStudentProfile(currentLesson.studentId) },
+            cardElevation = TutorlyCardDefaults.elevation()
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(id = R.string.today_review_hint_due),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = stringResource(id = R.string.today_review_hint_paid),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewEmptyMarkedCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        elevation = TutorlyCardDefaults.elevation()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(id = R.string.today_review_empty_marked),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -1004,6 +1189,7 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             is TodayUiState.DayClosed -> R.string.today_topbar_closed
             else -> R.string.today_title
         }
+        val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1022,7 +1208,7 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
                 }
             },
             actions = {
-                if (state is TodayUiState.DayClosed) {
+                if (canReopen) {
                     IconButton(onClick = onReopenDay) {
                         Icon(
                             imageVector = Icons.Outlined.LockOpen,
