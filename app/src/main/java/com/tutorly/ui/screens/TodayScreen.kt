@@ -189,7 +189,8 @@ fun TodayScreen(
                         lessonCardViewModel.open(lessonId)
                     },
                     onOpenStudentProfile = onOpenStudentProfile,
-                    onOpenDebtors = onOpenDebtors
+                    onOpenDebtors = onOpenDebtors,
+                    onRequestCloseDay = { showCloseDayDialog = true }
                 )
                 is TodayUiState.DayInProgress -> DayInProgressContent(
                     state = state,
@@ -369,7 +370,8 @@ private fun ReviewPendingContent(
     onSwipeLeft: (Long) -> Unit,
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
-    onOpenDebtors: () -> Unit
+    onOpenDebtors: () -> Unit,
+    onRequestCloseDay: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -379,7 +381,9 @@ private fun ReviewPendingContent(
         item(key = "review_summary") {
             ReviewSummaryCard(
                 remaining = state.reviewLessons.size,
-                total = state.totalLessons
+                total = state.totalLessons,
+                showCloseDayButton = state.showCloseDayButton,
+                onRequestCloseDay = onRequestCloseDay
             )
         }
         if (state.reviewLessons.isNotEmpty()) {
@@ -424,7 +428,12 @@ private fun ReviewPendingContent(
 }
 
 @Composable
-private fun ReviewSummaryCard(remaining: Int, total: Int) {
+private fun ReviewSummaryCard(
+    remaining: Int,
+    total: Int,
+    showCloseDayButton: Boolean,
+    onRequestCloseDay: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -444,26 +453,46 @@ private fun ReviewSummaryCard(remaining: Int, total: Int) {
                 modifier = Modifier.size(width = 160.dp, height = 120.dp)
             )
             Column(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                val titleRes = if (showCloseDayButton) {
+                    R.string.today_review_ready_title
+                } else {
+                    R.string.today_review_title
+                }
+                val subtitleRes = if (showCloseDayButton) {
+                    R.string.today_review_ready_subtitle
+                } else {
+                    R.string.today_review_subtitle
+                }
+
                 Text(
-                    text = stringResource(id = R.string.today_review_title),
+                    text = stringResource(id = titleRes),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = stringResource(id = R.string.today_review_subtitle),
+                    text = stringResource(id = subtitleRes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
-                if (total > 0) {
+                if (!showCloseDayButton && total > 0 && remaining > 0) {
                     Text(
                         text = stringResource(id = R.string.today_review_progress, remaining, total),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+                if (showCloseDayButton) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onRequestCloseDay
+                    ) {
+                        Text(text = stringResource(id = R.string.today_close_day_action))
+                    }
                 }
             }
         }

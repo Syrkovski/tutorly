@@ -95,9 +95,20 @@ class TodayViewModel @Inject constructor(
     }
 
     fun onDayCloseConfirmed() {
-        val currentState = uiState.value
-        if (currentState is TodayUiState.DayInProgress && currentState.showCloseDayCallout) {
-            setDayClosed(true)
+        when (val currentState = uiState.value) {
+            is TodayUiState.DayInProgress -> {
+                if (currentState.showCloseDayCallout) {
+                    setDayClosed(true)
+                }
+            }
+
+            is TodayUiState.ReviewPending -> {
+                if (currentState.showCloseDayButton) {
+                    setDayClosed(true)
+                }
+            }
+
+            else -> Unit
         }
     }
 
@@ -163,13 +174,16 @@ class TodayViewModel @Inject constructor(
             dayClosed = false
         }
 
-        if (allLessonsCompleted && reviewLessons.isNotEmpty()) {
+        val showCloseDayButton = allLessonsCompleted && allMarked && !dayClosed
+
+        if (allLessonsCompleted && (reviewLessons.isNotEmpty() || showCloseDayButton)) {
             return TodayUiState.ReviewPending(
                 reviewLessons = reviewLessons,
                 markedLessons = markedLessons,
                 totalLessons = todaySorted.size,
                 pastDueLessonsPreview = pastDueLessonsPreview,
-                hasMorePastDueLessons = hasMorePastLessons
+                hasMorePastDueLessons = hasMorePastLessons,
+                showCloseDayButton = showCloseDayButton
             )
         }
 
@@ -194,18 +208,6 @@ class TodayViewModel @Inject constructor(
         }
 
         val remainingLessons = (todaySorted.size - completedLessons).coerceAtLeast(0)
-
-        if (allLessonsCompleted && allMarked) {
-            return TodayUiState.DayInProgress(
-                lessons = todaySorted,
-                completedLessons = completedLessons,
-                totalLessons = todaySorted.size,
-                remainingLessons = remainingLessons,
-                showCloseDayCallout = true,
-                pastDueLessonsPreview = pastDueLessonsPreview,
-                hasMorePastDueLessons = hasMorePastLessons
-            )
-        }
 
         return TodayUiState.DayInProgress(
             lessons = todaySorted,
@@ -247,7 +249,8 @@ sealed interface TodayUiState {
         val markedLessons: List<LessonForToday>,
         val totalLessons: Int,
         val pastDueLessonsPreview: List<LessonForToday>,
-        val hasMorePastDueLessons: Boolean
+        val hasMorePastDueLessons: Boolean,
+        val showCloseDayButton: Boolean
     ) : TodayUiState
 
     data class DayClosed(
