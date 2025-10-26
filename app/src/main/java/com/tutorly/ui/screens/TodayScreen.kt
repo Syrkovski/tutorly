@@ -64,6 +64,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -241,14 +242,16 @@ private fun EmptyState(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 48.dp),
+//                    .padding(horizontal = 32.dp, vertical = 48.dp)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clip(RoundedCornerShape(20.dp)),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.lesson_free_day),
+                    painter = painterResource(id = R.drawable.undraw_relaxation_jsge),
                     contentDescription = null,
-                    modifier = Modifier.size(width = 160.dp, height = 120.dp)
+                    modifier = Modifier.size(width = 320.dp, height = 240.dp)
                 )
                 Text(
                     text = stringResource(R.string.today_empty_title),
@@ -431,7 +434,7 @@ private fun ReviewSummaryCard(remaining: Int, total: Int) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.lesson_end_day),
+                painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
                 contentDescription = null,
                 modifier = Modifier.size(width = 160.dp, height = 120.dp)
             )
@@ -1197,13 +1200,14 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             title = {
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(start = 30.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+
                 ) {
                     Text(
                         text = stringResource(titleRes),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
@@ -1213,15 +1217,15 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
                         Icon(
                             imageVector = Icons.Outlined.LockOpen,
                             contentDescription = stringResource(R.string.today_reopen_day_action),
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.surface,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color.White
+                titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
         )
