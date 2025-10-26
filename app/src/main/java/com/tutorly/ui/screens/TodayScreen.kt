@@ -50,7 +50,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBox
@@ -1251,23 +1251,15 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             else -> R.string.today_title
         }
         val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
-        TopAppBar(
+        CenterAlignedTopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp),
             title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    contentAlignment = Alignment.Center
-
-                ) {
-                    Text(
-                        text = stringResource(titleRes),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = stringResource(titleRes),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
             actions = {
                 if (canReopen) {
