@@ -1071,13 +1071,14 @@ private fun LessonsList(
                 hasNext = showTimeline && index < lessons.lastIndex,
                 timelineColor = timelineColor
             )
-            if (index < lessons.lastIndex) {
-                if (showTimeline) {
-                    LessonTimelineConnector(color = timelineColor)
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
+            Spacer(modifier = Modifier.height(12.dp))
+//            if (index < lessons.lastIndex) {
+//                if (showTimeline) {
+//                    LessonTimelineConnector(color = timelineColor)
+//                } else {
+//                    Spacer(modifier = Modifier.height(12.dp))
+//                }
+//            }
         }
     }
 }
@@ -1194,12 +1195,12 @@ private fun TodayLessonRow(
         verticalAlignment = Alignment.Top
     ) {
         if (showTimeline) {
-            LessonTimelineIndicator(
-                color = resolvedTimelineColor,
-                hasPrevious = hasPrevious,
-                hasNext = hasNext
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+//            LessonTimelineIndicator(
+//                color = resolvedTimelineColor,
+//                hasPrevious = hasPrevious,
+//                hasNext = hasNext
+//            )
+//            Spacer(modifier = Modifier.width(12.dp))
             SwipeToDismissBox(
                 state = dismissState,
                 modifier = Modifier.weight(1f),
@@ -1267,7 +1268,7 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(color),
         contentAlignment = alignment
     ) {
@@ -1412,7 +1413,7 @@ private fun LessonCard(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(12.dp)
+                    .width(16.dp)
                     .background(statusData.background)
             )
         }
