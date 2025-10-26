@@ -64,7 +64,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -239,31 +238,36 @@ private fun EmptyState(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item(key = "empty_state_header") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-//                    .padding(horizontal = 32.dp, vertical = 48.dp)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clip(RoundedCornerShape(20.dp)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+                elevation = TutorlyCardDefaults.elevation()
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.undraw_relaxation_jsge),
-                    contentDescription = null,
-                    modifier = Modifier.size(width = 320.dp, height = 240.dp)
-                )
-                Text(
-                    text = stringResource(R.string.today_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(R.string.today_empty_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.undraw_relaxation_jsge),
+                        contentDescription = null,
+                        modifier = Modifier.size(width = 320.dp, height = 240.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.today_empty_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.today_empty_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         item(key = "past_debtors") {
