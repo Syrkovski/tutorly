@@ -40,6 +40,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -1078,21 +1079,24 @@ private fun TodayLessonRow(
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
-    val progress = state.progress
-    val direction = when {
-        progress.from == SwipeToDismissBoxValue.Settled &&
-            progress.to != SwipeToDismissBoxValue.Settled -> progress.to
-
-        state.targetValue != SwipeToDismissBoxValue.Settled -> state.targetValue
+    val dismissDirection = state.dismissDirection ?: when (state.targetValue) {
+        SwipeToDismissBoxValue.StartToEnd -> DismissDirection.StartToEnd
+        SwipeToDismissBoxValue.EndToStart -> DismissDirection.EndToStart
         else -> null
-    }
-    if (direction == null) {
-        return
-    }
-    val (color, alignment, tint) = if (direction == SwipeToDismissBoxValue.StartToEnd) {
-        Triple(MaterialTheme.extendedColors.accent, Alignment.CenterStart, PaidChipContent)
-    } else {
-        Triple(DebtChipFill, Alignment.CenterEnd, DebtChipContent)
+    } ?: return
+
+    val (color, alignment, tint) = when (dismissDirection) {
+        DismissDirection.StartToEnd -> Triple(
+            MaterialTheme.extendedColors.accent,
+            Alignment.CenterStart,
+            PaidChipContent
+        )
+
+        DismissDirection.EndToStart -> Triple(
+            DebtChipFill,
+            Alignment.CenterEnd,
+            DebtChipContent
+        )
     }
     Box(
         modifier = Modifier
