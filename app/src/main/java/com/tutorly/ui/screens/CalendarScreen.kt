@@ -861,7 +861,7 @@ private fun DayTimeline(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
-                                    .offset(y = minuteHeight * (minute - startMinutes).toFloat(), x=8.dp)
+                                    .offset(y = minuteHeight * (minute - startMinutes).toFloat()+8.dp, x=8.dp)
                             )
                         }
                     }
@@ -902,9 +902,10 @@ private fun LessonBlock(
             .fillMaxWidth()
             .offset(y = top+4.dp)
             .height(height-8.dp)
-            .padding(start = LabelWidth + 16.dp, end = 28.dp)
+            .padding(start = LabelWidth + 16.dp, end = 20.dp)
+            .clip(RoundedCornerShape(12.dp))
     ) {
-        val cardShape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp)
+        val cardShape = RoundedCornerShape(12.dp)
         val innerStrokeWidth = 1.dp
         Card(
             modifier = Modifier.fillMaxSize(),
@@ -918,7 +919,7 @@ private fun LessonBlock(
                     .fillMaxSize()
                     .drawBehind {
                         val strokeWidth = innerStrokeWidth.toPx()
-                        val radius = 10.dp.toPx().coerceAtLeast(0f)
+                        val radius = 12.dp.toPx().coerceAtLeast(0f)
                         val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
                         drawRoundRect(
                             color = Color(0x14000000),
@@ -975,10 +976,10 @@ private fun LessonBlock(
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .offset(x = 10.dp)
+//                .offset(x = 12.dp)
                 .fillMaxHeight()
-                .width(10.dp)
-                .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
+                .width(12.dp)
+                .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
                 .background(lessonUi.statusColor),
 
         )
