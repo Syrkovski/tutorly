@@ -58,12 +58,14 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -93,6 +95,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1078,12 +1081,12 @@ private fun TodayLessonRow(
 
 @Composable
 private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBoxState) {
-    val offset = state.requireOffset()
+    val offset by rememberDismissOffset(state)
     val dismissValue = when (state.targetValue) {
         SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> state.targetValue
         else -> when {
-            offset > 0f -> SwipeToDismissBoxValue.StartToEnd
-            offset < 0f -> SwipeToDismissBoxValue.EndToStart
+            (offset ?: 0f) > 0f -> SwipeToDismissBoxValue.StartToEnd
+            (offset ?: 0f) < 0f -> SwipeToDismissBoxValue.EndToStart
             else -> null
         }
     } ?: return
@@ -1118,6 +1121,27 @@ private fun DismissBackground(state: androidx.compose.material3.SwipeToDismissBo
                 .size(28.dp)
         )
     }
+}
+
+@Composable
+private fun rememberDismissOffset(
+    state: androidx.compose.material3.SwipeToDismissBoxState
+): State<Float?> {
+    val offsetState = remember(state) { mutableStateOf<Float?>(null) }
+    LaunchedEffect(state) {
+        snapshotFlow {
+            try {
+                state.requireOffset()
+            } catch (_: IllegalStateException) {
+                null
+            }
+        }
+            .distinctUntilChanged()
+            .collect { value ->
+                offsetState.value = value
+            }
+    }
+    return offsetState
 }
 
 @OptIn(ExperimentalFoundationApi::class)
