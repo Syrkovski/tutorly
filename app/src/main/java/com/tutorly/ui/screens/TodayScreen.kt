@@ -314,7 +314,7 @@ private fun DayInProgressContent(
         state.totalLessons > 0 && state.completedLessons == state.totalLessons
     }
     val showProgressSummary = !state.showCloseDayCallout
-    var lessonsHeaderShown = false
+    val hasLessons = pendingLessons.isNotEmpty() || markedLessons.isNotEmpty()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -336,13 +336,12 @@ private fun DayInProgressContent(
                 CloseDayCallout(onRequestCloseDay = onRequestCloseDay)
             }
         }
-        if (pendingLessons.isNotEmpty()) {
-            if (!lessonsHeaderShown) {
-                lessonsHeaderShown = true
-                item(key = "lessons_header") {
-                    TodayLessonsHeader()
-                }
+        if (hasLessons) {
+            item(key = "lessons_header") {
+                TodayLessonsHeader()
             }
+        }
+        if (pendingLessons.isNotEmpty()) {
             item(key = "pending_lessons") {
                 LessonsList(
                     lessons = pendingLessons,
@@ -355,12 +354,6 @@ private fun DayInProgressContent(
             }
         }
         if (markedLessons.isNotEmpty()) {
-            if (!lessonsHeaderShown) {
-                lessonsHeaderShown = true
-                item(key = "lessons_header") {
-                    TodayLessonsHeader()
-                }
-            }
             item(key = "marked_header") {
                 SectionHeader(text = stringResource(id = R.string.today_marked_section_title))
             }
@@ -400,6 +393,7 @@ private fun ReviewPendingContent(
     onOpenDebtors: () -> Unit,
     onRequestCloseDay: () -> Unit
 ) {
+    val hasLessons = state.reviewLessons.isNotEmpty() || state.markedLessons.isNotEmpty()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
@@ -412,6 +406,11 @@ private fun ReviewPendingContent(
                 showCloseDayButton = state.showCloseDayButton,
                 onRequestCloseDay = onRequestCloseDay
             )
+        }
+        if (hasLessons) {
+            item(key = "lessons_header") {
+                TodayLessonsHeader()
+            }
         }
         if (state.reviewLessons.isNotEmpty()) {
             item(key = "review_carousel") {
@@ -614,6 +613,7 @@ private fun TodayLessonsHeader() {
     Text(
         text = stringResource(id = R.string.today_lessons_today_title),
         style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
