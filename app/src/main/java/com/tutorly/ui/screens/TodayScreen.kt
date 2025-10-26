@@ -893,48 +893,45 @@ private fun CollapsibleSection(
             .animateContentSize()
     ) {
         if (inlineIndicator) {
-            val horizontalAlignment = when (titleTextAlign) {
-                TextAlign.Center -> Alignment.CenterHorizontally
-                TextAlign.End -> Alignment.End
-                else -> Alignment.Start
+            val boxAlignment = when (titleTextAlign) {
+                TextAlign.Center -> Alignment.Center
+                TextAlign.End -> Alignment.CenterEnd
+                else -> Alignment.CenterStart
             }
-            val horizontalArrangement = when (titleTextAlign) {
-                TextAlign.Center -> Arrangement.Center
-                TextAlign.End -> Arrangement.End
-                else -> Arrangement.Start
-            }
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(vertical = 6.dp),
-                horizontalAlignment = horizontalAlignment,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(vertical = 6.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = horizontalArrangement
+                Column(
+                    modifier = Modifier.align(boxAlignment),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = titleColor,
-                        textAlign = titleTextAlign
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.Start)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = titleColor,
+                            textAlign = titleTextAlign
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else {
