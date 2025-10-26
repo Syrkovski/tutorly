@@ -188,7 +188,7 @@ class TodayViewModel @Inject constructor(
             completedLessons = completedLessons,
             totalLessons = todaySorted.size,
             remainingLessons = remainingLessons,
-            showCloseDayCallout = allLessonsCompleted && allMarked,
+            showCloseDayCallout = allMarked,
             pastDueLessonsPreview = pastDueLessonsPreview,
             hasMorePastDueLessons = hasMorePastLessons
         )
