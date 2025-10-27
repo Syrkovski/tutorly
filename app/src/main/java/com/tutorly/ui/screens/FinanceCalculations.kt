@@ -28,18 +28,17 @@ internal fun FinancePeriod.bounds(
 ): FinancePeriodBounds {
     val zone = context.zoneId
     return when (this) {
+        FinancePeriod.DAY -> {
+            val startDate = context.now.toLocalDate().plusDays(offset.toLong())
+            val start = startDate.atStartOfDay(zone)
+            FinancePeriodBounds(start = start.toInstant(), end = start.plusDays(1).toInstant())
+        }
+
         FinancePeriod.WEEK -> {
             val baseDate = context.now.toLocalDate().with(context.weekFields.dayOfWeek(), 1)
             val startDate = baseDate.plusWeeks(offset.toLong())
             val start = startDate.atStartOfDay(zone)
             FinancePeriodBounds(start = start.toInstant(), end = start.plusWeeks(1).toInstant())
-        }
-
-        FinancePeriod.MONTH -> {
-            val baseDate = context.now.toLocalDate().withDayOfMonth(1)
-            val startDate = baseDate.plusMonths(offset.toLong())
-            val start = startDate.atStartOfDay(zone)
-            FinancePeriodBounds(start = start.toInstant(), end = start.plusMonths(1).toInstant())
         }
     }
 }

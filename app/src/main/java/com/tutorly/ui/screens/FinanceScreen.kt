@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
@@ -29,8 +29,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -105,33 +108,61 @@ private fun FinancePeriodToggle(
     onSelect: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .selectableGroup()
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        FinancePeriod.entries.forEach { period ->
-            val isSelected = period == selected
-            val segmentShape = RoundedCornerShape(20.dp)
-            val background = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-            val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val options = remember { FinancePeriod.entries }
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val accent = MaterialTheme.extendedColors.accent
+    val inactiveColor = Color(0xFFB9BCC7)
 
-            Surface(
-                onClick = { onSelect(period) },
-                shape = segmentShape,
-                color = background,
-                contentColor = contentColor,
-                tonalElevation = 0.dp,
-                shadowElevation = if (isSelected) 2.dp else 0.dp,
-                border = null
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = modifier,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        divider = {},
+        indicator = { tabPositions ->
+            if (selectedIndex in tabPositions.indices) {
+                val position = tabPositions[selectedIndex]
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentSize(Alignment.BottomStart)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .tabIndicatorOffset(position)
+                            .padding(horizontal = 38.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                            .background(accent)
+                    )
+                }
+            }
+        }
+    ) {
+        options.forEachIndexed { index, option ->
+            val isSelected = index == selectedIndex
+            Tab(
+                selected = isSelected,
+                onClick = {
+                    if (!isSelected) onSelect(option)
+                }
             ) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                    text = stringResource(period.tabLabelRes),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = contentColor
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(id = option.tabLabelRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            inactiveColor
+                        }
+                    )
+                }
             }
         }
     }
@@ -673,17 +704,12 @@ private fun buildChartLabels(
     if (points.isEmpty()) return emptyList()
     val locale = Locale.getDefault()
     return when (period) {
-        FinancePeriod.WEEK -> points.map { point ->
-            point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+        FinancePeriod.DAY -> points.map { point ->
+            dateFormatter.format(point.date)
         }
 
-        FinancePeriod.MONTH -> {
-            val lastDay = points.maxOfOrNull { it.date.dayOfMonth } ?: 1
-            val labeledDays = setOf(1, 7, 14, 21, lastDay)
-            points.map { point ->
-                val day = point.date.dayOfMonth
-                if (day in labeledDays) day.toString() else ""
-            }
+        FinancePeriod.WEEK -> points.map { point ->
+            point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
         }
     }
 }

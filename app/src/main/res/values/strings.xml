@@ -245,10 +245,10 @@
     <string name="lesson_details_duration_custom_hint">Своя длительность</string>
     <string name="lesson_details_save">Сохранить</string>
     <string name="finance_title">Финансы</string>
+    <string name="finance_period_day">День</string>
     <string name="finance_period_week">Неделя</string>
-    <string name="finance_period_month">Месяц</string>
+    <string name="finance_period_day_accusative">день</string>
     <string name="finance_period_week_accusative">неделю</string>
-    <string name="finance_period_month_accusative">месяц</string>
     <string name="finance_metric_period">за %1$s</string>
     <string name="finance_income_label">Доход</string>
     <string name="finance_ar_label">Долги</string>

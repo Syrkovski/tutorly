@@ -81,7 +81,7 @@ fun AppNavRoot() {
 
     val extendedColors = MaterialTheme.extendedColors
 
-    var financePeriod by rememberSaveable { mutableStateOf(FinancePeriod.WEEK) }
+    var financePeriod by rememberSaveable { mutableStateOf(FinancePeriod.DAY) }
     var financePeriodOffset by rememberSaveable { mutableIntStateOf(0) }
 
     Box(
