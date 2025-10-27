@@ -29,8 +29,8 @@ internal val OriginalPalette = ThemePalette(
     backgroundTop = Color(0xFFF7FBFA),
     backgroundBottom = Color(0xFFF0F6F4),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFF428277),
-        border = Color(0xFF4E998C)
+        container = Color(0xFF6E68A1),
+        border = Color(0xFF857FBB)
     ),
     rateHighlight = MetricPalette(
         container = Color(0xFF4C6388),
@@ -54,8 +54,8 @@ internal val PlumPalette = ThemePalette(
     backgroundTop = Color(0xFFFAF3FE),
     backgroundBottom = Color(0xFFF0E3F8),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFF428277),
-        border = Color(0xFF4E998C)
+        container = Color(0xFF6E68A1),
+        border = Color(0xFF857FBB)
     ),
     rateHighlight = MetricPalette(
         container = Color(0xFF4C6388),
@@ -79,8 +79,8 @@ internal val RoyalPalette = ThemePalette(
     backgroundTop = Color(0xFFF5F8FE),
     backgroundBottom = Color(0xFFEBF2FC),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFF428277),
-        border = Color(0xFF4E998C)
+        container = Color(0xFF6E68A1),
+        border = Color(0xFF857FBB)
     ),
     rateHighlight = MetricPalette(
         container = Color(0xFF4C6388),
