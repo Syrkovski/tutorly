@@ -70,25 +70,39 @@ import kotlin.math.abs
 
 @Composable
 fun FinanceTopBar(
+    selectedPeriod: FinancePeriod,
+    onSelectPeriod: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopBarContainer {
-        Box(
+        Column(
             modifier = modifier
                 .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.finance_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+            Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 96.dp)
+                    .fillMaxWidth()
+                    .height(68.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.finance_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.surface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 96.dp)
+                )
+            }
+
+            FinancePeriodToggle(
+                selected = selectedPeriod,
+                onSelect = onSelectPeriod,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -175,7 +189,13 @@ fun FinanceScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            FinanceTopBar()
+            FinanceTopBar(
+                selectedPeriod = selectedPeriod,
+                onSelectPeriod = { period ->
+                    onSelectPeriod(period)
+                    onPeriodOffsetChange(0)
+                }
+            )
         },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -188,10 +208,6 @@ fun FinanceScreen(
                 selectedPeriod = selectedPeriod,
                 periodOffset = periodOffset,
                 state = uiState,
-                onSelectPeriod = { period ->
-                    onSelectPeriod(period)
-                    onPeriodOffsetChange(0)
-                },
                 onPeriodOffsetChange = onPeriodOffsetChange,
                 onOpenStudent = onOpenStudent
             )
@@ -217,7 +233,6 @@ private fun FinanceContent(
     selectedPeriod: FinancePeriod,
     periodOffset: Int,
     state: FinanceUiState.Content,
-    onSelectPeriod: (FinancePeriod) -> Unit,
     onPeriodOffsetChange: (Int) -> Unit,
     onOpenStudent: (Long) -> Unit
 ) {
@@ -310,12 +325,6 @@ private fun FinanceContent(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        FinancePeriodToggle(
-            selected = selectedPeriod,
-            onSelect = onSelectPeriod,
-            modifier = Modifier.fillMaxWidth()
-        )
-
         Text(
             text = periodRange,
             style = MaterialTheme.typography.bodySmall,
