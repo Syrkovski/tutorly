@@ -140,6 +140,7 @@
     <string name="lesson_card_note_label">Заметка</string>
     <string name="lesson_card_note_placeholder">Добавьте комментарий</string>
     <string name="lesson_card_student_placeholder">Ученик</string>
+    <string name="lesson_card_student_edit">Изменить ученика</string>
     <string name="lesson_card_student_picker_title">Выберите ученика</string>
     <string name="lesson_card_student_picker_empty">Нет доступных учеников</string>
     <string name="lesson_card_date_label">Дата</string>

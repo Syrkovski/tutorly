@@ -150,6 +150,11 @@ fun AppNavRoot() {
                                 launchSingleTop = true
                             }
                         },
+                        onOpenStudentProfile = { studentId ->
+                            nav.navigate(studentDetailsRoute(studentId)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onOpenSettings = {
                             nav.navigate(ROUTE_SETTINGS) {
                                 launchSingleTop = true

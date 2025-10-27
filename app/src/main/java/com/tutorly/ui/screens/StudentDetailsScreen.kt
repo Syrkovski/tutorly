@@ -170,6 +170,7 @@ fun StudentDetailsScreen(
             creationViewModel.prepareForStudentCreation()
             onAddStudentFromCreation()
         },
+        onOpenStudentProfile = {},
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,

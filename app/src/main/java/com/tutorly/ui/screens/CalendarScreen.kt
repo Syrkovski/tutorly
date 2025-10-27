@@ -85,6 +85,7 @@ enum class CalendarMode { DAY, WEEK }
 fun CalendarScreen(
     modifier: Modifier = Modifier,
     onAddStudent: () -> Unit = {},
+    onOpenStudentProfile: (Long) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     creationViewModel: LessonCreationViewModel,
     viewModel: CalendarViewModel = hiltViewModel()
@@ -111,6 +112,7 @@ fun CalendarScreen(
             creationViewModel.prepareForStudentCreation()
             onAddStudent()
         },
+        onOpenStudentProfile = onOpenStudentProfile,
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,

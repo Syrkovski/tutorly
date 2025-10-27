@@ -121,6 +121,7 @@ fun TodayScreen(
             lessonCardViewModel.dismiss()
             onAddStudent()
         },
+        onOpenStudentProfile = onOpenStudentProfile,
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,

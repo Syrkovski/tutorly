@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,8 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
@@ -33,6 +33,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -65,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import com.tutorly.R
 import com.tutorly.models.PaymentStatus
 import java.text.NumberFormat
@@ -84,6 +87,7 @@ internal fun LessonCardSheet(
     onDismissRequest: () -> Unit,
     onStudentSelect: (Long) -> Unit,
     onAddStudent: () -> Unit,
+    onOpenStudentProfile: (Long) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationSelect: (Int) -> Unit,
@@ -143,7 +147,16 @@ internal fun LessonCardSheet(
         }
     }
 
-    val onStudentClick: () -> Unit = { showStudentPicker = true }
+    val onStudentEditClick: () -> Unit = { showStudentPicker = true }
+    val onStudentProfileClick: () -> Unit = {
+        val studentId = state.studentId ?: return@onStudentProfileClick
+        scope.launch {
+            sheetState.hide()
+        }.invokeOnCompletion {
+            onDismissRequest()
+            onOpenStudentProfile(studentId)
+        }
+    }
     val onDateClick: () -> Unit = {
         DatePickerDialog(
             context,
@@ -202,10 +215,12 @@ internal fun LessonCardSheet(
                         }
 
                         LessonHeader(
+                            studentId = state.studentId,
                             name = state.studentName,
                             grade = state.studentGrade,
                             subject = state.subjectName,
-                            onClick = onStudentClick
+                            onProfileClick = onStudentProfileClick,
+                            onStudentEditClick = onStudentEditClick
                         )
 
                         DateRow(
@@ -333,58 +348,74 @@ internal fun LessonCardSheet(
 
 @Composable
 private fun LessonHeader(
+    studentId: Long?,
     name: String,
     grade: String?,
     subject: String?,
-    onClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onStudentEditClick: () -> Unit,
 ) {
     val initials = remember(name) {
         name.split(" ").filter { it.isNotBlank() }.take(2).map { it.first().uppercase() }.joinToString("")
     }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = CircleShape,
-            color = MaterialTheme.extendedColors.chipSelected
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(MaterialTheme.shapes.large)
+                .clickable(enabled = studentId != null, onClick = onProfileClick)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = initials.ifBlank { "?" },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = MaterialTheme.extendedColors.chipSelected
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = initials.ifBlank { "?" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name.ifBlank { stringResource(id = R.string.lesson_card_student_placeholder) },
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            val subtitle = listOfNotNull(grade, subject).filter { it.isNotBlank() }.joinToString(" • ")
-            if (subtitle.isNotBlank()) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = name.ifBlank { stringResource(id = R.string.lesson_card_student_placeholder) },
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                val subtitle = listOfNotNull(grade, subject).filter { it.isNotBlank() }.joinToString(" • ")
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        IconButton(
+            onClick = onStudentEditClick,
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = stringResource(id = R.string.lesson_card_student_edit)
+            )
+        }
     }
 }
 
