@@ -194,6 +194,9 @@ fun StudentsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
+                .background(Color.Transparent),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+
         ) {
             OutlinedTextField(
                 value = query,
@@ -217,7 +220,7 @@ fun StudentsScreen(
                 )
             )
 
-            Spacer(Modifier.height(16.dp))
+//            Spacer(Modifier.height(16.dp).background(Color.Transparent))
 
             if (students.isEmpty()) {
                 EmptyStudentsState(
@@ -228,7 +231,7 @@ fun StudentsScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
+                    contentPadding = PaddingValues(bottom = 16.dp),
                 ) {
                     items(
                         items = students,

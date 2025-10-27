@@ -502,7 +502,11 @@ private fun ReviewSummaryCard(
                 }
                 if (showCloseDayButton) {
                     Button(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.extendedColors.accent)
+                            .clip(RoundedCornerShape(16.dp))
+                            ,
                         onClick = onRequestCloseDay
                     ) {
                         Text(text = stringResource(id = R.string.today_close_day_action))
