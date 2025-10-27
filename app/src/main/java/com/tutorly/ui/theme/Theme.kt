@@ -11,9 +11,8 @@ import androidx.compose.ui.graphics.Color
 import com.tutorly.models.AppThemePreset
 
 data class MetricTileColors(
-    val container: Color,
     val border: Color,
-    val content: Color
+    val accent: Color
 )
 
 private data class PaletteResult(
@@ -128,4 +127,4 @@ private fun createPalette(themePalette: ThemePalette): PaletteResult {
 }
 
 private fun MetricPalette.toMetricTileColors(): MetricTileColors =
-    MetricTileColors(container = container, border = border, content = content)
+    MetricTileColors(border = border, accent = accent)

@@ -47,7 +47,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -869,15 +868,14 @@ private fun ProfileMetricTile(
     colors: MetricTileColors? = null
 ) {
     val cardModifier = modifier.fillMaxWidth()
-    val cardColors = if (colors != null) {
-        TutorlyCardDefaults.colors(
-            containerColor = colors.container,
-            contentColor = colors.content
-        )
+    val cardColors = TutorlyCardDefaults.colors()
+    val borderStroke = colors?.let { BorderStroke(6.dp, it.border) }
+    val accentColor = colors?.accent ?: MaterialTheme.colorScheme.primary
+    val labelColor = if (colors != null) {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     } else {
-        TutorlyCardDefaults.colors()
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val borderStroke = colors?.let { BorderStroke(1.dp, it.border) }
     val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier
@@ -886,31 +884,23 @@ private fun ProfileMetricTile(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val iconTint = if (colors != null) {
-                LocalContentColor.current
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = iconTint
+                tint = accentColor
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
+                color = accentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (colors != null) {
-                    LocalContentColor.current.copy(alpha = 0.75f)
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color = labelColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
