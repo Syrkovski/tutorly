@@ -29,12 +29,12 @@ internal val OriginalPalette = ThemePalette(
     backgroundTop = Color(0xFFF7FBFA),
     backgroundBottom = Color(0xFFF0F6F4),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFFCEA969),
-        border = Color(0xFFF2C77B)
-    ),
-    rateHighlight = MetricPalette(
         container = Color(0xFF4C6388),
         border = Color(0xFF5974A0)
+    ),
+    rateHighlight = MetricPalette(
+        container = Color(0xFFCEA969),
+        border = Color(0xFFF2C77B)
     ),
     earnedHighlight = MetricPalette(
         container = Color(0xFF6E68A1),
@@ -54,12 +54,12 @@ internal val PlumPalette = ThemePalette(
     backgroundTop = Color(0xFFFAF3FE),
     backgroundBottom = Color(0xFFF0E3F8),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFFCEA969),
-        border = Color(0xFFF2C77B)
-    ),
-    rateHighlight = MetricPalette(
         container = Color(0xFF4C6388),
         border = Color(0xFF5974A0)
+    ),
+    rateHighlight = MetricPalette(
+        container = Color(0xFFCEA969),
+        border = Color(0xFFF2C77B)
     ),
     earnedHighlight = MetricPalette(
         container = Color(0xFF6E68A1),
@@ -79,12 +79,12 @@ internal val RoyalPalette = ThemePalette(
     backgroundTop = Color(0xFFF5F8FE),
     backgroundBottom = Color(0xFFEBF2FC),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFFCEA969),
-        border = Color(0xFFF2C77B)
-    ),
-    rateHighlight = MetricPalette(
         container = Color(0xFF4C6388),
         border = Color(0xFF5974A0)
+    ),
+    rateHighlight = MetricPalette(
+        container = Color(0xFFCEA969),
+        border = Color(0xFFF2C77B)
     ),
     earnedHighlight = MetricPalette(
         container = Color(0xFF6E68A1),
