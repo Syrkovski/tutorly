@@ -430,7 +430,8 @@ private fun StudentProfileTopBar(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .height(80.dp)
+                .padding(horizontal = 16.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -462,7 +463,7 @@ private fun StudentProfileTopBar(
 
             if (hasActions) {
                 val buttonColors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 )
 
                 var isMenuExpanded by remember { mutableStateOf(false) }

@@ -83,7 +83,7 @@ fun AppTopBar(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurface,
                 navigationIconContentColor = MaterialTheme.colorScheme.onSurface
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)

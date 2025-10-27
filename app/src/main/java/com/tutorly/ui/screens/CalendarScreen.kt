@@ -204,27 +204,21 @@ fun CalendarScreen(
         )
     }
 
+    val handleSelectDate: (LocalDate) -> Unit = { selected ->
+        direction = when {
+            selected.isAfter(anchor) -> 1
+            selected.isBefore(anchor) -> -1
+            else -> 0
+        }
+        viewModel.selectDate(selected)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
             CalendarTopBar(
                 anchor = anchor,
-                currentDateTime = uiState.currentDateTime,
-                mode = mode,
-                onSelectDate = { selected ->
-                    direction = when {
-                        selected.isAfter(anchor) -> 1
-                        selected.isBefore(anchor) -> -1
-                        else -> 0
-                    }
-                    viewModel.selectDate(selected)
-                },
-                onSelectMode = { newMode ->
-                    direction = 0
-                    viewModel.setMode(newMode)
-                },
-                onSwipeLeft = nextPeriod,
-                onSwipeRight = prevPeriod,
+                onSelectDate = handleSelectDate,
                 onOpenSettings = onOpenSettings
             )
         },
@@ -249,7 +243,6 @@ fun CalendarScreen(
                     contentDescription = stringResource(id = R.string.lesson_create_title)
                 )
             }
-        },
         containerColor = Color.Transparent
     ) { padding ->
         Column(
@@ -257,7 +250,20 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-        // Контент занимает остаток экрана и скроллится внутри
+            CalendarTimelineHeader(
+                anchor = anchor,
+                currentDateTime = uiState.currentDateTime,
+                mode = mode,
+                onSelectDate = handleSelectDate,
+                onSelectMode = { newMode ->
+                    direction = 0
+                    viewModel.setMode(newMode)
+                },
+                onSwipeLeft = nextPeriod,
+                onSwipeRight = prevPeriod
+            )
+
+            // Контент занимает остаток экрана и скроллится внутри
         Box(
             Modifier
                 .weight(1f)
@@ -355,12 +361,7 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 @Composable
 fun CalendarTopBar(
     anchor: LocalDate,
-    currentDateTime: ZonedDateTime,
-    mode: CalendarMode,
     onSelectDate: (LocalDate) -> Unit,
-    onSelectMode: (CalendarMode) -> Unit,
-    onSwipeLeft: () -> Unit,
-    onSwipeRight: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val locale = remember { Locale("ru") }
@@ -372,66 +373,104 @@ fun CalendarTopBar(
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    TopBarContainer {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = monthLabel,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 96.dp)
+                    .clickable { showDatePicker = true },
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.align(Alignment.CenterEnd),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = stringResource(id = R.string.settings_title)
+                )
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        DisposableEffect(anchor) {
+            val picker = DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    showDatePicker = false
+                    onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
+                },
+                anchor.year,
+                anchor.monthValue - 1,
+                anchor.dayOfMonth
+            )
+            picker.setOnDismissListener { showDatePicker = false }
+            picker.show()
+            onDispose {
+                picker.setOnDismissListener(null)
+                if (picker.isShowing) {
+                    picker.dismiss()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarTimelineHeader(
+    anchor: LocalDate,
+    currentDateTime: ZonedDateTime,
+    mode: CalendarMode,
+    onSelectDate: (LocalDate) -> Unit,
+    onSelectMode: (CalendarMode) -> Unit,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val locale = remember { Locale("ru") }
     val weekStart = remember(anchor) { anchor.with(DayOfWeek.MONDAY) }
     val weekDays = remember(weekStart) { (0 until 7).map { weekStart.plusDays(it.toLong()) } }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
-    TopBarContainer {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 0.dp, start = 16.dp, end = 16.dp)
-            ) {
-                Text(
-                    text = monthLabel,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = 48.dp)
-                        .clickable { showDatePicker = true },
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                IconButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = Color(0xFF2A2F63)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = stringResource(id = R.string.settings_title)
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFEFEFE))
+    ) {
+        Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                weekDays.forEach { day ->
-                    WeekDayCell(
-                        modifier = Modifier.weight(1f),
-                        date = day,
-                        isSelected = day == anchor,
-                        isToday = day == today,
-                        locale = locale,
-                        onClick = { onSelectDate(day) }
-                    )
-                }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            weekDays.forEach { day ->
+                WeekDayCell(
+                    modifier = Modifier.weight(1f),
+                    date = day,
+                    isSelected = day == anchor,
+                    isToday = day == today,
+                    locale = locale,
+                    onClick = { onSelectDate(day) }
+                )
             }
         }
 
@@ -471,29 +510,6 @@ fun CalendarTopBar(
                     )
                 }
         )
-    }
-
-    if (showDatePicker) {
-        DisposableEffect(anchor) {
-            val picker = DatePickerDialog(
-                context,
-                { _, year, month, dayOfMonth ->
-                    showDatePicker = false
-                    onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
-                },
-                anchor.year,
-                anchor.monthValue - 1,
-                anchor.dayOfMonth
-            )
-            picker.setOnDismissListener { showDatePicker = false }
-            picker.show()
-            onDispose {
-                picker.setOnDismissListener(null)
-                if (picker.isShowing) {
-                    picker.dismiss()
-                }
-            }
-        }
     }
 }
 

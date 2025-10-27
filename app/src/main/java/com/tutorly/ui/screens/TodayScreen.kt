@@ -50,8 +50,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -1359,36 +1358,39 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             else -> R.string.today_title
         }
         val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
-        CenterAlignedTopAppBar(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 0.dp, bottom = 0.dp),
-//                .height(80.dp),
+                .height(80.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = stringResource(titleRes),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = if (canReopen) 72.dp else 0.dp),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
-            title = {
-                Text(
-                    text = stringResource(titleRes),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            actions = {
-                if (canReopen) {
-                    IconButton(onClick = onReopenDay) {
-                        Icon(
-                            imageVector = Icons.Outlined.LockOpen,
-                            contentDescription = stringResource(R.string.today_reopen_day_action),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            if (canReopen) {
+                IconButton(
+                    onClick = onReopenDay,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LockOpen,
+                        contentDescription = stringResource(R.string.today_reopen_day_action)
+                    )
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
-        )
+            }
+        }
     }
 }
 
