@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tutorly.R
 import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.AppThemePreset
+import com.tutorly.models.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -31,6 +32,9 @@ class SettingsViewModel @Inject constructor(
                     current.copy(
                         workDayStart = minutesToLocalTime(profile.workDayStartMinutes),
                         workDayEnd = minutesToLocalTime(profile.workDayEndMinutes),
+                        workDayStartMinutes = profile.workDayStartMinutes,
+                        workDayEndMinutes = profile.workDayEndMinutes,
+                        workDayEndExtendsToNextDay = profile.workDayEndMinutes == MINUTES_IN_DAY,
                         weekendDays = profile.weekendDays,
                         selectedTheme = profile.theme
                     )
@@ -41,7 +45,8 @@ class SettingsViewModel @Inject constructor(
 
     fun updateWorkDayStart(time: LocalTime) {
         val newStartMinutes = time.roundToStep().coerceIn(0, MAX_START_MINUTE)
-        val currentEndMinutes = _uiState.value.workDayEnd.roundToStep().coerceIn(newStartMinutes + SLOT_STEP_MINUTES, MAX_END_MINUTE)
+        val currentEndMinutes = _uiState.value.workDayEndMinutes
+            .coerceIn(newStartMinutes + SLOT_STEP_MINUTES, MAX_END_MINUTE)
         val adjustedEndMinutes = if (newStartMinutes >= currentEndMinutes) {
             (newStartMinutes + SLOT_STEP_MINUTES).coerceAtMost(MAX_END_MINUTE)
         } else {
@@ -50,7 +55,13 @@ class SettingsViewModel @Inject constructor(
         val newStart = minutesToLocalTime(newStartMinutes)
         val newEnd = minutesToLocalTime(adjustedEndMinutes)
         _uiState.update { current ->
-            current.copy(workDayStart = newStart, workDayEnd = newEnd)
+            current.copy(
+                workDayStart = newStart,
+                workDayEnd = newEnd,
+                workDayStartMinutes = newStartMinutes,
+                workDayEndMinutes = adjustedEndMinutes,
+                workDayEndExtendsToNextDay = adjustedEndMinutes == MINUTES_IN_DAY
+            )
         }
         viewModelScope.launch {
             userProfileRepository.updateWorkDay(newStartMinutes, adjustedEndMinutes)
@@ -58,12 +69,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateWorkDayEnd(time: LocalTime) {
-        val startMinutes = _uiState.value.workDayStart.roundToStep().coerceIn(0, MAX_START_MINUTE)
-        val desiredEnd = time.roundToStep()
+        val startMinutes = _uiState.value.workDayStartMinutes
+            .coerceIn(0, MAX_START_MINUTE)
+        val desiredEnd = if (time == LocalTime.MIDNIGHT) {
+            MINUTES_IN_DAY
+        } else {
+            time.roundToStep()
+        }
         val endMinutes = desiredEnd.coerceIn(startMinutes + SLOT_STEP_MINUTES, MAX_END_MINUTE)
         val endTime = minutesToLocalTime(endMinutes)
         _uiState.update { current ->
-            current.copy(workDayEnd = endTime)
+            current.copy(
+                workDayEnd = endTime,
+                workDayEndMinutes = endMinutes,
+                workDayEndExtendsToNextDay = endMinutes == MINUTES_IN_DAY
+            )
         }
         viewModelScope.launch {
             userProfileRepository.updateWorkDay(startMinutes, endMinutes)
@@ -90,8 +110,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun minutesToLocalTime(minutes: Int): LocalTime {
-        val hours = minutes / 60
-        val mins = minutes % 60
+        val clamped = minutes % MINUTES_IN_DAY
+        val hours = clamped / 60
+        val mins = clamped % 60
         return LocalTime.of(hours, mins)
     }
 
@@ -105,6 +126,9 @@ class SettingsViewModel @Inject constructor(
 data class SettingsUiState(
     val workDayStart: LocalTime = LocalTime.of(9, 0),
     val workDayEnd: LocalTime = LocalTime.of(22, 0),
+    val workDayStartMinutes: Int = UserProfile.DEFAULT_WORK_DAY_START,
+    val workDayEndMinutes: Int = UserProfile.DEFAULT_WORK_DAY_END,
+    val workDayEndExtendsToNextDay: Boolean = false,
     val weekendDays: Set<DayOfWeek> = emptySet(),
     val selectedTheme: AppThemePreset = AppThemePreset.ORIGINAL,
     val availableThemes: List<ThemeOption> = ThemeOption.defaults()
@@ -137,6 +161,6 @@ data class ThemeOption(
 }
 
 private const val SLOT_STEP_MINUTES: Int = 30
-private const val LAST_DAY_MINUTE: Int = 23 * 60 + 30
-private const val MAX_START_MINUTE: Int = LAST_DAY_MINUTE - SLOT_STEP_MINUTES
-private const val MAX_END_MINUTE: Int = LAST_DAY_MINUTE
+private const val MINUTES_IN_DAY: Int = 24 * 60
+private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
+private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SLOT_STEP_MINUTES

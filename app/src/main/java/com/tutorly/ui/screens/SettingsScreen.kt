@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -28,6 +29,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,11 +42,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
-import com.tutorly.ui.components.AppTopBar
+import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.theme.extendedColors
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -63,21 +66,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            AppTopBar(
-                title = stringResource(id = R.string.settings_title),
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.settings_back)
-                        )
-                    }
-                }
-            )
-        }
+        topBar = { SettingsTopBar(onBack = onBack) }
     ) { padding ->
         SettingsContent(
             modifier = Modifier
@@ -89,6 +78,43 @@ fun SettingsScreen(
             onWeekendToggle = viewModel::toggleWeekend,
             onThemeSelect = viewModel::selectTheme
         )
+    }
+}
+
+@Composable
+private fun SettingsTopBar(onBack: () -> Unit) {
+    TopBarContainer {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(id = R.string.settings_back)
+                )
+            }
+
+            Text(
+                text = stringResource(id = R.string.settings_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.surface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 72.dp)
+            )
+        }
     }
 }
 
@@ -127,7 +153,12 @@ private fun SettingsContent(
                 label = stringResource(id = R.string.settings_work_end),
                 time = state.workDayEnd,
                 formatter = timeFormatter,
-                onTimeSelected = onEndTimeClick
+                onTimeSelected = onEndTimeClick,
+                displayOverride = if (state.workDayEndExtendsToNextDay && state.workDayEnd == LocalTime.MIDNIGHT) {
+                    "24:00"
+                } else {
+                    null
+                }
             )
         }
 
@@ -159,9 +190,8 @@ private fun SettingsContent(
         }
 
         SettingsSectionTitle(text = stringResource(id = R.string.settings_theme))
-        FlowRow(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             state.availableThemes.forEach { option ->
@@ -195,9 +225,13 @@ private fun TimePreferenceCard(
     label: String,
     time: LocalTime,
     formatter: DateTimeFormatter,
-    onTimeSelected: (LocalTime) -> Unit
+    onTimeSelected: (LocalTime) -> Unit,
+    displayOverride: String? = null
 ) {
     val context = LocalContext.current
+    val displayValue = remember(time, formatter, displayOverride) {
+        displayOverride ?: formatter.format(time)
+    }
     Card(
         modifier = modifier.wrapContentHeight(),
         shape = RoundedCornerShape(20.dp),
@@ -227,7 +261,7 @@ private fun TimePreferenceCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = formatter.format(time),
+                text = displayValue,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )

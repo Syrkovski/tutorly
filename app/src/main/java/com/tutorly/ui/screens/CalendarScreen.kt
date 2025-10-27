@@ -133,6 +133,7 @@ fun CalendarScreen(
                         origin = LessonCreationOrigin.CALENDAR
                     )
                 )
+
                 is CalendarEvent.OpenLesson -> lessonCardViewModel.open(event.lessonId)
             }
         }
@@ -266,86 +267,102 @@ fun CalendarScreen(
             )
 
             // Контент занимает остаток экрана и скроллится внутри
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .clipToBounds()
-                .then(swipeModifier)   // 👈 свайп теперь работает по всему экрану
-        ) {
-            AnimatedContent(
-                targetState = anchor,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    if (direction > 0) {
-                        // вперёд (влево)
-                        (slideInHorizontally(
-                            initialOffsetX = { fullWidth -> fullWidth },
-                            animationSpec = tween(durationMillis = 250)
-                        ) + fadeIn(animationSpec = tween(250))) togetherWith
-                                (slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> -fullWidth / 2 },
-                                    animationSpec = tween(durationMillis = 250)
-                                ) + fadeOut(animationSpec = tween(250)))
-                    } else {
-                        // назад (вправо)
-                        (slideInHorizontally(
-                            initialOffsetX = { fullWidth -> -fullWidth },
-                            animationSpec = tween(durationMillis = 250)
-                        ) + fadeIn(animationSpec = tween(250))) togetherWith
-                                (slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> fullWidth / 2 },
-                                    animationSpec = tween(durationMillis = 250)
-                                ) + fadeOut(animationSpec = tween(250)))
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clipToBounds()
+                    .then(swipeModifier)   // 👈 свайп теперь работает по всему экрану
+            ) {
+                val workdayBounds =
+                    remember(uiState.workDayStartMinutes, uiState.workDayEndMinutes) {
+                        sanitizeWorkdayBounds(
+                            startMinutes = uiState.workDayStartMinutes,
+                            endMinutes = uiState.workDayEndMinutes
+                        )
                     }
-                },
-                label = "day-switch"
-            ) { currentDate ->
-                val lessonsForCurrent = remember(currentDate, uiState.lessonsByDate) {
-                    uiState.lessonsByDate[currentDate].orEmpty()
-                }
-                when (mode) {
-                    CalendarMode.DAY -> DayTimeline(
-                        date = currentDate,
-                        lessons = lessonsForCurrent,
-                        currentDateTime = uiState.currentDateTime,
-                        workDayStartMinutes = uiState.workDayStartMinutes,
-                        workDayEndMinutes = uiState.workDayEndMinutes,
-                        onLessonClick = { lesson ->
-                            lessonCardViewModel.open(lesson.id)
-                        },
-                        onEmptySlot = { startTime ->
-                            viewModel.onEmptySlotSelected(
+
+                AnimatedContent(
+                    targetState = anchor,
+                    modifier = Modifier.fillMaxSize(),
+                    transitionSpec = {
+                        if (direction > 0) {
+                            // вперёд (влево)
+                            (slideInHorizontally(
+                                initialOffsetX = { fullWidth -> fullWidth },
+                                animationSpec = tween(durationMillis = 250)
+                            ) + fadeIn(animationSpec = tween(250))) togetherWith
+                                    (slideOutHorizontally(
+                                        targetOffsetX = { fullWidth -> -fullWidth / 2 },
+                                        animationSpec = tween(durationMillis = 250)
+                                    ) + fadeOut(animationSpec = tween(250)))
+                        } else {
+                            // назад (вправо)
+                            (slideInHorizontally(
+                                initialOffsetX = { fullWidth -> -fullWidth },
+                                animationSpec = tween(durationMillis = 250)
+                            ) + fadeIn(animationSpec = tween(250))) togetherWith
+                                    (slideOutHorizontally(
+                                        targetOffsetX = { fullWidth -> fullWidth / 2 },
+                                        animationSpec = tween(durationMillis = 250)
+                                    ) + fadeOut(animationSpec = tween(250)))
+                        }
+                    },
+                    label = "day-switch"
+                ) { currentDate ->
+                    when (mode) {
+                        CalendarMode.DAY -> {
+                            val lessonsForCurrent = remember(
                                 currentDate,
-                                startTime,
-                                DefaultSlotDuration
+                                uiState.lessonsWithinBoundsByDate
+                            ) {
+                                uiState.lessonsWithinBoundsByDate[currentDate]
+                                    .orEmpty()
+                            }
+                            DayTimeline(
+                                date = currentDate,
+                                lessons = lessonsForCurrent,
+                                currentDateTime = uiState.currentDateTime,
+                                workDayStartMinutes = workdayBounds.startMinutes,
+                                workDayEndMinutes = workdayBounds.endMinutes,
+                                onLessonClick = { lesson ->
+                                    lessonCardViewModel.open(lesson.id)
+                                },
+                                onEmptySlot = { startTime ->
+                                    viewModel.onEmptySlotSelected(
+                                        currentDate,
+                                        startTime,
+                                        DefaultSlotDuration
+                                    )
+                                }
                             )
                         }
-                    )
 
-                    CalendarMode.WEEK -> WeekMosaic(
-                        anchor = currentDate,
-                        onOpenDay = { selected ->
-                            direction = when {
-                                selected.isAfter(anchor) -> 1
-                                selected.isBefore(anchor) -> -1
-                                else -> 0
-                            }
-                            viewModel.setMode(CalendarMode.DAY)
-                            viewModel.selectDate(selected)
-                        },
-                        dayDataProvider = { date ->
-                            uiState.lessonsByDate[date].orEmpty().map { it.toLessonBrief() }
-                        },
-                        currentDateTime = uiState.currentDateTime,
-                        onLessonClick = { brief -> lessonCardViewModel.open(brief.id) }
-                    )
+                        CalendarMode.WEEK -> WeekMosaic(
+                            anchor = currentDate,
+                            onOpenDay = { selected ->
+                                direction = when {
+                                    selected.isAfter(anchor) -> 1
+                                    selected.isBefore(anchor) -> -1
+                                    else -> 0
+                                }
+                                viewModel.setMode(CalendarMode.DAY)
+                                viewModel.selectDate(selected)
+                            },
+                            dayDataProvider = { date ->
+                                uiState.lessonsByDate[date]
+                                    .orEmpty()
+                                    .map { it.toLessonBrief() }
+                            },
+                            currentDateTime = uiState.currentDateTime,
+                            onLessonClick = { brief -> lessonCardViewModel.open(brief.id) }
+                        )
+                    }
                 }
             }
         }
     }
 }
-    }
 
 private fun CalendarLesson.toLessonBrief(): LessonBrief {
     return LessonBrief(
@@ -359,7 +376,6 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
         paymentStatus = paymentStatus
     )
 }
-
 
 /* ----------------------------- TOP BAR ----------------------------------- */
 
@@ -654,10 +670,10 @@ private val LabelWidth = 64.dp
 private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
-private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
 private const val SlotIncrementMinutes: Int = 30
-private const val MAX_START_MINUTE: Int = LAST_TIMELINE_MINUTE - SlotIncrementMinutes
-private const val MAX_END_MINUTE: Int = LAST_TIMELINE_MINUTE
+private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
+private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
+private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
 
 @Composable
 private fun DayTimeline(
@@ -1032,3 +1048,4 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
         statusColor = status.background
     )
 }
+
