@@ -623,7 +623,7 @@ private fun DayProgressSummary(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         )  {
             Image(
-                painter = painterResource(id = R.drawable.vacation),
+                painter = painterResource(id = R.drawable.focused),
                 contentDescription = null,
                 modifier = Modifier.size(width = 178.dp, height = 154.dp)
             )
