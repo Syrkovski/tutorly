@@ -1,6 +1,5 @@
 package com.tutorly.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -13,7 +12,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
@@ -405,65 +406,76 @@ private fun FinanceMetricCard(
     colors: MetricTileColors? = null,
     footer: (@Composable () -> Unit)? = null
 ) {
+    val accentColor = colors?.accent ?: MaterialTheme.colorScheme.primary
+    val labelColor = if (colors != null) {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = TutorlyCardDefaults.colors(),
-        elevation = TutorlyCardDefaults.elevation(),
-        border = colors?.let { BorderStroke(6.dp, it.border) }
+        elevation = TutorlyCardDefaults.elevation()
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            val accentColor = colors?.accent ?: MaterialTheme.colorScheme.primary
-            val labelColor = if (colors != null) {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accentColor
-            )
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = accentColor,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = title,
-                style = MaterialTheme.typography.bodySmall,
-                color = labelColor,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            subtitle?.let {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor
+                )
                 Text(
                     modifier = Modifier.fillMaxWidth(),
-                    text = it,
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = title,
                     style = MaterialTheme.typography.bodySmall,
                     color = labelColor,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                subtitle?.let {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = labelColor,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                footer?.let {
+                    it()
+                }
             }
-            footer?.let {
-                it()
-            }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(14.dp)
+                    .background(accentColor)
+            )
         }
     }
 }
