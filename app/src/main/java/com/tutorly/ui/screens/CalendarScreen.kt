@@ -391,7 +391,7 @@ fun CalendarTopBar(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = 96.dp)
+//                    .padding(horizontal = 96.dp)
                     .clickable { showDatePicker = true },
                 textAlign = TextAlign.Center,
                 maxLines = 1,
