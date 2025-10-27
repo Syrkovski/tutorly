@@ -10,6 +10,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.tutorly.models.AppThemePreset
 
+data class MetricTileColors(
+    val container: Color,
+    val border: Color,
+    val content: Color
+)
+
 private data class PaletteResult(
     val scheme: androidx.compose.material3.ColorScheme,
     val extended: ExtendedColors
@@ -22,9 +28,10 @@ data class ExtendedColors(
     val chipSelected: Color,
     val backgroundTop: Color,
     val backgroundBottom: Color,
-    val lessonsMetric: Color,
-    val earnedMetric: Color,
-    val prepaymentMetric: Color
+    val lessonsMetric: MetricTileColors,
+    val rateMetric: MetricTileColors,
+    val earnedMetric: MetricTileColors,
+    val prepaymentMetric: MetricTileColors
 )
 
 private val LocalExtendedColors = staticCompositionLocalOf {
@@ -35,9 +42,10 @@ private val LocalExtendedColors = staticCompositionLocalOf {
         chipSelected = OriginalPalette.chipFill,
         backgroundTop = OriginalPalette.backgroundTop,
         backgroundBottom = OriginalPalette.backgroundBottom,
-        lessonsMetric = OriginalPalette.lessonsHighlight,
-        earnedMetric = OriginalPalette.earnedHighlight,
-        prepaymentMetric = OriginalPalette.prepaymentHighlight
+        lessonsMetric = OriginalPalette.lessonsHighlight.toMetricTileColors(),
+        rateMetric = OriginalPalette.rateHighlight.toMetricTileColors(),
+        earnedMetric = OriginalPalette.earnedHighlight.toMetricTileColors(),
+        prepaymentMetric = OriginalPalette.prepaymentHighlight.toMetricTileColors()
     )
 }
 
@@ -111,9 +119,13 @@ private fun createPalette(themePalette: ThemePalette): PaletteResult {
         chipSelected = themePalette.chipFill,
         backgroundTop = themePalette.backgroundTop,
         backgroundBottom = themePalette.backgroundBottom,
-        lessonsMetric = themePalette.lessonsHighlight,
-        earnedMetric = themePalette.earnedHighlight,
-        prepaymentMetric = themePalette.prepaymentHighlight
+        lessonsMetric = themePalette.lessonsHighlight.toMetricTileColors(),
+        rateMetric = themePalette.rateHighlight.toMetricTileColors(),
+        earnedMetric = themePalette.earnedHighlight.toMetricTileColors(),
+        prepaymentMetric = themePalette.prepaymentHighlight.toMetricTileColors()
     )
     return PaletteResult(scheme, extended)
 }
+
+private fun MetricPalette.toMetricTileColors(): MetricTileColors =
+    MetricTileColors(container = container, border = border, content = content)

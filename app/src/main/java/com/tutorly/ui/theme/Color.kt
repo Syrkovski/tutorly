@@ -2,6 +2,12 @@ package com.tutorly.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+internal data class MetricPalette(
+    val container: Color,
+    val border: Color,
+    val content: Color = Color.White
+)
+
 internal data class ThemePalette(
     val topBarStart: Color,
     val topBarEnd: Color,
@@ -9,9 +15,10 @@ internal data class ThemePalette(
     val chipFill: Color,
     val backgroundTop: Color,
     val backgroundBottom: Color,
-    val lessonsHighlight: Color,
-    val earnedHighlight: Color,
-    val prepaymentHighlight: Color
+    val lessonsHighlight: MetricPalette,
+    val rateHighlight: MetricPalette,
+    val earnedHighlight: MetricPalette,
+    val prepaymentHighlight: MetricPalette
 )
 
 internal val OriginalPalette = ThemePalette(
@@ -21,9 +28,22 @@ internal val OriginalPalette = ThemePalette(
     chipFill = Color(0xFFE7EFEA),
     backgroundTop = Color(0xFFF7FBFA),
     backgroundBottom = Color(0xFFF0F6F4),
-    lessonsHighlight = Color(0xFFDFF4ED),
-    earnedHighlight = Color(0xFFFFF1DD),
-    prepaymentHighlight = Color(0xFFE5F0FB)
+    lessonsHighlight = MetricPalette(
+        container = Color(0xFF2E8F57),
+        border = Color(0xFF44A66A)
+    ),
+    rateHighlight = MetricPalette(
+        container = Color(0xFF7F2F2F),
+        border = Color(0xFFA43E3E)
+    ),
+    earnedHighlight = MetricPalette(
+        container = Color(0xFF8C5E24),
+        border = Color(0xFFAF7E45)
+    ),
+    prepaymentHighlight = MetricPalette(
+        container = Color(0xFF395C9E),
+        border = Color(0xFF5177BE)
+    )
 )
 
 internal val PlumPalette = ThemePalette(
@@ -33,9 +53,22 @@ internal val PlumPalette = ThemePalette(
     chipFill = Color(0xFFE6D3EE),
     backgroundTop = Color(0xFFFAF3FE),
     backgroundBottom = Color(0xFFF0E3F8),
-    lessonsHighlight = Color(0xFFF2E3F7),
-    earnedHighlight = Color(0xFFFFEDE2),
-    prepaymentHighlight = Color(0xFFE7F0FB)
+    lessonsHighlight = MetricPalette(
+        container = Color(0xFF2E8F57),
+        border = Color(0xFF44A66A)
+    ),
+    rateHighlight = MetricPalette(
+        container = Color(0xFF7F2F2F),
+        border = Color(0xFFA43E3E)
+    ),
+    earnedHighlight = MetricPalette(
+        container = Color(0xFF8C5E24),
+        border = Color(0xFFAF7E45)
+    ),
+    prepaymentHighlight = MetricPalette(
+        container = Color(0xFF395C9E),
+        border = Color(0xFF5177BE)
+    )
 )
 
 internal val RoyalPalette = ThemePalette(
@@ -45,9 +78,22 @@ internal val RoyalPalette = ThemePalette(
     chipFill = Color(0xFFE3E9F7),
     backgroundTop = Color(0xFFF5F8FE),
     backgroundBottom = Color(0xFFEBF2FC),
-    lessonsHighlight = Color(0xFFE1EBFF),
-    earnedHighlight = Color(0xFFFFF1DD),
-    prepaymentHighlight = Color(0xFFE2F5ED)
+    lessonsHighlight = MetricPalette(
+        container = Color(0xFF2E8F57),
+        border = Color(0xFF44A66A)
+    ),
+    rateHighlight = MetricPalette(
+        container = Color(0xFF7F2F2F),
+        border = Color(0xFFA43E3E)
+    ),
+    earnedHighlight = MetricPalette(
+        container = Color(0xFF8C5E24),
+        border = Color(0xFFAF7E45)
+    ),
+    prepaymentHighlight = MetricPalette(
+        container = Color(0xFF395C9E),
+        border = Color(0xFF5177BE)
+    )
 )
 
 val CardSurface = Color(0xFFFFFFFF)

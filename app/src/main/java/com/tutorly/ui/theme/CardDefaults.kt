@@ -13,8 +13,14 @@ object TutorlyCardDefaults {
     fun containerColor(): Color = MaterialTheme.colorScheme.surface
 
     @Composable
-    fun colors(containerColor: Color = containerColor()): CardColors =
-        CardDefaults.cardColors(containerColor = containerColor)
+    fun colors(
+        containerColor: Color = containerColor(),
+        contentColor: Color = MaterialTheme.colorScheme.onSurface
+    ): CardColors =
+        CardDefaults.cardColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        )
 
     @Composable
     fun elevation(): CardElevation = CardDefaults.cardElevation(defaultElevation = 6.dp)

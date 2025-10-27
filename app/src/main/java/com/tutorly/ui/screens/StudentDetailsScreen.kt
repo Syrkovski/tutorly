@@ -1,5 +1,6 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -86,6 +88,7 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
+import com.tutorly.ui.theme.MetricTileColors
 import com.tutorly.ui.theme.PrimaryTextColor
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
@@ -824,13 +827,14 @@ private fun StudentProfileMetricsSection(
                     icon = Icons.Outlined.CalendarToday,
                     value = lessonsCount,
                     label = stringResource(id = R.string.student_profile_metrics_lessons_label),
-                    containerColor = extendedColors.lessonsMetric
+                    colors = extendedColors.lessonsMetric
                 )
                 ProfileMetricTile(
                     icon = Icons.Outlined.Schedule,
                     value = rateValue,
                     label = stringResource(id = R.string.student_profile_metrics_rate_label),
-                    onClick = onRateClick
+                    onClick = onRateClick,
+                    colors = extendedColors.rateMetric
                 )
             }
             Column(
@@ -841,14 +845,14 @@ private fun StudentProfileMetricsSection(
                     icon = Icons.Outlined.CreditCard,
                     value = earnedValue,
                     label = stringResource(id = R.string.student_profile_metrics_earned_label),
-                    containerColor = extendedColors.earnedMetric
+                    colors = extendedColors.earnedMetric
                 )
                 ProfileMetricTile(
                     icon = Icons.Outlined.Savings,
                     value = prepaymentValue,
                     label = stringResource(id = R.string.student_profile_metrics_prepayment_label),
                     onClick = onPrepaymentClick,
-                    containerColor = extendedColors.prepaymentMetric
+                    colors = extendedColors.prepaymentMetric
                 )
             }
         }
@@ -862,14 +866,18 @@ private fun ProfileMetricTile(
     label: String,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    containerColor: Color? = null
+    colors: MetricTileColors? = null
 ) {
     val cardModifier = modifier.fillMaxWidth()
-    val cardColors = if (containerColor != null) {
-        TutorlyCardDefaults.colors(containerColor = containerColor)
+    val cardColors = if (colors != null) {
+        TutorlyCardDefaults.colors(
+            containerColor = colors.container,
+            contentColor = colors.content
+        )
     } else {
         TutorlyCardDefaults.colors()
     }
+    val borderStroke = colors?.let { BorderStroke(1.dp, it.border) }
     val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier
@@ -878,10 +886,15 @@ private fun ProfileMetricTile(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val iconTint = if (colors != null) {
+                LocalContentColor.current
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = iconTint
             )
             Text(
                 text = value,
@@ -893,7 +906,11 @@ private fun ProfileMetricTile(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (colors != null) {
+                    LocalContentColor.current.copy(alpha = 0.75f)
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -905,14 +922,16 @@ private fun ProfileMetricTile(
             modifier = cardModifier,
             shape = MaterialTheme.shapes.large,
             colors = cardColors,
-            elevation = TutorlyCardDefaults.elevation()
+            elevation = TutorlyCardDefaults.elevation(),
+            border = borderStroke
         ) { content() }
     } else {
         Card(
             modifier = cardModifier,
             shape = MaterialTheme.shapes.large,
             colors = cardColors,
-            elevation = TutorlyCardDefaults.elevation()
+            elevation = TutorlyCardDefaults.elevation(),
+            border = borderStroke
         ) { content() }
     }
 }
