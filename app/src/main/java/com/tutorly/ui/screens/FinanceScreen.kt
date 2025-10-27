@@ -1,5 +1,6 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -18,8 +19,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.MoneyOff
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -35,6 +42,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -47,7 +55,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.theme.MetricTileColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
+import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -222,6 +232,7 @@ private fun FinanceContent(
     val debtValue = currencyFormatter.format(summary.accountsReceivable)
     val lessonsValue = summary.lessons.total.toString()
     val hoursValue = formatFinanceHours(summary.totalDurationMinutes)
+    val extendedColors = MaterialTheme.extendedColors
 
     val swipeModifier = Modifier.pointerInput(selectedPeriod, periodOffset) {
         val threshold = 48.dp.toPx()
@@ -288,15 +299,19 @@ private fun FinanceContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FinanceMetricCard(
+                icon = Icons.Outlined.CreditCard,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_income_label),
                 value = cashInValue,
-                subtitle = periodText
+                subtitle = periodText,
+                colors = extendedColors.earnedMetric
             )
             FinanceMetricCard(
+                icon = Icons.Outlined.MoneyOff,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_ar_label),
-                value = debtValue
+                value = debtValue,
+                colors = extendedColors.prepaymentMetric
             )
         }
 
@@ -305,16 +320,20 @@ private fun FinanceContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FinanceMetricCard(
+                icon = Icons.Outlined.Schedule,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_hours_label),
                 value = hoursValue,
-                subtitle = periodText
+                subtitle = periodText,
+                colors = extendedColors.rateMetric
             )
             FinanceMetricCard(
+                icon = Icons.Outlined.CalendarToday,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_lessons_label),
                 value = lessonsValue,
-                subtitle = periodText
+                subtitle = periodText,
+                colors = extendedColors.lessonsMetric
             )
         }
 
@@ -340,42 +359,68 @@ private fun FinanceContent(
 
 @Composable
 private fun FinanceMetricCard(
+    icon: ImageVector,
     title: String,
     value: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    colors: MetricTileColors? = null,
     footer: (@Composable () -> Unit)? = null
 ) {
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation(),
+        border = colors?.let { BorderStroke(6.dp, it.border) }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val accentColor = colors?.accent ?: MaterialTheme.colorScheme.primary
+            val labelColor = if (colors != null) {
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor
+            )
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = accentColor,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = labelColor,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             subtitle?.let {
                 Text(
+                    modifier = Modifier.fillMaxWidth(),
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = labelColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             footer?.let {
