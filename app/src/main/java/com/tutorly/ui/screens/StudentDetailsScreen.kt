@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
@@ -258,6 +259,7 @@ fun StudentDetailsScreen(
             StudentProfileTopBar(
                 title = title,
                 subtitle = subtitle,
+                onBackClick = onBack,
                 onEditProfileClick = contentState?.let {
                     { openEditor(StudentEditTarget.PROFILE) }
                 },
@@ -415,6 +417,7 @@ fun StudentDetailsScreen(
 private fun StudentProfileTopBar(
     title: String,
     subtitle: String?,
+    onBackClick: (() -> Unit)? = null,
     onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
     onArchiveClick: (() -> Unit)? = null,
@@ -423,21 +426,38 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     TopBarContainer {
+        val hasBack = onBackClick != null
         val hasActions = listOfNotNull(
             onEditProfileClick,
             if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
             onDeleteClick
         ).isNotEmpty()
+        val horizontalPadding = if (hasBack || hasActions) 72.dp else 0.dp
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp)
                 .padding(horizontal = 16.dp)
         ) {
+            if (hasBack) {
+                IconButton(
+                    onClick = onBackClick!!,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ArrowBack,
+                        contentDescription = stringResource(id = R.string.student_details_back)
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = if (hasActions) 72.dp else 0.dp),
+                    .padding(horizontal = horizontalPadding),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
