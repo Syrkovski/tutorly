@@ -165,12 +165,12 @@ fun StudentDetailsScreen(
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
-        onStudentSelect = lessonCardViewModel::onStudentSelected,
         onAddStudent = {
             lessonCardViewModel.dismiss()
             creationViewModel.prepareForStudentCreation()
             onAddStudentFromCreation()
         },
+        onEditStudent = { openEditor(StudentEditTarget.PROFILE) },
         onOpenStudentProfile = {},
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
