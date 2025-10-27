@@ -93,9 +93,9 @@ class PreferencesUserProfileRepository @Inject constructor(
 
     companion object {
         private const val SLOT_INCREMENT_MINUTES: Int = 30
-        private const val LAST_TIMELINE_MINUTE: Int = 23 * 60 + 30
-        private const val MAX_START_MINUTE: Int = LAST_TIMELINE_MINUTE - SLOT_INCREMENT_MINUTES
-        private const val MAX_END_MINUTE: Int = LAST_TIMELINE_MINUTE
+        private const val MINUTES_IN_DAY: Int = 24 * 60
+        private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
+        private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SLOT_INCREMENT_MINUTES
         private const val MIN_START_MINUTE: Int = 0
     }
 }

@@ -654,10 +654,10 @@ private val LabelWidth = 64.dp
 private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
-private const val LAST_TIMELINE_MINUTE: Int = 23 * MinutesPerHour + 30
 private const val SlotIncrementMinutes: Int = 30
-private const val MAX_START_MINUTE: Int = LAST_TIMELINE_MINUTE - SlotIncrementMinutes
-private const val MAX_END_MINUTE: Int = LAST_TIMELINE_MINUTE
+private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
+private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
+private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
 
 @Composable
 private fun DayTimeline(

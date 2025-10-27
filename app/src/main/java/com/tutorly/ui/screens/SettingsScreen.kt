@@ -153,7 +153,12 @@ private fun SettingsContent(
                 label = stringResource(id = R.string.settings_work_end),
                 time = state.workDayEnd,
                 formatter = timeFormatter,
-                onTimeSelected = onEndTimeClick
+                onTimeSelected = onEndTimeClick,
+                displayOverride = if (state.workDayEndExtendsToNextDay && state.workDayEnd == LocalTime.MIDNIGHT) {
+                    "24:00"
+                } else {
+                    null
+                }
             )
         }
 
@@ -220,9 +225,13 @@ private fun TimePreferenceCard(
     label: String,
     time: LocalTime,
     formatter: DateTimeFormatter,
-    onTimeSelected: (LocalTime) -> Unit
+    onTimeSelected: (LocalTime) -> Unit,
+    displayOverride: String? = null
 ) {
     val context = LocalContext.current
+    val displayValue = remember(time, formatter, displayOverride) {
+        displayOverride ?: formatter.format(time)
+    }
     Card(
         modifier = modifier.wrapContentHeight(),
         shape = RoundedCornerShape(20.dp),
@@ -252,7 +261,7 @@ private fun TimePreferenceCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = formatter.format(time),
+                text = displayValue,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
