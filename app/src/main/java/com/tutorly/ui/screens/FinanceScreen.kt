@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -130,22 +132,39 @@ fun FinanceScreen(
     selectedPeriod: FinancePeriod,
     periodOffset: Int,
     onPeriodOffsetChange: (Int) -> Unit,
+    onSelectPeriod: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FinanceViewModel = hiltViewModel(),
     onOpenStudent: (Long) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    when (val uiState = state) {
-        FinanceUiState.Loading -> FinanceLoading(modifier)
-        is FinanceUiState.Content -> FinanceContent(
-            modifier = modifier,
-            selectedPeriod = selectedPeriod,
-            periodOffset = periodOffset,
-            state = uiState,
-            onPeriodOffsetChange = onPeriodOffsetChange,
-            onOpenStudent = onOpenStudent
-        )
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            FinanceTopBar(
+                selectedPeriod = selectedPeriod,
+                onSelectPeriod = { period ->
+                    onSelectPeriod(period)
+                    onPeriodOffsetChange(0)
+                }
+            )
+        },
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { innerPadding ->
+        val contentModifier = Modifier.padding(innerPadding)
+        when (val uiState = state) {
+            FinanceUiState.Loading -> FinanceLoading(contentModifier)
+            is FinanceUiState.Content -> FinanceContent(
+                modifier = contentModifier,
+                selectedPeriod = selectedPeriod,
+                periodOffset = periodOffset,
+                state = uiState,
+                onPeriodOffsetChange = onPeriodOffsetChange,
+                onOpenStudent = onOpenStudent
+            )
+        }
     }
 }
 

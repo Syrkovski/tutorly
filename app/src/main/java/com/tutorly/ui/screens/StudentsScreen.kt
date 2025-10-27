@@ -30,8 +30,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CurrencyRuble
 import androidx.compose.material.icons.outlined.StickyNote2
+import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -40,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -69,6 +72,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -77,6 +81,7 @@ import com.tutorly.R
 import com.tutorly.models.SubjectPreset
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
+import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
@@ -165,6 +170,12 @@ fun StudentsScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            StudentsTopBar(
+                isArchiveMode = isArchiveMode,
+                onToggleArchive = vm::toggleArchiveMode
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
@@ -255,6 +266,64 @@ fun StudentsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun StudentsTopBar(
+    isArchiveMode: Boolean,
+    onToggleArchive: () -> Unit
+) {
+    TopBarContainer {
+        val titleRes = if (isArchiveMode) {
+            R.string.students_archive_title
+        } else {
+            R.string.students_title
+        }
+        val actionIcon = if (isArchiveMode) {
+            Icons.Outlined.Unarchive
+        } else {
+            Icons.Outlined.Archive
+        }
+        val contentDescription = stringResource(
+            id = if (isArchiveMode) {
+                R.string.students_archive_show_active
+            } else {
+                R.string.students_archive_show
+            }
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = stringResource(id = titleRes),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 72.dp)
+            )
+
+            IconButton(
+                onClick = onToggleArchive,
+                modifier = Modifier.align(Alignment.CenterEnd),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Icon(
+                    imageVector = actionIcon,
+                    contentDescription = contentDescription
+                )
+            }
+        }
     }
 }
 
