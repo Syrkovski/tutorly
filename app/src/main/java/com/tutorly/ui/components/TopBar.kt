@@ -55,7 +55,7 @@ fun AppTopBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFFFEFEFE)
                     )
                 }
             },
@@ -82,9 +82,9 @@ fun AppTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                titleContentColor = Color(0xFFFEFEFE),
+                actionIconContentColor = Color(0xFFFEFEFE),
+                navigationIconContentColor = Color(0xFFFEFEFE)
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
