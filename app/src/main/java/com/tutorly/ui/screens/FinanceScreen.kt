@@ -219,10 +219,9 @@ private fun FinanceContent(
     val periodLabel = stringResource(selectedPeriod.periodLabelRes)
     val periodText = stringResource(R.string.finance_metric_period, periodLabel)
     val cashInValue = currencyFormatter.format(summary.cashIn)
-    val accruedValue = currencyFormatter.format(summary.accrued)
     val debtValue = currencyFormatter.format(summary.accountsReceivable)
-    val prepaymentValue = currencyFormatter.format(summary.prepayments)
     val lessonsValue = summary.lessons.total.toString()
+    val hoursValue = formatFinanceHours(summary.totalDurationMinutes)
 
     val swipeModifier = Modifier.pointerInput(selectedPeriod, periodOffset) {
         val threshold = 48.dp.toPx()
@@ -290,15 +289,14 @@ private fun FinanceContent(
         ) {
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_cash_in_label),
+                title = stringResource(R.string.finance_income_label),
                 value = cashInValue,
                 subtitle = periodText
             )
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_accrued_label),
-                value = accruedValue,
-                subtitle = periodText
+                title = stringResource(R.string.finance_ar_label),
+                value = debtValue
             )
         }
 
@@ -308,22 +306,17 @@ private fun FinanceContent(
         ) {
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_ar_label),
-                value = debtValue
+                title = stringResource(R.string.finance_hours_label),
+                value = hoursValue,
+                subtitle = periodText
             )
             FinanceMetricCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_prepayments_label),
-                value = prepaymentValue
+                title = stringResource(R.string.finance_lessons_label),
+                value = lessonsValue,
+                subtitle = periodText
             )
         }
-
-        FinanceMetricCard(
-            modifier = Modifier.fillMaxWidth(),
-            title = stringResource(R.string.finance_lessons_label),
-            value = lessonsValue,
-            subtitle = periodText
-        )
 
         FinanceChartCard(
             modifier = Modifier.fillMaxWidth(),
@@ -389,6 +382,27 @@ private fun FinanceMetricCard(
                 it()
             }
         }
+    }
+}
+
+@Composable
+private fun formatFinanceHours(totalMinutes: Int): String {
+    if (totalMinutes <= 0) {
+        return stringResource(R.string.finance_hours_zero)
+    }
+
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+
+    return when {
+        hours > 0 && minutes > 0 -> stringResource(
+            R.string.finance_hours_hours_and_minutes,
+            hours,
+            minutes
+        )
+
+        hours > 0 -> stringResource(R.string.finance_hours_hours, hours)
+        else -> stringResource(R.string.finance_hours_minutes, minutes)
     }
 }
 
