@@ -8,13 +8,13 @@ enum class FinancePeriod(
     @StringRes val tabLabelRes: Int,
     @StringRes val periodLabelRes: Int
 ) {
-    DAY(
-        tabLabelRes = R.string.finance_period_day,
-        periodLabelRes = R.string.finance_period_day_accusative
-    ),
     WEEK(
         tabLabelRes = R.string.finance_period_week,
         periodLabelRes = R.string.finance_period_week_accusative
+    ),
+    MONTH(
+        tabLabelRes = R.string.finance_period_month,
+        periodLabelRes = R.string.finance_period_month_accusative
     )
 }
 

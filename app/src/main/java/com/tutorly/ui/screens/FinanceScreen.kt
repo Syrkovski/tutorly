@@ -70,8 +70,6 @@ import kotlin.math.abs
 
 @Composable
 fun FinanceTopBar(
-    selectedPeriod: FinancePeriod,
-    onSelectPeriod: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopBarContainer {
@@ -91,12 +89,6 @@ fun FinanceTopBar(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .padding(horizontal = 96.dp)
-            )
-
-            FinancePeriodToggle(
-                selected = selectedPeriod,
-                onSelect = onSelectPeriod,
-                modifier = Modifier.align(Alignment.CenterEnd)
             )
         }
     }
@@ -183,13 +175,7 @@ fun FinanceScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            FinanceTopBar(
-                selectedPeriod = selectedPeriod,
-                onSelectPeriod = { period ->
-                    onSelectPeriod(period)
-                    onPeriodOffsetChange(0)
-                }
-            )
+            FinanceTopBar()
         },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -202,6 +188,10 @@ fun FinanceScreen(
                 selectedPeriod = selectedPeriod,
                 periodOffset = periodOffset,
                 state = uiState,
+                onSelectPeriod = { period ->
+                    onSelectPeriod(period)
+                    onPeriodOffsetChange(0)
+                },
                 onPeriodOffsetChange = onPeriodOffsetChange,
                 onOpenStudent = onOpenStudent
             )
@@ -227,6 +217,7 @@ private fun FinanceContent(
     selectedPeriod: FinancePeriod,
     periodOffset: Int,
     state: FinanceUiState.Content,
+    onSelectPeriod: (FinancePeriod) -> Unit,
     onPeriodOffsetChange: (Int) -> Unit,
     onOpenStudent: (Long) -> Unit
 ) {
@@ -319,6 +310,12 @@ private fun FinanceContent(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        FinancePeriodToggle(
+            selected = selectedPeriod,
+            onSelect = onSelectPeriod,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Text(
             text = periodRange,
             style = MaterialTheme.typography.bodySmall,
@@ -704,12 +701,12 @@ private fun buildChartLabels(
     if (points.isEmpty()) return emptyList()
     val locale = Locale.getDefault()
     return when (period) {
-        FinancePeriod.DAY -> points.map { point ->
-            dateFormatter.format(point.date)
-        }
-
         FinancePeriod.WEEK -> points.map { point ->
             point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+        }
+
+        FinancePeriod.MONTH -> points.map { point ->
+            dateFormatter.format(point.date)
         }
     }
 }
