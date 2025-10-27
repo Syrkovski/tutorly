@@ -12,30 +12,30 @@ internal data class ThemePalette(
 )
 
 internal val OriginalPalette = ThemePalette(
-    topBarStart = Color(0xFF4E998C),
-    topBarEnd = Color(0xFF3B7D72),
+    topBarStart = Color(0xFF3B7D72),
+    topBarEnd = Color(0xFF4E998C),
     accent = Color(0xFF4E998C),
     chipFill = Color(0xFFE7EFEA),
-    backgroundTop = Color(0xFFF3F8F6),
-    backgroundBottom = Color(0xFFF1F6F6)
+    backgroundTop = Color(0xFFF7FBFA),
+    backgroundBottom = Color(0xFFF0F6F4)
 )
 
 internal val PlumPalette = ThemePalette(
-    topBarStart = Color(0xFF6F497E),
-    topBarEnd = Color(0xFF5C2D64),
+    topBarStart = Color(0xFF5C2D64),
+    topBarEnd = Color(0xFF6F497E),
     accent = Color(0xFF6F497E),
     chipFill = Color(0xFFE6D3EE),
-    backgroundTop = Color(0xFFF4ECFA),
-    backgroundBottom = Color(0xFFE9D8F4)
+    backgroundTop = Color(0xFFFAF3FE),
+    backgroundBottom = Color(0xFFF0E3F8)
 )
 
 internal val RoyalPalette = ThemePalette(
-    topBarStart = Color(0xFF416BC0),
-    topBarEnd = Color(0xFF2E4FA6),
+    topBarStart = Color(0xFF2E4FA6),
+    topBarEnd = Color(0xFF416BC0),
     accent = Color(0xFF416BC0),
     chipFill = Color(0xFFE3E9F7),
-    backgroundTop = Color(0xFFF2F6FD),
-    backgroundBottom = Color(0xFFE6EEFB)
+    backgroundTop = Color(0xFFF5F8FE),
+    backgroundBottom = Color(0xFFEBF2FC)
 )
 
 val CardSurface = Color(0xFFFFFFFF)
