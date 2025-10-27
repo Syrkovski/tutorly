@@ -308,35 +308,33 @@ fun CalendarScreen(
                 },
                 label = "day-switch"
             ) { currentDate ->
-                val lessonsForCurrent = remember(
-                    currentDate,
-                    uiState.lessonsByDate,
-                    workdayBounds
-                ) {
-                    uiState.lessonsByDate[currentDate]
-                        .orEmpty()
-                        .filter { lesson ->
-                            lesson.isWithinBounds(currentDate, workdayBounds)
-                        }
-                }
                 when (mode) {
-                    CalendarMode.DAY -> DayTimeline(
-                        date = currentDate,
-                        lessons = lessonsForCurrent,
-                        currentDateTime = uiState.currentDateTime,
-                        workDayStartMinutes = workdayBounds.startMinutes,
-                        workDayEndMinutes = workdayBounds.endMinutes,
-                        onLessonClick = { lesson ->
-                            lessonCardViewModel.open(lesson.id)
-                        },
-                        onEmptySlot = { startTime ->
-                            viewModel.onEmptySlotSelected(
-                                currentDate,
-                                startTime,
-                                DefaultSlotDuration
-                            )
+                    CalendarMode.DAY -> {
+                        val lessonsForCurrent = remember(
+                            currentDate,
+                            uiState.lessonsWithinBoundsByDate
+                        ) {
+                            uiState.lessonsWithinBoundsByDate[currentDate]
+                                .orEmpty()
                         }
-                    )
+                        DayTimeline(
+                            date = currentDate,
+                            lessons = lessonsForCurrent,
+                            currentDateTime = uiState.currentDateTime,
+                            workDayStartMinutes = workdayBounds.startMinutes,
+                            workDayEndMinutes = workdayBounds.endMinutes,
+                            onLessonClick = { lesson ->
+                                lessonCardViewModel.open(lesson.id)
+                            },
+                            onEmptySlot = { startTime ->
+                                viewModel.onEmptySlotSelected(
+                                    currentDate,
+                                    startTime,
+                                    DefaultSlotDuration
+                                )
+                            }
+                        )
+                    }
 
                     CalendarMode.WEEK -> WeekMosaic(
                         anchor = currentDate,
@@ -352,9 +350,6 @@ fun CalendarScreen(
                         dayDataProvider = { date ->
                             uiState.lessonsByDate[date]
                                 .orEmpty()
-                                .filter { lesson ->
-                                    lesson.isWithinBounds(date, workdayBounds)
-                                }
                                 .map { it.toLessonBrief() }
                         },
                         currentDateTime = uiState.currentDateTime,
@@ -378,26 +373,6 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
         paymentStatus = paymentStatus
     )
 }
-
-private fun CalendarLesson.isWithinBounds(date: LocalDate, bounds: WorkdayBounds): Boolean {
-    if (start.toLocalDate() != date) return false
-
-    val lessonStartMinutes = start.hour * MinutesPerHour + start.minute
-    val lessonEndMinutes = if (end.toLocalDate().isAfter(date)) {
-        val overflowMinutes = Duration.between(
-            date.plusDays(1).atStartOfDay(end.zone),
-            end
-        ).toMinutes().toInt()
-        MINUTES_IN_DAY + overflowMinutes
-    } else {
-        end.hour * MinutesPerHour + end.minute
-    }
-
-    if (lessonEndMinutes <= lessonStartMinutes) return false
-
-    return lessonStartMinutes >= bounds.startMinutes && lessonEndMinutes <= bounds.endMinutes
-}
-
 
 /* ----------------------------- TOP BAR ----------------------------------- */
 
@@ -696,23 +671,6 @@ private const val SlotIncrementMinutes: Int = 30
 private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
 private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
 private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
-
-private data class WorkdayBounds(
-    val startMinutes: Int,
-    val endMinutes: Int
-)
-
-private fun sanitizeWorkdayBounds(startMinutes: Int, endMinutes: Int): WorkdayBounds {
-    val sanitizedStart = startMinutes.coerceIn(0, MAX_START_MINUTE)
-    val sanitizedEnd = endMinutes.coerceIn(
-        sanitizedStart + SlotIncrementMinutes,
-        MAX_END_MINUTE
-    )
-    return WorkdayBounds(
-        startMinutes = sanitizedStart,
-        endMinutes = sanitizedEnd
-    )
-}
 
 @Composable
 private fun DayTimeline(

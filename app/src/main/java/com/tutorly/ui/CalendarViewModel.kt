@@ -127,12 +127,20 @@ class CalendarViewModel @Inject constructor(
             .map { it.toCalendarLesson(zoneId) }
             .sortedBy { it.start }
         val groupedByDate = calendarLessons.groupBy { it.start.toLocalDate() }
+        val workdayBounds = sanitizeWorkdayBounds(
+            startMinutes = profile.workDayStartMinutes,
+            endMinutes = profile.workDayEndMinutes
+        )
+        val lessonsWithinBoundsByDate = groupedByDate.mapValues { (_, lessonsForDate) ->
+            lessonsForDate.filter { lesson -> lesson.isWithinBounds(workdayBounds) }
+        }
         return CalendarUiState(
             anchor = query.anchor,
             mode = query.mode,
             zoneId = zoneId,
             lessons = calendarLessons,
             lessonsByDate = groupedByDate,
+            lessonsWithinBoundsByDate = lessonsWithinBoundsByDate,
             stats = stats,
             currentDateTime = now,
             workDayStartMinutes = profile.workDayStartMinutes,
@@ -291,6 +299,7 @@ data class CalendarUiState(
     val zoneId: ZoneId,
     val lessons: List<CalendarLesson> = emptyList(),
     val lessonsByDate: Map<LocalDate, List<CalendarLesson>> = emptyMap(),
+    val lessonsWithinBoundsByDate: Map<LocalDate, List<CalendarLesson>> = emptyMap(),
     val stats: LessonsRangeStats = LessonsRangeStats.EMPTY,
     val currentDateTime: ZonedDateTime,
     val workDayStartMinutes: Int,
