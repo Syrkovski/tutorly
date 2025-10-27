@@ -29,20 +29,20 @@ internal val OriginalPalette = ThemePalette(
     backgroundTop = Color(0xFFF7FBFA),
     backgroundBottom = Color(0xFFF0F6F4),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFF3FC37F),
-        border = Color(0xFF44A66A)
+        container = Color(0xFF428277),
+        border = Color(0xFF4E998C)
     ),
     rateHighlight = MetricPalette(
-        container = Color(0xFFCF5959),
-        border = Color(0xFFA43E3E)
+        container = Color(0xFF4C6388),
+        border = Color(0xFF5974A0)
     ),
     earnedHighlight = MetricPalette(
-        container = Color(0xFFE29A47),
-        border = Color(0xFFAF7E45)
+        container = Color(0xFFCEA969),
+        border = Color(0xFFF2C77B)
     ),
     prepaymentHighlight = MetricPalette(
-        container = Color(0xFF5B87D6),
-        border = Color(0xFF5177BE)
+        container = Color(0xFFCE9169),
+        border = Color(0xFFF2AB7B)
     )
 )
 
@@ -54,20 +54,20 @@ internal val PlumPalette = ThemePalette(
     backgroundTop = Color(0xFFFAF3FE),
     backgroundBottom = Color(0xFFF0E3F8),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFF3FC37F),
-        border = Color(0xFF44A66A)
+        container = Color(0xFF428277),
+        border = Color(0xFF4E998C)
     ),
     rateHighlight = MetricPalette(
-        container = Color(0xFFCF5959),
-        border = Color(0xFFA43E3E)
+        container = Color(0xFF4C6388),
+        border = Color(0xFF5974A0)
     ),
     earnedHighlight = MetricPalette(
-        container = Color(0xFFE29A47),
-        border = Color(0xFFAF7E45)
+        container = Color(0xFFCEA969),
+        border = Color(0xFFF2C77B)
     ),
     prepaymentHighlight = MetricPalette(
-        container = Color(0xFF5B87D6),
-        border = Color(0xFF5177BE)
+        container = Color(0xFFCE9169),
+        border = Color(0xFFF2AB7B)
     )
 )
 
@@ -79,20 +79,20 @@ internal val RoyalPalette = ThemePalette(
     backgroundTop = Color(0xFFF5F8FE),
     backgroundBottom = Color(0xFFEBF2FC),
     lessonsHighlight = MetricPalette(
-        container = Color(0xFF3FC37F),
-        border = Color(0xFF44A66A)
+        container = Color(0xFF428277),
+        border = Color(0xFF4E998C)
     ),
     rateHighlight = MetricPalette(
-        container = Color(0xFFCF5959),
-        border = Color(0xFFA43E3E)
+        container = Color(0xFF4C6388),
+        border = Color(0xFF5974A0)
     ),
     earnedHighlight = MetricPalette(
-        container = Color(0xFFE29A47),
-        border = Color(0xFFAF7E45)
+        container = Color(0xFFCEA969),
+        border = Color(0xFFF2C77B)
     ),
     prepaymentHighlight = MetricPalette(
-        container = Color(0xFF5B87D6),
-        border = Color(0xFF5177BE)
+        container = Color(0xFFCE9169),
+        border = Color(0xFFF2AB7B)
     )
 )
 
