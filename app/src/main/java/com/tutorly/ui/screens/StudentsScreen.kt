@@ -302,7 +302,7 @@ private fun StudentsTopBar(
             Text(
                 text = stringResource(id = titleRes),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.surface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -315,7 +315,7 @@ private fun StudentsTopBar(
                 onClick = onToggleArchive,
                 modifier = Modifier.align(Alignment.CenterEnd),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentColor = MaterialTheme.colorScheme.surface
                 )
             ) {
                 Icon(

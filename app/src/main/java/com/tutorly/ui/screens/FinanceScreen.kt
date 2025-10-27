@@ -71,7 +71,7 @@ fun FinanceTopBar(
             Text(
                 text = stringResource(id = R.string.finance_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.surface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,

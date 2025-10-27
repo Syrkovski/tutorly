@@ -443,7 +443,7 @@ private fun StudentProfileTopBar(
                     text = title,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.surface,
                     style = MaterialTheme.typography.titleLarge,
                     textAlign = TextAlign.Center
                 )
@@ -453,7 +453,7 @@ private fun StudentProfileTopBar(
                         text = subtitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.surface,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 4.dp),
                         textAlign = TextAlign.Center
@@ -463,7 +463,7 @@ private fun StudentProfileTopBar(
 
             if (hasActions) {
                 val buttonColors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    contentColor = MaterialTheme.colorScheme.surface
                 )
 
                 var isMenuExpanded by remember { mutableStateOf(false) }
