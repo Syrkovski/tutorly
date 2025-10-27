@@ -327,19 +327,20 @@ private fun FinanceContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FinanceMetricCard(
+                icon = Icons.Outlined.CalendarToday,
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.finance_lessons_label),
+                value = lessonsValue,
+                subtitle = periodText,
+                colors = extendedColors.lessonsMetric
+            )
+            FinanceMetricCard(
                 icon = Icons.Outlined.CreditCard,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_income_label),
                 value = cashInValue,
                 subtitle = periodText,
                 colors = extendedColors.earnedMetric
-            )
-            FinanceMetricCard(
-                icon = Icons.Outlined.MoneyOff,
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_ar_label),
-                value = debtValue,
-                colors = extendedColors.prepaymentMetric
             )
         }
 
@@ -348,20 +349,20 @@ private fun FinanceContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FinanceMetricCard(
+                icon = Icons.Outlined.MoneyOff,
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.finance_ar_label),
+                value = debtValue,
+                subtitle = periodText,
+                colors = extendedColors.prepaymentMetric
+            )
+            FinanceMetricCard(
                 icon = Icons.Outlined.Schedule,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_hours_label),
                 value = hoursValue,
                 subtitle = periodText,
                 colors = extendedColors.rateMetric
-            )
-            FinanceMetricCard(
-                icon = Icons.Outlined.CalendarToday,
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_lessons_label),
-                value = lessonsValue,
-                subtitle = periodText,
-                colors = extendedColors.lessonsMetric
             )
         }
 
