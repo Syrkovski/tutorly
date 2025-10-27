@@ -95,6 +95,7 @@
     <string name="student_details_archive_error">Не удалось обновить статус архива</string>
     <string name="student_details_edit">Редактировать</string>
     <string name="student_details_more_actions">Дополнительные действия</string>
+    <string name="student_details_back">Назад</string>
     <string name="student_details_missing">Ученик не найден</string>
     <string name="student_details_payments_title">Платежи</string>
     <string name="student_details_debt_amount">Долг: %1$s</string>
@@ -140,6 +141,7 @@
     <string name="lesson_card_note_label">Заметка</string>
     <string name="lesson_card_note_placeholder">Добавьте комментарий</string>
     <string name="lesson_card_student_placeholder">Ученик</string>
+    <string name="lesson_card_student_edit">Изменить ученика</string>
     <string name="lesson_card_student_picker_title">Выберите ученика</string>
     <string name="lesson_card_student_picker_empty">Нет доступных учеников</string>
     <string name="lesson_card_date_label">Дата</string>

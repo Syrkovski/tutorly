@@ -12,27 +12,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -65,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import com.tutorly.R
 import com.tutorly.models.PaymentStatus
 import java.text.NumberFormat
@@ -82,8 +81,9 @@ import com.tutorly.ui.theme.extendedColors
 internal fun LessonCardSheet(
     state: LessonCardUiState,
     onDismissRequest: () -> Unit,
-    onStudentSelect: (Long) -> Unit,
     onAddStudent: () -> Unit,
+    onEditStudent: (Long) -> Unit,
+    onOpenStudentProfile: (Long) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationSelect: (Int) -> Unit,
@@ -100,7 +100,6 @@ internal fun LessonCardSheet(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    var showStudentPicker by remember { mutableStateOf(false) }
     var showDurationDialog by remember { mutableStateOf(false) }
     var showPriceDialog by remember { mutableStateOf(false) }
     var showNoteDialog by remember { mutableStateOf(false) }
@@ -143,7 +142,25 @@ internal fun LessonCardSheet(
         }
     }
 
-    val onStudentClick: () -> Unit = { showStudentPicker = true }
+    val onStudentEditClick: () -> Unit = {
+        val studentId = state.studentId
+        if (studentId != null) {
+            onEditStudent(studentId)
+        } else {
+            onAddStudent()
+        }
+    }
+    val onStudentProfileClick: () -> Unit = {
+        val studentId = state.studentId
+        if (studentId != null) {
+            scope.launch {
+                sheetState.hide()
+            }.invokeOnCompletion {
+                onDismissRequest()
+                onOpenStudentProfile(studentId)
+            }
+        }
+    }
     val onDateClick: () -> Unit = {
         DatePickerDialog(
             context,
@@ -202,10 +219,12 @@ internal fun LessonCardSheet(
                         }
 
                         LessonHeader(
+                            studentId = state.studentId,
                             name = state.studentName,
                             grade = state.studentGrade,
                             subject = state.subjectName,
-                            onClick = onStudentClick
+                            onProfileClick = onStudentProfileClick,
+                            onStudentEditClick = onStudentEditClick
                         )
 
                         DateRow(
@@ -271,21 +290,6 @@ internal fun LessonCardSheet(
         }
     }
 
-    if (showStudentPicker) {
-        StudentPickerDialog(
-            options = state.studentOptions,
-            onSelect = {
-                onStudentSelect(it)
-                showStudentPicker = false
-            },
-            onAddStudent = {
-                showStudentPicker = false
-                onAddStudent()
-            },
-            onDismiss = { showStudentPicker = false }
-        )
-    }
-
     if (showDurationDialog) {
         DurationDialog(
             currentMinutes = state.durationMinutes,
@@ -333,58 +337,74 @@ internal fun LessonCardSheet(
 
 @Composable
 private fun LessonHeader(
+    studentId: Long?,
     name: String,
     grade: String?,
     subject: String?,
-    onClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onStudentEditClick: () -> Unit,
 ) {
     val initials = remember(name) {
         name.split(" ").filter { it.isNotBlank() }.take(2).map { it.first().uppercase() }.joinToString("")
     }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = CircleShape,
-            color = MaterialTheme.extendedColors.chipSelected
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(MaterialTheme.shapes.large)
+                .clickable(enabled = studentId != null, onClick = onProfileClick)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = initials.ifBlank { "?" },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = MaterialTheme.extendedColors.chipSelected
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = initials.ifBlank { "?" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name.ifBlank { stringResource(id = R.string.lesson_card_student_placeholder) },
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            val subtitle = listOfNotNull(grade, subject).filter { it.isNotBlank() }.joinToString(" • ")
-            if (subtitle.isNotBlank()) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = name.ifBlank { stringResource(id = R.string.lesson_card_student_placeholder) },
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                val subtitle = listOfNotNull(grade, subject).filter { it.isNotBlank() }.joinToString(" • ")
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        IconButton(
+            onClick = onStudentEditClick,
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = stringResource(id = R.string.lesson_card_student_edit)
+            )
+        }
     }
 }
 
@@ -605,79 +625,6 @@ private fun NoteRow(
             }
         }
     }
-}
-
-@Composable
-private fun StudentPickerDialog(
-    options: List<LessonStudentOption>,
-    onSelect: (Long) -> Unit,
-    onAddStudent: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.lesson_card_student_picker_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                if (options.isEmpty()) {
-                    Text(text = stringResource(id = R.string.lesson_card_student_picker_empty))
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 260.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(options, key = { it.id }) { option ->
-                            Card(
-                                onClick = { onSelect(option.id) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = TutorlyCardDefaults.colors(),
-                                elevation = TutorlyCardDefaults.elevation()
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = option.name,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    val subtitle = listOfNotNull(option.grade, option.subject)
-                                        .filter { it.isNotBlank() }
-                                        .joinToString(" • ")
-                                    if (subtitle.isNotBlank()) {
-                                        Text(
-                                            text = subtitle,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Button(
-                    onClick = onAddStudent,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = stringResource(id = R.string.add_student))
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.lesson_create_cancel))
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
-    )
 }
 
 @Composable

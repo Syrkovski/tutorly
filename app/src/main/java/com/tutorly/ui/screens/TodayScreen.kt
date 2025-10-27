@@ -101,6 +101,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 fun TodayScreen(
     modifier: Modifier = Modifier,
     onAddStudent: () -> Unit = {},
+    onEditStudent: (Long) -> Unit = {},
     onOpenStudentProfile: (Long) -> Unit = {},
     onOpenDebtors: () -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel()
@@ -116,11 +117,12 @@ fun TodayScreen(
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
-        onStudentSelect = lessonCardViewModel::onStudentSelected,
         onAddStudent = {
             lessonCardViewModel.dismiss()
             onAddStudent()
         },
+        onEditStudent = onEditStudent,
+        onOpenStudentProfile = onOpenStudentProfile,
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,

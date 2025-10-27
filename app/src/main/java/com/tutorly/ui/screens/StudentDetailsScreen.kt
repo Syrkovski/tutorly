@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
@@ -45,7 +46,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -75,12 +75,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
-import com.tutorly.models.SubjectPreset
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
-import com.tutorly.ui.components.TutorlyDialog
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
@@ -164,12 +162,13 @@ fun StudentDetailsScreen(
     LessonCardSheet(
         state = lessonCardState,
         onDismissRequest = lessonCardViewModel::dismiss,
-        onStudentSelect = lessonCardViewModel::onStudentSelected,
         onAddStudent = {
             lessonCardViewModel.dismiss()
             creationViewModel.prepareForStudentCreation()
             onAddStudentFromCreation()
         },
+        onEditStudent = { openEditor(StudentEditTarget.PROFILE) },
+        onOpenStudentProfile = {},
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,
@@ -257,6 +256,7 @@ fun StudentDetailsScreen(
             StudentProfileTopBar(
                 title = title,
                 subtitle = subtitle,
+                onBackClick = onBack,
                 onEditProfileClick = contentState?.let {
                     { openEditor(StudentEditTarget.PROFILE) }
                 },
@@ -414,6 +414,7 @@ fun StudentDetailsScreen(
 private fun StudentProfileTopBar(
     title: String,
     subtitle: String?,
+    onBackClick: (() -> Unit)? = null,
     onEditProfileClick: (() -> Unit)? = null,
     isArchived: Boolean?,
     onArchiveClick: (() -> Unit)? = null,
@@ -422,21 +423,38 @@ private fun StudentProfileTopBar(
     deleteEnabled: Boolean = true,
 ) {
     TopBarContainer {
+        val hasBack = onBackClick != null
         val hasActions = listOfNotNull(
             onEditProfileClick,
             if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
             onDeleteClick
         ).isNotEmpty()
+        val horizontalPadding = if (hasBack || hasActions) 72.dp else 0.dp
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp)
                 .padding(horizontal = 16.dp)
         ) {
+            if (hasBack) {
+                IconButton(
+                    onClick = onBackClick!!,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ArrowBack,
+                        contentDescription = stringResource(id = R.string.student_details_back)
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = if (hasActions) 72.dp else 0.dp),
+                    .padding(horizontal = horizontalPadding),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -537,105 +555,6 @@ private fun StudentProfileTopBar(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StudentEditorDialogContent(
-    state: StudentEditorFormState,
-    onNameChange: (String) -> Unit,
-    onPhoneChange: (String) -> Unit,
-    onMessengerChange: (String) -> Unit,
-    onRateChange: (String) -> Unit,
-    subjectPresets: List<SubjectPreset>,
-    onSubjectChange: (String) -> Unit,
-    onGradeChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
-    onSave: () -> Unit,
-    onDismiss: () -> Unit,
-    editTarget: StudentEditTarget?,
-    initialFocus: StudentEditTarget?,
-    snackbarHostState: SnackbarHostState,
-) {
-    val titleRes = when {
-        state.studentId == null -> R.string.add_student
-        editTarget == StudentEditTarget.RATE -> R.string.student_editor_title_rate
-        editTarget == StudentEditTarget.PHONE -> R.string.student_editor_title_phone
-        editTarget == StudentEditTarget.MESSENGER -> R.string.student_editor_title_messenger
-        editTarget == StudentEditTarget.NOTES -> R.string.student_editor_title_note
-        else -> R.string.student_editor_title
-    }
-    val title = stringResource(id = titleRes)
-
-    TutorlyDialog(
-        onDismissRequest = {
-            if (!state.isSaving) {
-                onDismiss()
-            }
-        },
-        modifier = Modifier.imePadding()
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge
-        )
-
-        if (state.isSaving) {
-            LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-
-        StudentEditorForm(
-            state = state,
-            onNameChange = onNameChange,
-            onPhoneChange = onPhoneChange,
-            onMessengerChange = onMessengerChange,
-            onRateChange = onRateChange,
-            subjectPresets = subjectPresets,
-            onSubjectChange = onSubjectChange,
-            onGradeChange = onGradeChange,
-            onNoteChange = onNoteChange,
-            modifier = Modifier.fillMaxWidth(),
-            editTarget = editTarget,
-            initialFocus = initialFocus,
-            enableScrolling = true,
-            enabled = !state.isSaving,
-            onSubmit = onSave
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val accent = MaterialTheme.extendedColors.accent
-            val actionColors = ButtonDefaults.textButtonColors(
-                contentColor = accent,
-                disabledContentColor = accent.copy(alpha = 0.5f)
-            )
-            TextButton(
-                onClick = onDismiss,
-                enabled = !state.isSaving,
-                colors = actionColors
-            ) {
-                Text(text = stringResource(id = R.string.student_editor_cancel))
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            TextButton(
-                onClick = onSave,
-                enabled = !state.isSaving && state.name.isNotBlank(),
-                colors = actionColors
-            ) {
-                Text(text = stringResource(id = R.string.student_editor_save))
-            }
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 

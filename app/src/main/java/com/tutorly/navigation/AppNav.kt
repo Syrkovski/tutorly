@@ -150,6 +150,16 @@ fun AppNavRoot() {
                                 launchSingleTop = true
                             }
                         },
+                        onEditStudent = { studentId ->
+                            nav.navigate(studentEditRoute(studentId, StudentEditTarget.PROFILE)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenStudentProfile = { studentId ->
+                            nav.navigate(studentDetailsRoute(studentId)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onOpenSettings = {
                             nav.navigate(ROUTE_SETTINGS) {
                                 launchSingleTop = true
@@ -162,6 +172,11 @@ fun AppNavRoot() {
                     TodayScreen(
                         onAddStudent = {
                             nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onEditStudent = { studentId ->
+                            nav.navigate(studentEditRoute(studentId, StudentEditTarget.PROFILE)) {
                                 launchSingleTop = true
                             }
                         },

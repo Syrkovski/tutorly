@@ -1,13 +1,29 @@
 package com.tutorly.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -17,11 +33,13 @@ import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.models.SubjectPreset
 import com.tutorly.models.Student
+import com.tutorly.ui.components.TutorlyDialog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import com.tutorly.ui.theme.extendedColors
 
 @HiltViewModel
 class StudentEditorVM @Inject constructor(
@@ -225,7 +243,7 @@ fun StudentEditorDialog(
         }
     }
 
-    StudentEditorSheet(
+    StudentEditorDialogContent(
         state = formState,
         onNameChange = vm::onNameChange,
         onPhoneChange = vm::onPhoneChange,
@@ -245,4 +263,103 @@ fun StudentEditorDialog(
         initialFocus = editTarget,
         snackbarHostState = snackbarHostState
     )
+}
+
+@Composable
+fun StudentEditorDialogContent(
+    state: StudentEditorFormState,
+    onNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onMessengerChange: (String) -> Unit,
+    onRateChange: (String) -> Unit,
+    subjectPresets: List<SubjectPreset>,
+    onSubjectChange: (String) -> Unit,
+    onGradeChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
+    editTarget: StudentEditTarget?,
+    initialFocus: StudentEditTarget?,
+    snackbarHostState: SnackbarHostState,
+) {
+    val titleRes = when {
+        state.studentId == null -> R.string.add_student
+        editTarget == StudentEditTarget.RATE -> R.string.student_editor_title_rate
+        editTarget == StudentEditTarget.PHONE -> R.string.student_editor_title_phone
+        editTarget == StudentEditTarget.MESSENGER -> R.string.student_editor_title_messenger
+        editTarget == StudentEditTarget.NOTES -> R.string.student_editor_title_note
+        else -> R.string.student_editor_title
+    }
+    val title = stringResource(id = titleRes)
+
+    TutorlyDialog(
+        onDismissRequest = {
+            if (!state.isSaving) {
+                onDismiss()
+            }
+        },
+        modifier = Modifier.imePadding()
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        if (state.isSaving) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+
+        StudentEditorForm(
+            state = state,
+            onNameChange = onNameChange,
+            onPhoneChange = onPhoneChange,
+            onMessengerChange = onMessengerChange,
+            onRateChange = onRateChange,
+            subjectPresets = subjectPresets,
+            onSubjectChange = onSubjectChange,
+            onGradeChange = onGradeChange,
+            onNoteChange = onNoteChange,
+            modifier = Modifier.fillMaxWidth(),
+            editTarget = editTarget,
+            initialFocus = initialFocus,
+            enableScrolling = true,
+            enabled = !state.isSaving,
+            onSubmit = onSave
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val accent = MaterialTheme.extendedColors.accent
+            val actionColors = ButtonDefaults.textButtonColors(
+                contentColor = accent,
+                disabledContentColor = accent.copy(alpha = 0.5f)
+            )
+            TextButton(
+                onClick = onDismiss,
+                enabled = !state.isSaving,
+                colors = actionColors
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_cancel))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(
+                onClick = onSave,
+                enabled = !state.isSaving && state.name.isNotBlank(),
+                colors = actionColors
+            ) {
+                Text(text = stringResource(id = R.string.student_editor_save))
+            }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
