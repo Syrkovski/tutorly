@@ -325,6 +325,17 @@ private fun DayInProgressContent(
                 )
             }
         }
+        if (showProgressSummary && (pendingLessons.isNotEmpty() || markedLessons.isNotEmpty())) {
+            item(key = "lessons_header") {
+                Text(
+                    text = stringResource(id = R.string.today_lessons_header),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                )
+            }
+        }
         if (state.showCloseDayCallout) {
             item(key = "close_day_callout") {
                 CloseDayCallout(onRequestCloseDay = onRequestCloseDay)
@@ -612,7 +623,7 @@ private fun DayProgressSummary(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         )  {
             Image(
-                painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
+                painter = painterResource(id = R.drawable.focused),
                 contentDescription = null,
                 modifier = Modifier.size(width = 178.dp, height = 154.dp)
             )
