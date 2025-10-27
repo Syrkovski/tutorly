@@ -149,12 +149,14 @@ internal fun LessonCardSheet(
 
     val onStudentEditClick: () -> Unit = { showStudentPicker = true }
     val onStudentProfileClick: () -> Unit = {
-        val studentId = state.studentId ?: return@onStudentProfileClick
-        scope.launch {
-            sheetState.hide()
-        }.invokeOnCompletion {
-            onDismissRequest()
-            onOpenStudentProfile(studentId)
+        val studentId = state.studentId
+        if (studentId != null) {
+            scope.launch {
+                sheetState.hide()
+            }.invokeOnCompletion {
+                onDismissRequest()
+                onOpenStudentProfile(studentId)
+            }
         }
     }
     val onDateClick: () -> Unit = {
