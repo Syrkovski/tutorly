@@ -21,7 +21,10 @@ data class ExtendedColors(
     val accent: Color,
     val chipSelected: Color,
     val backgroundTop: Color,
-    val backgroundBottom: Color
+    val backgroundBottom: Color,
+    val lessonsMetric: Color,
+    val earnedMetric: Color,
+    val prepaymentMetric: Color
 )
 
 private val LocalExtendedColors = staticCompositionLocalOf {
@@ -31,7 +34,10 @@ private val LocalExtendedColors = staticCompositionLocalOf {
         accent = OriginalPalette.accent,
         chipSelected = OriginalPalette.chipFill,
         backgroundTop = OriginalPalette.backgroundTop,
-        backgroundBottom = OriginalPalette.backgroundBottom
+        backgroundBottom = OriginalPalette.backgroundBottom,
+        lessonsMetric = OriginalPalette.lessonsHighlight,
+        earnedMetric = OriginalPalette.earnedHighlight,
+        prepaymentMetric = OriginalPalette.prepaymentHighlight
     )
 }
 
@@ -104,7 +110,10 @@ private fun createPalette(themePalette: ThemePalette): PaletteResult {
         accent = themePalette.accent,
         chipSelected = themePalette.chipFill,
         backgroundTop = themePalette.backgroundTop,
-        backgroundBottom = themePalette.backgroundBottom
+        backgroundBottom = themePalette.backgroundBottom,
+        lessonsMetric = themePalette.lessonsHighlight,
+        earnedMetric = themePalette.earnedHighlight,
+        prepaymentMetric = themePalette.prepaymentHighlight
     )
     return PaletteResult(scheme, extended)
 }

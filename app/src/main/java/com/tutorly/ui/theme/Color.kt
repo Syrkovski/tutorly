@@ -8,7 +8,10 @@ internal data class ThemePalette(
     val accent: Color,
     val chipFill: Color,
     val backgroundTop: Color,
-    val backgroundBottom: Color
+    val backgroundBottom: Color,
+    val lessonsHighlight: Color,
+    val earnedHighlight: Color,
+    val prepaymentHighlight: Color
 )
 
 internal val OriginalPalette = ThemePalette(
@@ -17,7 +20,10 @@ internal val OriginalPalette = ThemePalette(
     accent = Color(0xFF4E998C),
     chipFill = Color(0xFFE7EFEA),
     backgroundTop = Color(0xFFF7FBFA),
-    backgroundBottom = Color(0xFFF0F6F4)
+    backgroundBottom = Color(0xFFF0F6F4),
+    lessonsHighlight = Color(0xFFDFF4ED),
+    earnedHighlight = Color(0xFFFFF1DD),
+    prepaymentHighlight = Color(0xFFE5F0FB)
 )
 
 internal val PlumPalette = ThemePalette(
@@ -26,7 +32,10 @@ internal val PlumPalette = ThemePalette(
     accent = Color(0xFF6F497E),
     chipFill = Color(0xFFE6D3EE),
     backgroundTop = Color(0xFFFAF3FE),
-    backgroundBottom = Color(0xFFF0E3F8)
+    backgroundBottom = Color(0xFFF0E3F8),
+    lessonsHighlight = Color(0xFFF2E3F7),
+    earnedHighlight = Color(0xFFFFEDE2),
+    prepaymentHighlight = Color(0xFFE7F0FB)
 )
 
 internal val RoyalPalette = ThemePalette(
@@ -35,7 +44,10 @@ internal val RoyalPalette = ThemePalette(
     accent = Color(0xFF416BC0),
     chipFill = Color(0xFFE3E9F7),
     backgroundTop = Color(0xFFF5F8FE),
-    backgroundBottom = Color(0xFFEBF2FC)
+    backgroundBottom = Color(0xFFEBF2FC),
+    lessonsHighlight = Color(0xFFE1EBFF),
+    earnedHighlight = Color(0xFFFFF1DD),
+    prepaymentHighlight = Color(0xFFE2F5ED)
 )
 
 val CardSurface = Color(0xFFFFFFFF)

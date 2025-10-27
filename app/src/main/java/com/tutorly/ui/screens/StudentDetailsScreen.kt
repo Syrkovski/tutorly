@@ -806,6 +806,7 @@ private fun StudentProfileMetricsSection(
     } ?: stringResource(id = R.string.students_rate_placeholder)
     val earnedValue = numberFormatter.format(profile.metrics.totalPaidCents / 100.0)
     val prepaymentValue = numberFormatter.format(profile.metrics.prepaymentCents / 100.0)
+    val extendedColors = MaterialTheme.extendedColors
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -822,7 +823,8 @@ private fun StudentProfileMetricsSection(
                 ProfileMetricTile(
                     icon = Icons.Outlined.CalendarToday,
                     value = lessonsCount,
-                    label = stringResource(id = R.string.student_profile_metrics_lessons_label)
+                    label = stringResource(id = R.string.student_profile_metrics_lessons_label),
+                    containerColor = extendedColors.lessonsMetric
                 )
                 ProfileMetricTile(
                     icon = Icons.Outlined.Schedule,
@@ -838,13 +840,15 @@ private fun StudentProfileMetricsSection(
                 ProfileMetricTile(
                     icon = Icons.Outlined.CreditCard,
                     value = earnedValue,
-                    label = stringResource(id = R.string.student_profile_metrics_earned_label)
+                    label = stringResource(id = R.string.student_profile_metrics_earned_label),
+                    containerColor = extendedColors.earnedMetric
                 )
                 ProfileMetricTile(
                     icon = Icons.Outlined.Savings,
                     value = prepaymentValue,
                     label = stringResource(id = R.string.student_profile_metrics_prepayment_label),
-                    onClick = onPrepaymentClick
+                    onClick = onPrepaymentClick,
+                    containerColor = extendedColors.prepaymentMetric
                 )
             }
         }
@@ -857,9 +861,15 @@ private fun ProfileMetricTile(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    containerColor: Color? = null
 ) {
     val cardModifier = modifier.fillMaxWidth()
+    val cardColors = if (containerColor != null) {
+        TutorlyCardDefaults.colors(containerColor = containerColor)
+    } else {
+        TutorlyCardDefaults.colors()
+    }
     val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier
@@ -894,14 +904,14 @@ private fun ProfileMetricTile(
             onClick = onClick,
             modifier = cardModifier,
             shape = MaterialTheme.shapes.large,
-            colors = TutorlyCardDefaults.colors(),
+            colors = cardColors,
             elevation = TutorlyCardDefaults.elevation()
         ) { content() }
     } else {
         Card(
             modifier = cardModifier,
             shape = MaterialTheme.shapes.large,
-            colors = TutorlyCardDefaults.colors(),
+            colors = cardColors,
             elevation = TutorlyCardDefaults.elevation()
         ) { content() }
     }
