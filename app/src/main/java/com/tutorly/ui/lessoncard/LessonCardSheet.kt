@@ -144,15 +144,10 @@ internal fun LessonCardSheet(
 
     val onStudentEditClick: () -> Unit = {
         val studentId = state.studentId
-        scope.launch {
-            sheetState.hide()
-        }.invokeOnCompletion {
-            onDismissRequest()
-            if (studentId != null) {
-                onEditStudent(studentId)
-            } else {
-                onAddStudent()
-            }
+        if (studentId != null) {
+            onEditStudent(studentId)
+        } else {
+            onAddStudent()
         }
     }
     val onStudentProfileClick: () -> Unit = {
