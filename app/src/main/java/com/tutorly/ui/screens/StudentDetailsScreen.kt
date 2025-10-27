@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -76,7 +77,7 @@ import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.SubjectPreset
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.GradientTopBarContainer
+import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.components.TutorlyDialog
@@ -420,36 +421,31 @@ private fun StudentProfileTopBar(
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
 ) {
-    GradientTopBarContainer {
+    TopBarContainer {
         val hasActions = listOfNotNull(
             onEditProfileClick,
             if (onArchiveClick != null && isArchived != null) onArchiveClick else null,
             onDeleteClick
         ).isNotEmpty()
-        val titlePaddingEnd = if (hasActions) {
-            val buttonWidth = 48.dp
-            val spacingBetweenTitleAndButtons = 12.dp
-            buttonWidth + spacingBetweenTitleAndButtons
-        } else {
-            0.dp
-        }
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 30.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                .height(80.dp)
+                .padding(horizontal = 16.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = titlePaddingEnd)
+                    .align(Alignment.Center)
+                    .padding(horizontal = if (hasActions) 72.dp else 0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = title,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center
                 )
 
                 if (!subtitle.isNullOrBlank()) {
@@ -457,19 +453,22 @@ private fun StudentProfileTopBar(
                         text = subtitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = Color.White.copy(alpha = 0.75f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
 
             if (hasActions) {
-                val buttonColors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                val buttonColors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
 
                 var isMenuExpanded by remember { mutableStateOf(false) }
 
-                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
                     IconButton(
                         onClick = { isMenuExpanded = true },
                         colors = buttonColors
@@ -483,7 +482,7 @@ private fun StudentProfileTopBar(
                     DropdownMenu(
                         expanded = isMenuExpanded,
                         onDismissRequest = { isMenuExpanded = false },
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     ) {
                         if (onEditProfileClick != null) {
                             DropdownMenuItem(

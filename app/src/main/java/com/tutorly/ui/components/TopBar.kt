@@ -1,16 +1,13 @@
 package com.tutorly.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,14 +22,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
-import com.tutorly.ui.theme.extendedColors
+
+private val TopBarBackgroundColor = Color(0xFFFEFEFE)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +39,7 @@ fun AppTopBar(
     actions: @Composable RowScope.() -> Unit = {},
     navigationIcon: (@Composable () -> Unit)? = null
 ) {
-    GradientTopBarContainer {
+    TopBarContainer {
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
@@ -50,74 +47,61 @@ fun AppTopBar(
             title = {
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .padding(start = 30.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        title,
+                        text = title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
             navigationIcon = {
                 navigationIcon?.invoke()
             },
+            actions = {
+                actions()
+                onAddClick?.let {
+                    FilledTonalIconButton(
+                        onClick = it,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = stringResource(id = R.string.add_student)
+                        )
+                    }
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+                navigationIconContentColor = MaterialTheme.colorScheme.onSurface
             ),
-            windowInsets = WindowInsets(0, 0, 0, 0),
-//                actions = {
-//                    actions()
-//                    onAddClick?.let {
-//                        FilledTonalIconButton(
-//                            onClick = it,
-//                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-//                                containerColor = MaterialTheme.extendedColors.accent,
-//                                contentColor = MaterialTheme.colorScheme.onSecondary
-//                            )
-//                        ) {
-//                            Icon(
-//                                Icons.Default.Add,
-//                                contentDescription = stringResource(id = R.string.add_student)
-//                            )
-//                        }
-//                    }
-//                }
+            windowInsets = WindowInsets(0, 0, 0, 0)
         )
     }
 }
 
 @Composable
-fun GradientTopBarContainer(content: @Composable () -> Unit) {
-    val shape = RoundedCornerShape(0.dp)
-    val extended = MaterialTheme.extendedColors
-    val startColor = extended.topBarStart
-    val endColor = extended.topBarEnd
+fun TopBarContainer(content: @Composable () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 12.dp, shape = shape, clip = false),
-        color = Color.Transparent,
-        shape = shape,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+        modifier = Modifier.fillMaxWidth(),
+        color = TopBarBackgroundColor,
+        shadowElevation = 4.dp,
+        tonalElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(endColor, startColor)
-                    )
-                )
                 .statusBarsPadding()
         ) {
             content()

@@ -365,8 +365,8 @@ private fun RowScope.StudentsArchiveAction(
         }
     )
     val buttonColors = IconButtonDefaults.iconButtonColors(
-        contentColor = Color.White,
-        disabledContentColor = Color.White.copy(alpha = 0.4f)
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
     )
 
     IconButton(
