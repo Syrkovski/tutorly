@@ -243,7 +243,9 @@ fun CalendarScreen(
                     contentDescription = stringResource(id = R.string.lesson_create_title)
                 )
             }
-        containerColor = Color.Transparent
+
+//            containerColor = Color.Transparent
+        }
     ) { padding ->
         Column(
             Modifier
@@ -296,8 +298,7 @@ fun CalendarScreen(
                                     animationSpec = tween(durationMillis = 250)
                                 ) + fadeOut(animationSpec = tween(250)))
                     }
-                }
-                ,
+                },
                 label = "day-switch"
             ) { currentDate ->
                 val lessonsForCurrent = remember(currentDate, uiState.lessonsByDate) {
@@ -314,9 +315,14 @@ fun CalendarScreen(
                             lessonCardViewModel.open(lesson.id)
                         },
                         onEmptySlot = { startTime ->
-                            viewModel.onEmptySlotSelected(currentDate, startTime, DefaultSlotDuration)
+                            viewModel.onEmptySlotSelected(
+                                currentDate,
+                                startTime,
+                                DefaultSlotDuration
+                            )
                         }
                     )
+
                     CalendarMode.WEEK -> WeekMosaic(
                         anchor = currentDate,
                         onOpenDay = { selected ->
@@ -336,11 +342,10 @@ fun CalendarScreen(
                     )
                 }
             }
-
         }
     }
-    }
 }
+    }
 
 private fun CalendarLesson.toLessonBrief(): LessonBrief {
     return LessonBrief(
