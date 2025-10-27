@@ -388,7 +388,7 @@ fun CalendarTopBar(
             Text(
                 text = monthLabel,
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .align(Alignment.Center)
 //                    .padding(horizontal = 96.dp)
@@ -401,7 +401,7 @@ fun CalendarTopBar(
                 onClick = onOpenSettings,
                 modifier = Modifier.align(Alignment.CenterEnd),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    contentColor = MaterialTheme.colorScheme.surface
                 )
             ) {
                 Icon(

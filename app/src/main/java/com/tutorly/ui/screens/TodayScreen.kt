@@ -1367,7 +1367,7 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
             Text(
                 text = stringResource(titleRes),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .padding(horizontal = if (canReopen) 72.dp else 0.dp),
@@ -1381,7 +1381,7 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
                     onClick = onReopenDay,
                     modifier = Modifier.align(Alignment.CenterEnd),
                     colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        contentColor = MaterialTheme.colorScheme.surface
                     )
                 ) {
                     Icon(
