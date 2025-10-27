@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
-import com.tutorly.ui.components.GradientTopBarContainer
+import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
@@ -59,26 +59,29 @@ fun FinanceTopBar(
     onSelectPeriod: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    GradientTopBarContainer {
-        Row(
+    TopBarContainer {
+        Box(
             modifier = modifier
                 .fillMaxWidth()
                 .height(80.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp)
         ) {
             Text(
                 text = stringResource(id = R.string.finance_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 96.dp)
             )
 
             FinancePeriodToggle(
                 selected = selectedPeriod,
-                onSelect = onSelectPeriod
+                onSelect = onSelectPeriod,
+                modifier = Modifier.align(Alignment.CenterEnd)
             )
         }
     }
@@ -99,8 +102,8 @@ private fun FinancePeriodToggle(
         FinancePeriod.entries.forEach { period ->
             val isSelected = period == selected
             val segmentShape = RoundedCornerShape(20.dp)
-            val background = if (isSelected) Color.White else Color.White.copy(alpha = 0.12f)
-            val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+            val background = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
 
             Surface(
                 onClick = { onSelect(period) },
@@ -108,7 +111,8 @@ private fun FinancePeriodToggle(
                 color = background,
                 contentColor = contentColor,
                 tonalElevation = 0.dp,
-                shadowElevation = if (isSelected) 2.dp else 0.dp
+                shadowElevation = if (isSelected) 2.dp else 0.dp,
+                border = null
             ) {
                 Text(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),

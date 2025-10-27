@@ -55,6 +55,7 @@ import com.tutorly.ui.CalendarEvent
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChipData
+import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.screens.normalizeGrade
@@ -375,17 +376,10 @@ fun CalendarTopBar(
     val weekDays = remember(weekStart) { (0 until 7).map { weekStart.plusDays(it.toLong()) } }
     val today = remember(currentDateTime) { currentDateTime.toLocalDate() }
 
-    val backgroundColor = Color(0xFFFEFEFE)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp))
-            .background(backgroundColor)
-    ) {
+    TopBarContainer {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding(),
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
