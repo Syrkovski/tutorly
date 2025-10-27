@@ -860,6 +860,7 @@ private fun TodayDebtorsSection(
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
+                showLessonDate = true,
             )
         }
     }
@@ -927,7 +928,8 @@ private fun PastDebtorsCollapsible(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                onLessonLongPress = { lesson -> onOpenStudentProfile(lesson.studentId) }
+                onLessonLongPress = { lesson -> onOpenStudentProfile(lesson.studentId) },
+                showLessonDate = true,
             )
         }
         if (hasMore) {
@@ -1051,7 +1053,8 @@ private fun LessonsList(
     cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
     onLessonLongPress: (LessonForToday) -> Unit = { lesson ->
         onOpenStudentProfile(lesson.studentId)
-    }
+    },
+    showLessonDate: Boolean = false,
 ) {
     if (lessons.isEmpty()) {
         return
@@ -1065,6 +1068,7 @@ private fun LessonsList(
                 onClick = { onLessonOpen(lesson.id) },
                 onLongPress = { onLessonLongPress(lesson) },
                 cardElevation = cardElevation,
+                showLessonDate = showLessonDate,
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -1081,6 +1085,7 @@ private fun TodayLessonRow(
     onClick: () -> Unit,
     onLongPress: () -> Unit,
     cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -1116,7 +1121,8 @@ private fun TodayLessonRow(
                         onClick = onClick,
                         onLongClick = onLongPress
                     ),
-                cardElevation = cardElevation
+                cardElevation = cardElevation,
+                showLessonDate = showLessonDate,
             )
         }
     }
@@ -1194,8 +1200,10 @@ private fun LessonCard(
     lesson: LessonForToday,
     modifier: Modifier = Modifier,
     cardColors: CardColors = TutorlyCardDefaults.colors(containerColor = Color.White),
-    cardElevation: CardElevation = TutorlyCardDefaults.elevation()
+    cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
+    showLessonDate: Boolean = false,
 ) {
+    val context = LocalContext.current
     val zoneId = remember { ZoneId.systemDefault() }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val currencyFormatter = rememberCurrencyFormatter()
@@ -1218,6 +1226,16 @@ private fun LessonCard(
     val grade = normalizeGrade(lesson.studentGrade)
     val subtitle = listOfNotNull(grade, subjectTitle).joinToString(separator = " • ")
     val durationLabel = stringResource(R.string.today_duration_format, durationMinutes)
+    val locale = remember(context) {
+        val locales = context.resources.configuration.locales
+        if (locales.isEmpty) Locale.getDefault() else locales[0]
+    }
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
+    val lessonDateText = remember(start, locale) {
+        dateFormatter.format(start.toLocalDate()).replaceFirstChar { char ->
+            if (char.isLowerCase()) char.titlecase(locale) else char.toString()
+        }
+    }
     val statusData = statusChipData(
         paymentStatus = lesson.paymentStatus,
         start = start,
@@ -1256,6 +1274,15 @@ private fun LessonCard(
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (showLessonDate) {
+                        Text(
+                            text = lessonDateText,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
