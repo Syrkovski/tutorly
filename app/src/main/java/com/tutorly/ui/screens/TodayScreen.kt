@@ -3,7 +3,6 @@ package com.tutorly.ui.screens
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,10 +68,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -259,7 +255,6 @@ private fun EmptyState(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-//                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.vacation),
@@ -343,7 +338,6 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    showTimeline = true,
                     onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
@@ -359,7 +353,6 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    showTimeline = true,
                     onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
                 )
             }
@@ -426,7 +419,6 @@ private fun ReviewPendingContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    showTimeline = true
                 )
             }
         }
@@ -857,7 +849,6 @@ private fun TodayDebtorsSection(
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
-                showTimeline = true
             )
         }
     }
@@ -925,7 +916,6 @@ private fun PastDebtorsCollapsible(
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
                 cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                showTimeline = false,
                 onLessonLongPress = { lesson -> onOpenStudentProfile(lesson.studentId) }
             )
         }
@@ -1048,7 +1038,6 @@ private fun LessonsList(
     onLessonOpen: (Long) -> Unit,
     onOpenStudentProfile: (Long) -> Unit,
     cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
-    showTimeline: Boolean = false,
     onLessonLongPress: (LessonForToday) -> Unit = { lesson ->
         onOpenStudentProfile(lesson.studentId)
     }
@@ -1056,7 +1045,6 @@ private fun LessonsList(
     if (lessons.isEmpty()) {
         return
     }
-    val timelineColor = MaterialTheme.colorScheme.primary
     Column(modifier = Modifier.fillMaxWidth()) {
         lessons.forEachIndexed { index, lesson ->
             TodayLessonRow(
@@ -1066,93 +1054,12 @@ private fun LessonsList(
                 onClick = { onLessonOpen(lesson.id) },
                 onLongPress = { onLessonLongPress(lesson) },
                 cardElevation = cardElevation,
-                showTimeline = showTimeline,
-                hasPrevious = showTimeline && index > 0,
-                hasNext = showTimeline && index < lessons.lastIndex,
-                timelineColor = timelineColor
             )
             Spacer(modifier = Modifier.height(12.dp))
-//            if (index < lessons.lastIndex) {
-//                if (showTimeline) {
-//                    LessonTimelineConnector(color = timelineColor)
-//                } else {
-//                    Spacer(modifier = Modifier.height(12.dp))
-//                }
-//            }
         }
     }
 }
 
-@Composable
-private fun LessonTimelineIndicator(
-    color: Color,
-    hasPrevious: Boolean,
-    hasNext: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val strokeWidth = with(LocalDensity.current) { 2.dp.toPx() }
-    val nodeRadius = with(LocalDensity.current) { 6.dp.toPx() }
-    Canvas(
-        modifier = modifier
-            .width(24.dp)
-            .fillMaxHeight()
-    ) {
-        val centerX = size.width / 2f
-        val centerY = size.height / 2f
-        if (hasPrevious) {
-            drawLine(
-                color = color,
-                start = Offset(centerX, 0f),
-                end = Offset(centerX, centerY - nodeRadius),
-                strokeWidth = strokeWidth
-            )
-        }
-        if (hasNext) {
-            drawLine(
-                color = color,
-                start = Offset(centerX, centerY + nodeRadius),
-                end = Offset(centerX, size.height),
-                strokeWidth = strokeWidth
-            )
-        }
-        drawCircle(
-            color = surfaceColor,
-            radius = nodeRadius + strokeWidth / 2f,
-            center = Offset(centerX, centerY)
-        )
-        drawCircle(
-            color = color,
-            radius = nodeRadius,
-            center = Offset(centerX, centerY)
-        )
-    }
-}
-
-@Composable
-private fun LessonTimelineConnector(color: Color) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Canvas(
-            modifier = Modifier
-                .width(24.dp)
-                .fillMaxHeight()
-        ) {
-            val centerX = size.width / 2f
-            drawLine(
-                color = color,
-                start = Offset(centerX, 0f),
-                end = Offset(centerX, size.height),
-                strokeWidth = 2.dp.toPx()
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -1163,10 +1070,6 @@ private fun TodayLessonRow(
     onClick: () -> Unit,
     onLongPress: () -> Unit,
     cardElevation: CardElevation = TutorlyCardDefaults.elevation(),
-    showTimeline: Boolean = false,
-    hasPrevious: Boolean = false,
-    hasNext: Boolean = false,
-    timelineColor: Color = Color.Unspecified
 ) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
@@ -1182,11 +1085,6 @@ private fun TodayLessonRow(
         }
     })
 
-    val resolvedTimelineColor = if (timelineColor == Color.Unspecified) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        timelineColor
-    }
 
     Row(
         modifier = Modifier
@@ -1194,46 +1092,21 @@ private fun TodayLessonRow(
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.Top
     ) {
-        if (showTimeline) {
-//            LessonTimelineIndicator(
-//                color = resolvedTimelineColor,
-//                hasPrevious = hasPrevious,
-//                hasNext = hasNext
-//            )
-//            Spacer(modifier = Modifier.width(12.dp))
-            SwipeToDismissBox(
-                state = dismissState,
-                modifier = Modifier.weight(1f),
-                backgroundContent = { DismissBackground(state = dismissState) }
-            ) {
-                LessonCard(
-                    lesson = lesson,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = onClick,
-                            onLongClick = onLongPress
-                        ),
-                    cardElevation = cardElevation
-                )
-            }
-        } else {
-            SwipeToDismissBox(
-                state = dismissState,
-                modifier = Modifier.fillMaxWidth(),
-                backgroundContent = { DismissBackground(state = dismissState) }
-            ) {
-                LessonCard(
-                    lesson = lesson,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = onClick,
-                            onLongClick = onLongPress
-                        ),
-                    cardElevation = cardElevation
-                )
-            }
+        SwipeToDismissBox(
+            state = dismissState,
+            modifier = Modifier.weight(1f),
+            backgroundContent = { DismissBackground(state = dismissState) }
+        ) {
+            LessonCard(
+                lesson = lesson,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongPress
+                    ),
+                cardElevation = cardElevation
+            )
         }
     }
 }

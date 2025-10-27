@@ -934,19 +934,20 @@ private fun LessonBlock(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+//                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = lessonUi.studentName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     lessonUi.secondaryLine?.let { secondaryLine ->
                         Text(
                             text = secondaryLine,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

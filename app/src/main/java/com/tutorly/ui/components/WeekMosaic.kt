@@ -264,7 +264,7 @@ private fun LessonRowCompact(
 
     Surface(
 //        color = containerColor,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+//        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(12.dp),
         border = border,
 //        tonalElevation = if (tone == LessonTone.Ongoing) 2.dp else 0.dp,
@@ -283,13 +283,13 @@ private fun LessonRowCompact(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+//                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = titleColor,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -299,7 +299,7 @@ private fun LessonRowCompact(
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = secondaryColor,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -312,7 +312,7 @@ private fun LessonRowCompact(
 //                    maxLines = 1,
 //                    overflow = TextOverflow.Ellipsis
 //                )
-
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = timeRange,
                     style = MaterialTheme.typography.bodyMedium,
