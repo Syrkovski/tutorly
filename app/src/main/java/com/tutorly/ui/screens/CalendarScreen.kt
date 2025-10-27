@@ -352,7 +352,7 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
 /* ----------------------------- TOP BAR ----------------------------------- */
 
 @Composable
-private fun CalendarTopBar(
+fun CalendarTopBar(
     anchor: LocalDate,
     currentDateTime: ZonedDateTime,
     mode: CalendarMode,

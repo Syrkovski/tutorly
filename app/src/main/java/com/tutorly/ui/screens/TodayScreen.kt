@@ -475,7 +475,7 @@ private fun ReviewSummaryCard(
                 Image(
                     painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
                     contentDescription = null,
-                    modifier = Modifier.size(width = 360.dp, height = 297.dp)
+                    modifier = Modifier.size(width = 240.dp, height = 148.dp)
                 )
 
                 val titleRes = if (showCloseDayButton) {
@@ -485,14 +485,15 @@ private fun ReviewSummaryCard(
                 }
                 Text(
                     text = stringResource(id = titleRes),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
                 )
                 if (showCloseDayButton) {
-                    Text(
-                        text = stringResource(id = R.string.today_review_ready_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+//                    Text(
+//                        text = stringResource(id = R.string.today_review_ready_subtitle),
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant
+//                    )
                 } else if (total > 0 && remaining > 0) {
                     Text(
                         text = stringResource(id = R.string.today_review_progress, remaining, total),
@@ -511,15 +512,15 @@ private fun ReviewSummaryCard(
 
             }
         }
-        if (!showCloseDayButton) {
-            Text(
-                text = stringResource(id = R.string.today_review_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+//        if (!showCloseDayButton) {
+//            Text(
+//                text = stringResource(id = R.string.today_review_subtitle),
+//                style = MaterialTheme.typography.bodySmall,
+//                color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                textAlign = TextAlign.Center,
+//                modifier = Modifier.fillMaxWidth()
+//            )
+//        }
     }
 }
 
@@ -540,14 +541,6 @@ private fun LessonsReviewCarousel(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        TodayLessonRow(
-            lesson = currentLesson,
-            onSwipeRight = onSwipeRight,
-            onSwipeLeft = onSwipeLeft,
-            onClick = { onLessonOpen(currentLesson.id) },
-            onLongPress = { onOpenStudentProfile(currentLesson.studentId) },
-            cardElevation = TutorlyCardDefaults.elevation()
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -563,6 +556,14 @@ private fun LessonsReviewCarousel(
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
+        TodayLessonRow(
+            lesson = currentLesson,
+            onSwipeRight = onSwipeRight,
+            onSwipeLeft = onSwipeLeft,
+            onClick = { onLessonOpen(currentLesson.id) },
+            onLongPress = { onOpenStudentProfile(currentLesson.studentId) },
+            cardElevation = TutorlyCardDefaults.elevation()
+        )
     }
 }
 
@@ -860,7 +861,7 @@ private fun TodayDebtorsSection(
                 onSwipeLeft = onSwipeLeft,
                 onLessonOpen = onLessonOpen,
                 onOpenStudentProfile = onOpenStudentProfile,
-                showLessonDate = true,
+                showLessonDate = false,
             )
         }
     }
@@ -912,7 +913,7 @@ private fun PastDebtorsCollapsible(
         titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
         titleTextAlign = titleTextAlign,
         subtitle = subtitle,
-        inlineIndicator = true
+//        inlineIndicator = true
     ) {
         if (lessons.isEmpty()) {
             Text(
@@ -1264,6 +1265,15 @@ private fun LessonCard(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    if (showLessonDate) {
+                        Text(
+                            text = lessonDateText,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Text(
                         text = studentName,
                         style = MaterialTheme.typography.titleMedium,
@@ -1279,15 +1289,7 @@ private fun LessonCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (showLessonDate) {
-                        Text(
-                            text = lessonDateText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+
                 }
                 androidx.compose.foundation.layout.FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -1360,7 +1362,9 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
         CenterAlignedTopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .padding(top = 0.dp, bottom = 0.dp),
+//                .height(80.dp),
+
             title = {
                 Text(
                     text = stringResource(titleRes),
