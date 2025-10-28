@@ -81,6 +81,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 enum class CalendarMode { DAY, WEEK }
@@ -725,6 +727,7 @@ private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
 private const val SlotIncrementMinutes: Int = 15
+private const val MaxHighlightOffsetMinutes: Int = 30
 private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
 private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
 private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
@@ -940,18 +943,14 @@ private fun DayTimeline(
                             .toMinutes()
                             .toInt()
                             .coerceAtLeast(SlotIncrementMinutes)
-                        val minStart = startMinutes
-                        val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
-                        val newTopMinutesFromStart = (state.baseTopPx + state.translationPx) / minuteHeightPx
-                        val rawStartMinutes = startMinutes + newTopMinutesFromStart
-                        val clampedStartMinutes = rawStartMinutes
-                            .coerceIn(minStart.toFloat(), maxStart.toFloat())
-                        val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
-                        val snappedSlots = ((clampedStartMinutes - minStart) / SlotIncrementMinutes.toFloat())
-                            .roundToInt()
-                            .coerceIn(0, maxSlots)
-                        val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
-                            .coerceIn(minStart, maxStart)
+                        val snappedMinutes = resolveDragTargetMinutes(
+                            baseTopPx = state.baseTopPx,
+                            translationPx = state.translationPx,
+                            minuteHeightPx = minuteHeightPx,
+                            startMinutes = startMinutes,
+                            endMinutes = endMinutes,
+                            lessonDurationMinutes = lessonDurationMinutes
+                        )
                         val highlightTop = minuteHeight * (snappedMinutes - startMinutes).toFloat()
                         val highlightHeight = minuteHeight * lessonDurationMinutes.toFloat()
                         val clippedHighlightHeight = maxOf(0.dp, highlightHeight - 8.dp)
@@ -1020,18 +1019,14 @@ private fun DayTimeline(
                                     .toMinutes()
                                     .toInt()
                                     .coerceAtLeast(SlotIncrementMinutes)
-                                val minStart = startMinutes
-                                val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
-                                val newTopMinutesFromStart = (state.baseTopPx + state.translationPx) / minuteHeightPx
-                                val rawStartMinutes = startMinutes + newTopMinutesFromStart
-                                val clampedStartMinutes = rawStartMinutes
-                                    .coerceIn(minStart.toFloat(), maxStart.toFloat())
-                                val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
-                                val snappedSlots = ((clampedStartMinutes - minStart) / SlotIncrementMinutes.toFloat())
-                                    .roundToInt()
-                                    .coerceIn(0, maxSlots)
-                                val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
-                                    .coerceIn(minStart, maxStart)
+                                val snappedMinutes = resolveDragTargetMinutes(
+                                    baseTopPx = state.baseTopPx,
+                                    translationPx = state.translationPx,
+                                    minuteHeightPx = minuteHeightPx,
+                                    startMinutes = startMinutes,
+                                    endMinutes = endMinutes,
+                                    lessonDurationMinutes = lessonDurationMinutes
+                                )
                                 val hour = snappedMinutes / MinutesPerHour
                                 val minute = snappedMinutes % MinutesPerHour
                                 val zone = stateLesson.start.zone
@@ -1086,6 +1081,49 @@ private data class LessonDragState(
     val baseHeightPx: Float,
     val translationPx: Float = 0f
 )
+
+private fun resolveDragTargetMinutes(
+    baseTopPx: Float,
+    translationPx: Float,
+    minuteHeightPx: Float,
+    startMinutes: Int,
+    endMinutes: Int,
+    lessonDurationMinutes: Int
+): Int {
+    val minStart = startMinutes
+    val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
+    if (minuteHeightPx == 0f) {
+        return minStart
+    }
+
+    val newTopMinutesFromStart = (baseTopPx + translationPx) / minuteHeightPx
+    val rawStartMinutes = startMinutes + newTopMinutesFromStart
+    val clampedStartMinutes = rawStartMinutes
+        .coerceIn(minStart.toFloat(), maxStart.toFloat())
+
+    val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
+    val slotsFloat = (clampedStartMinutes - minStart.toFloat()) / SlotIncrementMinutes.toFloat()
+    val snappedSlots = slotsFloat
+        .roundToInt()
+        .coerceIn(0, maxSlots)
+    val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
+        .coerceIn(minStart, maxStart)
+
+    val differenceSlots = snappedSlots.toFloat() - slotsFloat
+    val maxOffsetSlots = MaxHighlightOffsetMinutes / SlotIncrementMinutes
+    if (abs(differenceSlots) <= maxOffsetSlots.toFloat()) {
+        return snappedMinutes
+    }
+
+    val limitedSlots = if (differenceSlots > 0f) {
+        snappedSlots.coerceAtMost(floor((slotsFloat + maxOffsetSlots.toFloat()).toDouble()).toInt())
+    } else {
+        snappedSlots.coerceAtLeast(ceil((slotsFloat - maxOffsetSlots.toFloat()).toDouble()).toInt())
+    }.coerceIn(0, maxSlots)
+
+    return (minStart + limitedSlots * SlotIncrementMinutes)
+        .coerceIn(minStart, maxStart)
+}
 
 @Composable
 private fun LessonBlock(
