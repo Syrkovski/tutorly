@@ -552,6 +552,32 @@ class LessonCreationViewModel @Inject constructor(
         _uiState.update { it.copy(note = value) }
     }
 
+    fun onRecurrenceEnabledChanged(enabled: Boolean) {
+        updateUiState(recalculateRecurrence = true) { state ->
+            if (enabled) {
+                val targetMode = if (state.recurrenceMode == RecurrenceMode.NONE) {
+                    RecurrenceMode.WEEKLY
+                } else {
+                    state.recurrenceMode
+                }
+                val days = when (targetMode) {
+                    RecurrenceMode.NONE, RecurrenceMode.MONTHLY_BY_DOW -> emptySet()
+                    else -> if (state.recurrenceDays.isEmpty()) setOf(state.date.dayOfWeek) else state.recurrenceDays
+                }
+                state.copy(
+                    isRecurring = true,
+                    recurrenceMode = targetMode,
+                    recurrenceDays = days
+                )
+            } else {
+                state.copy(
+                    isRecurring = false,
+                    recurrenceEndEnabled = false
+                )
+            }
+        }
+    }
+
     fun onRecurrenceModeSelected(mode: RecurrenceMode) {
         updateUiState(recalculateRecurrence = true) { state ->
             val normalizedInterval = when (mode) {
@@ -565,6 +591,7 @@ class LessonCreationViewModel @Inject constructor(
                 else -> if (state.recurrenceDays.isEmpty()) setOf(state.date.dayOfWeek) else state.recurrenceDays
             }
             state.copy(
+                isRecurring = mode != RecurrenceMode.NONE,
                 recurrenceMode = mode,
                 recurrenceInterval = normalizedInterval,
                 recurrenceDays = days,
@@ -575,7 +602,7 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onRecurrenceDayToggled(day: DayOfWeek) {
         updateUiState(recalculateRecurrence = true) { state ->
-            if (state.recurrenceMode == RecurrenceMode.NONE || state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW) {
+            if (!state.isRecurring || state.recurrenceMode == RecurrenceMode.NONE || state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW) {
                 return@updateUiState state
             }
             val current = state.recurrenceDays
@@ -593,7 +620,7 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onRecurrenceEndEnabledChanged(enabled: Boolean) {
         updateUiState(recalculateRecurrence = true) { state ->
-            val effective = enabled && state.recurrenceMode != RecurrenceMode.NONE
+            val effective = enabled && state.isRecurring && state.recurrenceMode != RecurrenceMode.NONE
             val endDate = if (effective) state.recurrenceEndDate ?: state.date else null
             state.copy(
                 recurrenceEndEnabled = effective,
@@ -777,7 +804,7 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     private fun refreshRecurrence(state: LessonCreationUiState): LessonCreationUiState {
-        val isRecurring = state.recurrenceMode != RecurrenceMode.NONE
+        val isRecurring = state.isRecurring && state.recurrenceMode != RecurrenceMode.NONE
         val baseDay = state.date.dayOfWeek
         val sanitizedInterval = state.recurrenceInterval.coerceAtLeast(1)
         val effectiveInterval = when (state.recurrenceMode) {
@@ -835,7 +862,7 @@ class LessonCreationViewModel @Inject constructor(
         state: LessonCreationUiState,
         start: ZonedDateTime
     ): RecurrenceCreateRequest? {
-        if (state.recurrenceMode == RecurrenceMode.NONE) return null
+        if (!state.isRecurring || state.recurrenceMode == RecurrenceMode.NONE) return null
         val frequency = when (state.recurrenceMode) {
             RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
             RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY

@@ -114,6 +114,7 @@ fun LessonCreationSheet(
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationChange: (Int) -> Unit,
+    onRecurrenceToggle: (Boolean) -> Unit,
     onRecurrenceModeChange: (RecurrenceMode) -> Unit,
     onRecurrenceDayToggle: (DayOfWeek) -> Unit,
     onRecurrenceIntervalChange: (Int) -> Unit,
@@ -158,6 +159,7 @@ fun LessonCreationSheet(
                 DurationSection(state = state, onDurationChange = onDurationChange)
                 RecurrenceSection(
                     state = state,
+                    onToggle = onRecurrenceToggle,
                     onModeSelect = onRecurrenceModeChange,
                     onDayToggle = onRecurrenceDayToggle,
                     onIntervalChange = onRecurrenceIntervalChange,
@@ -734,6 +736,7 @@ private fun DurationSection(
 @Composable
 private fun RecurrenceSection(
     state: LessonCreationUiState,
+    onToggle: (Boolean) -> Unit,
     onModeSelect: (RecurrenceMode) -> Unit,
     onDayToggle: (DayOfWeek) -> Unit,
     onIntervalChange: (Int) -> Unit,
@@ -758,7 +761,6 @@ private fun RecurrenceSection(
         state.date.atStartOfDay(state.zoneId).toInstant().toEpochMilli()
     }
     val modeOptions = listOf(
-        RecurrenceMode.NONE to R.string.lesson_recurrence_option_none,
         RecurrenceMode.WEEKLY to R.string.lesson_recurrence_option_weekly,
         RecurrenceMode.CUSTOM_WEEKS to R.string.lesson_recurrence_option_custom_weeks,
         RecurrenceMode.MONTHLY_BY_DOW to R.string.lesson_recurrence_option_monthly_dow
@@ -799,29 +801,43 @@ private fun RecurrenceSection(
             }
         }
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            modeOptions.forEach { (mode, labelRes) ->
-                FilterChip(
-                    selected = state.recurrenceMode == mode,
-                    onClick = { onModeSelect(mode) },
-                    label = { Text(text = stringResource(id = labelRes)) },
-                    leadingIcon = if (state.recurrenceMode == mode && mode != RecurrenceMode.NONE) {
-                        { Icon(imageVector = Icons.Filled.Repeat, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
-                        selectedLabelColor = MaterialTheme.colorScheme.onSurface
+            Text(
+                text = stringResource(id = R.string.lesson_recurrence_toggle_label),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Switch(checked = state.isRecurring, onCheckedChange = onToggle)
+        }
+
+        if (state.isRecurring) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                modeOptions.forEach { (mode, labelRes) ->
+                    FilterChip(
+                        selected = state.recurrenceMode == mode,
+                        onClick = { onModeSelect(mode) },
+                        label = { Text(text = stringResource(id = labelRes)) },
+                        leadingIcon = if (state.recurrenceMode == mode) {
+                            { Icon(imageVector = Icons.Filled.Repeat, contentDescription = null) }
+                        } else {
+                            null
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                        )
                     )
-                )
+                }
             }
         }
 
-        if (state.recurrenceMode == RecurrenceMode.WEEKLY || state.recurrenceMode == RecurrenceMode.CUSTOM_WEEKS) {
+        if (state.isRecurring && (state.recurrenceMode == RecurrenceMode.WEEKLY || state.recurrenceMode == RecurrenceMode.CUSTOM_WEEKS)) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(id = R.string.lesson_recurrence_days_label),
@@ -851,7 +867,7 @@ private fun RecurrenceSection(
             }
         }
 
-        if (state.recurrenceMode == RecurrenceMode.CUSTOM_WEEKS) {
+        if (state.isRecurring && state.recurrenceMode == RecurrenceMode.CUSTOM_WEEKS) {
             OutlinedTextField(
                 value = intervalInput,
                 onValueChange = { value ->
@@ -871,7 +887,7 @@ private fun RecurrenceSection(
             )
         }
 
-        if (state.recurrenceMode != RecurrenceMode.NONE) {
+        if (state.isRecurring) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

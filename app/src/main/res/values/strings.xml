@@ -137,6 +137,7 @@
     <string name="lesson_recurring_short">Повтор</string>
     <string name="lesson_recurrence_label">Повторяемость</string>
     <string name="lesson_recurrence_none">Не повторяется</string>
+    <string name="lesson_recurrence_toggle_label">Повторять занятие</string>
     <string name="lesson_recurrence_option_none">Не повторяется</string>
     <string name="lesson_recurrence_option_weekly">Еженедельно</string>
     <string name="lesson_recurrence_option_custom_weeks">Каждые N недель</string>

@@ -163,6 +163,7 @@ fun CalendarScreen(
         onDateSelect = creationViewModel::onDateSelected,
         onTimeSelect = creationViewModel::onTimeSelected,
         onDurationChange = creationViewModel::onDurationChanged,
+        onRecurrenceToggle = creationViewModel::onRecurrenceEnabledChanged,
         onRecurrenceModeChange = creationViewModel::onRecurrenceModeSelected,
         onRecurrenceDayToggle = creationViewModel::onRecurrenceDayToggled,
         onRecurrenceIntervalChange = creationViewModel::onRecurrenceIntervalChanged,
