@@ -81,7 +81,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -727,8 +726,6 @@ private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
 private const val SlotIncrementMinutes: Int = 15
-private const val MaxHighlightOffsetMinutes: Int = 30
-private const val HighlightCardOverlapMinutes: Int = 15
 private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
 private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
 private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
@@ -952,25 +949,20 @@ private fun DayTimeline(
                             endMinutes = endMinutes,
                             lessonDurationMinutes = lessonDurationMinutes
                         )
-                        val highlightAboveMinutes = (lessonDurationMinutes - HighlightCardOverlapMinutes)
-                            .coerceAtLeast(0)
-                            .coerceAtMost(MaxHighlightOffsetMinutes)
-                        val highlightTopMinutes = (snappedMinutes - highlightAboveMinutes)
-                            .coerceAtLeast(startMinutes)
-                        val highlightBottomMinutes = (snappedMinutes + HighlightCardOverlapMinutes)
+                        val highlightTopMinutes = snappedMinutes.coerceAtLeast(startMinutes)
+                        val highlightBottomMinutes = (snappedMinutes + lessonDurationMinutes)
                             .coerceAtMost(endMinutes)
                         val highlightVisibleMinutes = (highlightBottomMinutes - highlightTopMinutes)
                             .coerceAtLeast(0)
                         if (highlightVisibleMinutes > 0) {
                             val highlightTop = minuteHeight * (highlightTopMinutes - startMinutes).toFloat()
                             val highlightHeight = minuteHeight * highlightVisibleMinutes.toFloat()
-                            val clippedHighlightHeight = maxOf(0.dp, highlightHeight - 8.dp)
 
                             Box(
                                 Modifier
                                     .fillMaxWidth()
-                                    .offset(y = highlightTop + 4.dp)
-                                    .height(clippedHighlightHeight)
+                                    .offset(y = highlightTop)
+                                    .height(highlightHeight)
                                     .padding(start = LabelWidth + 16.dp, end = 20.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(accent.copy(alpha = 0.15f))
@@ -1139,20 +1131,7 @@ private fun resolveDragTargetMinutes(
     val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
         .coerceIn(minStart, maxStart)
 
-    val differenceSlots = snappedSlots.toFloat() - slotsFloat
-    val maxOffsetSlots = MaxHighlightOffsetMinutes / SlotIncrementMinutes
-    if (abs(differenceSlots) <= maxOffsetSlots.toFloat()) {
-        return snappedMinutes
-    }
-
-    val limitedSlots = if (differenceSlots > 0f) {
-        snappedSlots.coerceAtMost(floor((slotsFloat + maxOffsetSlots.toFloat()).toDouble()).toInt())
-    } else {
-        snappedSlots.coerceAtLeast(ceil((slotsFloat - maxOffsetSlots.toFloat()).toDouble()).toInt())
-    }.coerceIn(0, maxSlots)
-
-    return (minStart + limitedSlots * SlotIncrementMinutes)
-        .coerceIn(minStart, maxStart)
+    return snappedMinutes
 }
 
 @Composable
