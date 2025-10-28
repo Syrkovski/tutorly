@@ -948,7 +948,7 @@ private fun DayTimeline(
                             .coerceIn(minStart.toFloat(), maxStart.toFloat())
                         val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
                         val snappedSlots = ((clampedStartMinutes - minStart) / SlotIncrementMinutes.toFloat())
-                            .toInt()
+                            .roundToInt()
                             .coerceIn(0, maxSlots)
                         val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
                             .coerceIn(minStart, maxStart)
@@ -1007,22 +1007,7 @@ private fun DayTimeline(
                                     val maxTranslation = totalHeightPx - state.baseTopPx - state.baseHeightPx
                                     val proposedTranslation = (state.translationPx + delta)
                                         .coerceIn(minTranslation, maxTranslation)
-                                    val proposedTopMinutesFromStart =
-                                        (state.baseTopPx + proposedTranslation) / minuteHeightPx
-                                    val rawStartMinutes = startMinutes + proposedTopMinutesFromStart
-                                    val clampedStartMinutes = rawStartMinutes
-                                        .coerceIn(minStart.toFloat(), maxStart.toFloat())
-                                    val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
-                                    val snappedSlots = ((clampedStartMinutes - minStart) /
-                                        SlotIncrementMinutes.toFloat())
-                                        .toInt()
-                                        .coerceIn(0, maxSlots)
-                                    val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
-                                        .coerceIn(minStart, maxStart)
-                                    val snappedTopPx = (snappedMinutes - startMinutes) * minuteHeightPx
-                                    val snappedTranslation = (snappedTopPx - state.baseTopPx)
-                                        .coerceIn(minTranslation, maxTranslation)
-                                    dragState = state.copy(translationPx = snappedTranslation)
+                                    dragState = state.copy(translationPx = proposedTranslation)
                                 }
                             },
                             onDragEnd = {
@@ -1043,7 +1028,7 @@ private fun DayTimeline(
                                     .coerceIn(minStart.toFloat(), maxStart.toFloat())
                                 val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
                                 val snappedSlots = ((clampedStartMinutes - minStart) / SlotIncrementMinutes.toFloat())
-                                    .toInt()
+                                    .roundToInt()
                                     .coerceIn(0, maxSlots)
                                 val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
                                     .coerceIn(minStart, maxStart)
