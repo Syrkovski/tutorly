@@ -996,11 +996,33 @@ private fun DayTimeline(
                             },
                             onDrag = { _, delta ->
                                 dragState?.takeIf { it.lesson.id == lesson.id }?.let { state ->
+                                    val lessonDurationMinutes = state.lesson.duration
+                                        .toMinutes()
+                                        .toInt()
+                                        .coerceAtLeast(SlotIncrementMinutes)
+                                    val minStart = startMinutes
+                                    val maxStart = (endMinutes - lessonDurationMinutes)
+                                        .coerceAtLeast(minStart)
                                     val minTranslation = -state.baseTopPx
                                     val maxTranslation = totalHeightPx - state.baseTopPx - state.baseHeightPx
-                                    val newTranslation = (state.translationPx + delta)
+                                    val proposedTranslation = (state.translationPx + delta)
                                         .coerceIn(minTranslation, maxTranslation)
-                                    dragState = state.copy(translationPx = newTranslation)
+                                    val proposedTopMinutesFromStart =
+                                        (state.baseTopPx + proposedTranslation) / minuteHeightPx
+                                    val rawStartMinutes = startMinutes + proposedTopMinutesFromStart
+                                    val clampedStartMinutes = rawStartMinutes
+                                        .coerceIn(minStart.toFloat(), maxStart.toFloat())
+                                    val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
+                                    val snappedSlots = ((clampedStartMinutes - minStart) /
+                                        SlotIncrementMinutes.toFloat())
+                                        .toInt()
+                                        .coerceIn(0, maxSlots)
+                                    val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
+                                        .coerceIn(minStart, maxStart)
+                                    val snappedTopPx = (snappedMinutes - startMinutes) * minuteHeightPx
+                                    val snappedTranslation = (snappedTopPx - state.baseTopPx)
+                                        .coerceIn(minTranslation, maxTranslation)
+                                    dragState = state.copy(translationPx = snappedTranslation)
                                 }
                             },
                             onDragEnd = {
