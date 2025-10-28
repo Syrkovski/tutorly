@@ -12,18 +12,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.MoneyOff
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,10 +41,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -47,7 +59,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.theme.MetricTileColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
+import com.tutorly.ui.theme.extendedColors
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -62,28 +76,34 @@ fun FinanceTopBar(
     modifier: Modifier = Modifier
 ) {
     TopBarContainer {
-        Box(
+        Column(
             modifier = modifier
                 .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.finance_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+            Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 96.dp)
-            )
+                    .fillMaxWidth()
+                    .height(68.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.finance_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.surface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 96.dp)
+                )
+            }
 
             FinancePeriodToggle(
                 selected = selectedPeriod,
                 onSelect = onSelectPeriod,
-                modifier = Modifier.align(Alignment.CenterEnd)
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -95,33 +115,61 @@ private fun FinancePeriodToggle(
     onSelect: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .selectableGroup()
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        FinancePeriod.entries.forEach { period ->
-            val isSelected = period == selected
-            val segmentShape = RoundedCornerShape(20.dp)
-            val background = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-            val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val options = remember { FinancePeriod.entries }
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val accent = MaterialTheme.extendedColors.accent
+    val inactiveColor = Color(0xFFB9BCC7)
 
-            Surface(
-                onClick = { onSelect(period) },
-                shape = segmentShape,
-                color = background,
-                contentColor = contentColor,
-                tonalElevation = 0.dp,
-                shadowElevation = if (isSelected) 2.dp else 0.dp,
-                border = null
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = modifier,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        divider = {},
+        indicator = { tabPositions ->
+            if (selectedIndex in tabPositions.indices) {
+                val position = tabPositions[selectedIndex]
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentSize(Alignment.BottomStart)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .tabIndicatorOffset(position)
+                            .padding(horizontal = 38.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                            .background(accent)
+                    )
+                }
+            }
+        }
+    ) {
+        options.forEachIndexed { index, option ->
+            val isSelected = index == selectedIndex
+            Tab(
+                selected = isSelected,
+                onClick = {
+                    if (!isSelected) onSelect(option)
+                }
             ) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                    text = stringResource(period.tabLabelRes),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = contentColor
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(id = option.tabLabelRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            inactiveColor
+                        }
+                    )
+                }
             }
         }
     }
@@ -219,10 +267,10 @@ private fun FinanceContent(
     val periodLabel = stringResource(selectedPeriod.periodLabelRes)
     val periodText = stringResource(R.string.finance_metric_period, periodLabel)
     val cashInValue = currencyFormatter.format(summary.cashIn)
-    val accruedValue = currencyFormatter.format(summary.accrued)
     val debtValue = currencyFormatter.format(summary.accountsReceivable)
-    val prepaymentValue = currencyFormatter.format(summary.prepayments)
     val lessonsValue = summary.lessons.total.toString()
+    val hoursValue = formatFinanceHours(summary.totalDurationMinutes)
+    val extendedColors = MaterialTheme.extendedColors
 
     val swipeModifier = Modifier.pointerInput(selectedPeriod, periodOffset) {
         val threshold = 48.dp.toPx()
@@ -289,16 +337,20 @@ private fun FinanceContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FinanceMetricCard(
+                icon = Icons.Outlined.CalendarToday,
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_cash_in_label),
-                value = cashInValue,
-                subtitle = periodText
+                title = stringResource(R.string.finance_lessons_label),
+                value = lessonsValue,
+                subtitle = periodText,
+                colors = extendedColors.lessonsMetric
             )
             FinanceMetricCard(
+                icon = Icons.Outlined.CreditCard,
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_accrued_label),
-                value = accruedValue,
-                subtitle = periodText
+                title = stringResource(R.string.finance_income_label),
+                value = cashInValue,
+                subtitle = periodText,
+                colors = extendedColors.earnedMetric
             )
         }
 
@@ -307,23 +359,22 @@ private fun FinanceContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FinanceMetricCard(
+                icon = Icons.Outlined.MoneyOff,
                 modifier = Modifier.weight(1f),
                 title = stringResource(R.string.finance_ar_label),
-                value = debtValue
+                value = debtValue,
+                subtitle = periodText,
+                colors = extendedColors.prepaymentMetric
             )
             FinanceMetricCard(
+                icon = Icons.Outlined.Schedule,
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.finance_prepayments_label),
-                value = prepaymentValue
+                title = stringResource(R.string.finance_hours_label),
+                value = hoursValue,
+                subtitle = periodText,
+                colors = extendedColors.rateMetric
             )
         }
-
-        FinanceMetricCard(
-            modifier = Modifier.fillMaxWidth(),
-            title = stringResource(R.string.finance_lessons_label),
-            value = lessonsValue,
-            subtitle = periodText
-        )
 
         FinanceChartCard(
             modifier = Modifier.fillMaxWidth(),
@@ -347,48 +398,106 @@ private fun FinanceContent(
 
 @Composable
 private fun FinanceMetricCard(
+    icon: ImageVector,
     title: String,
     value: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    colors: MetricTileColors? = null,
     footer: (@Composable () -> Unit)? = null
 ) {
+    val accentColor = colors?.accent ?: MaterialTheme.colorScheme.primary
+    val labelColor = if (colors != null) {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
+        colors = TutorlyCardDefaults.colors(),
         elevation = TutorlyCardDefaults.elevation()
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            subtitle?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor
                 )
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = labelColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                subtitle?.let {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = labelColor,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                footer?.let {
+                    it()
+                }
             }
-            footer?.let {
-                it()
-            }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(14.dp)
+                    .background(accentColor)
+            )
         }
+    }
+}
+
+@Composable
+private fun formatFinanceHours(totalMinutes: Int): String {
+    if (totalMinutes <= 0) {
+        return stringResource(R.string.finance_hours_zero)
+    }
+
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+
+    return when {
+        hours > 0 && minutes > 0 -> stringResource(
+            R.string.finance_hours_hours_and_minutes,
+            hours,
+            minutes
+        )
+
+        hours > 0 -> stringResource(R.string.finance_hours_hours, hours)
+        else -> stringResource(R.string.finance_hours_minutes, minutes)
     }
 }
 
@@ -618,13 +727,8 @@ private fun buildChartLabels(
             point.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
         }
 
-        FinancePeriod.MONTH -> {
-            val lastDay = points.maxOfOrNull { it.date.dayOfMonth } ?: 1
-            val labeledDays = setOf(1, 7, 14, 21, lastDay)
-            points.map { point ->
-                val day = point.date.dayOfMonth
-                if (day in labeledDays) day.toString() else ""
-            }
+        FinancePeriod.MONTH -> points.map { point ->
+            dateFormatter.format(point.date)
         }
     }
 }

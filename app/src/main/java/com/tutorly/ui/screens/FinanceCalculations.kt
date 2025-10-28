@@ -36,8 +36,7 @@ internal fun FinancePeriod.bounds(
         }
 
         FinancePeriod.MONTH -> {
-            val baseDate = context.now.toLocalDate().withDayOfMonth(1)
-            val startDate = baseDate.plusMonths(offset.toLong())
+            val startDate = context.now.toLocalDate().withDayOfMonth(1).plusMonths(offset.toLong())
             val start = startDate.atStartOfDay(zone)
             FinancePeriodBounds(start = start.toInstant(), end = start.plusMonths(1).toInstant())
         }
@@ -55,10 +54,6 @@ internal fun calculateFinanceSummary(
         !lesson.startAt.isBefore(bounds.start) && lesson.startAt.isBefore(bounds.end)
     }
 
-    val accruedCents = periodLessons
-        .filter { it.paymentStatus != PaymentStatus.CANCELLED }
-        .sumOf { it.priceCents.toLong() }
-
     val cashInCents = payments
         .filter { payment ->
             !payment.at.isBefore(bounds.start) && payment.at.isBefore(bounds.end) &&
@@ -66,20 +61,25 @@ internal fun calculateFinanceSummary(
         }
         .sumOf { it.amountCents.toLong() }
 
+    val totalDurationMinutes = periodLessons.fold(0L) { acc, lesson ->
+        val lessonMinutes = lesson.duration.toMinutes().coerceAtLeast(0)
+        acc + lessonMinutes
+    }.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+
     val totalLessons = periodLessons.size
     val conducted = periodLessons.count { it.lessonStatus == LessonStatus.DONE }
     val cancelled = periodLessons.count { it.lessonStatus == LessonStatus.CANCELED }
 
     return FinanceSummary(
         cashIn = centsToRubles(cashInCents),
-        accrued = centsToRubles(accruedCents),
         accountsReceivable = accountsReceivableRubles,
         prepayments = prepaymentsRubles,
         lessons = FinanceLessonsSummary(
             total = totalLessons,
             conducted = conducted,
             cancelled = cancelled
-        )
+        ),
+        totalDurationMinutes = totalDurationMinutes
     )
 }
 

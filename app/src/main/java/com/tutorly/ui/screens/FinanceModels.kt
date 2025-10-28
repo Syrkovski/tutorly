@@ -20,18 +20,18 @@ enum class FinancePeriod(
 
 data class FinanceSummary(
     val cashIn: Long,
-    val accrued: Long,
     val accountsReceivable: Long,
     val prepayments: Long,
-    val lessons: FinanceLessonsSummary
+    val lessons: FinanceLessonsSummary,
+    val totalDurationMinutes: Int
 ) {
     companion object {
         val EMPTY = FinanceSummary(
             cashIn = 0,
-            accrued = 0,
             accountsReceivable = 0,
             prepayments = 0,
-            lessons = FinanceLessonsSummary.EMPTY
+            lessons = FinanceLessonsSummary.EMPTY,
+            totalDurationMinutes = 0
         )
     }
 }

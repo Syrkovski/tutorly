@@ -10,6 +10,11 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.tutorly.models.AppThemePreset
 
+data class MetricTileColors(
+    val border: Color,
+    val accent: Color
+)
+
 private data class PaletteResult(
     val scheme: androidx.compose.material3.ColorScheme,
     val extended: ExtendedColors
@@ -21,7 +26,11 @@ data class ExtendedColors(
     val accent: Color,
     val chipSelected: Color,
     val backgroundTop: Color,
-    val backgroundBottom: Color
+    val backgroundBottom: Color,
+    val lessonsMetric: MetricTileColors,
+    val rateMetric: MetricTileColors,
+    val earnedMetric: MetricTileColors,
+    val prepaymentMetric: MetricTileColors
 )
 
 private val LocalExtendedColors = staticCompositionLocalOf {
@@ -31,7 +40,11 @@ private val LocalExtendedColors = staticCompositionLocalOf {
         accent = OriginalPalette.accent,
         chipSelected = OriginalPalette.chipFill,
         backgroundTop = OriginalPalette.backgroundTop,
-        backgroundBottom = OriginalPalette.backgroundBottom
+        backgroundBottom = OriginalPalette.backgroundBottom,
+        lessonsMetric = OriginalPalette.lessonsHighlight.toMetricTileColors(),
+        rateMetric = OriginalPalette.rateHighlight.toMetricTileColors(),
+        earnedMetric = OriginalPalette.earnedHighlight.toMetricTileColors(),
+        prepaymentMetric = OriginalPalette.prepaymentHighlight.toMetricTileColors()
     )
 }
 
@@ -104,7 +117,14 @@ private fun createPalette(themePalette: ThemePalette): PaletteResult {
         accent = themePalette.accent,
         chipSelected = themePalette.chipFill,
         backgroundTop = themePalette.backgroundTop,
-        backgroundBottom = themePalette.backgroundBottom
+        backgroundBottom = themePalette.backgroundBottom,
+        lessonsMetric = themePalette.lessonsHighlight.toMetricTileColors(),
+        rateMetric = themePalette.rateHighlight.toMetricTileColors(),
+        earnedMetric = themePalette.earnedHighlight.toMetricTileColors(),
+        prepaymentMetric = themePalette.prepaymentHighlight.toMetricTileColors()
     )
     return PaletteResult(scheme, extended)
 }
+
+private fun MetricPalette.toMetricTileColors(): MetricTileColors =
+    MetricTileColors(border = border, accent = accent)

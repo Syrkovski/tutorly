@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -86,6 +87,7 @@ import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
+import com.tutorly.ui.theme.MetricTileColors
 import com.tutorly.ui.theme.PrimaryTextColor
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import java.text.NumberFormat
@@ -806,6 +808,7 @@ private fun StudentProfileMetricsSection(
     } ?: stringResource(id = R.string.students_rate_placeholder)
     val earnedValue = numberFormatter.format(profile.metrics.totalPaidCents / 100.0)
     val prepaymentValue = numberFormatter.format(profile.metrics.prepaymentCents / 100.0)
+    val extendedColors = MaterialTheme.extendedColors
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -822,13 +825,15 @@ private fun StudentProfileMetricsSection(
                 ProfileMetricTile(
                     icon = Icons.Outlined.CalendarToday,
                     value = lessonsCount,
-                    label = stringResource(id = R.string.student_profile_metrics_lessons_label)
+                    label = stringResource(id = R.string.student_profile_metrics_lessons_label),
+                    colors = extendedColors.lessonsMetric
                 )
                 ProfileMetricTile(
                     icon = Icons.Outlined.Schedule,
                     value = rateValue,
                     label = stringResource(id = R.string.student_profile_metrics_rate_label),
-                    onClick = onRateClick
+                    onClick = onRateClick,
+                    colors = extendedColors.rateMetric
                 )
             }
             Column(
@@ -838,13 +843,15 @@ private fun StudentProfileMetricsSection(
                 ProfileMetricTile(
                     icon = Icons.Outlined.CreditCard,
                     value = earnedValue,
-                    label = stringResource(id = R.string.student_profile_metrics_earned_label)
+                    label = stringResource(id = R.string.student_profile_metrics_earned_label),
+                    colors = extendedColors.earnedMetric
                 )
                 ProfileMetricTile(
                     icon = Icons.Outlined.Savings,
                     value = prepaymentValue,
                     label = stringResource(id = R.string.student_profile_metrics_prepayment_label),
-                    onClick = onPrepaymentClick
+                    onClick = onPrepaymentClick,
+                    colors = extendedColors.prepaymentMetric
                 )
             }
         }
@@ -857,35 +864,59 @@ private fun ProfileMetricTile(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    colors: MetricTileColors? = null
 ) {
     val cardModifier = modifier.fillMaxWidth()
+    val cardColors = TutorlyCardDefaults.colors()
+    val accentColor = colors?.accent ?: MaterialTheme.colorScheme.primary
+    val labelColor = if (colors != null) {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     val content: @Composable () -> Unit = {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 16.dp, horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = labelColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(14.dp)
+                    .background(accentColor)
             )
         }
     }
@@ -894,14 +925,14 @@ private fun ProfileMetricTile(
             onClick = onClick,
             modifier = cardModifier,
             shape = MaterialTheme.shapes.large,
-            colors = TutorlyCardDefaults.colors(),
+            colors = cardColors,
             elevation = TutorlyCardDefaults.elevation()
         ) { content() }
     } else {
         Card(
             modifier = cardModifier,
             shape = MaterialTheme.shapes.large,
-            colors = TutorlyCardDefaults.colors(),
+            colors = cardColors,
             elevation = TutorlyCardDefaults.elevation()
         ) { content() }
     }
