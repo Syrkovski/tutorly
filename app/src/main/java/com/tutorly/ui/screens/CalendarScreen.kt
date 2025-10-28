@@ -980,12 +980,14 @@ private fun DayTimeline(
                                     .coerceAtLeast(SlotIncrementMinutes)
                                 val minStart = startMinutes
                                 val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
-                                val minutesDelta = (state.translationPx / minuteHeightPx).roundToInt()
-                                val lessonStartTime = stateLesson.start.toLocalTime()
-                                val baseStartMinutes = lessonStartTime.hour * MinutesPerHour + lessonStartTime.minute
-                                val candidateMinutes = (baseStartMinutes + minutesDelta)
-                                    .coerceIn(minStart, maxStart)
-                                val snappedSlots = (candidateMinutes - minStart) / SlotIncrementMinutes
+                                val newTopMinutesFromStart = (state.baseTopPx + state.translationPx) / minuteHeightPx
+                                val rawStartMinutes = startMinutes + newTopMinutesFromStart
+                                val clampedStartMinutes = rawStartMinutes
+                                    .coerceIn(minStart.toFloat(), maxStart.toFloat())
+                                val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
+                                val snappedSlots = ((clampedStartMinutes - minStart) / SlotIncrementMinutes.toFloat())
+                                    .toInt()
+                                    .coerceIn(0, maxSlots)
                                 val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
                                     .coerceIn(minStart, maxStart)
                                 val hour = snappedMinutes / MinutesPerHour
