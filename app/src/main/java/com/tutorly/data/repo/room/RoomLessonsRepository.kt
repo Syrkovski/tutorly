@@ -11,6 +11,7 @@ import com.tutorly.domain.model.LessonCreateRequest
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.LessonsRangeStats
+import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.models.LessonStatus
@@ -50,7 +51,7 @@ class RoomLessonsRepository(
                 return@combine baseLessons.sortedBy { it.startAt }
             }
 
-            val labelBySeries = activeRules.associate { it.id to buildRecurrenceLabel(it) }
+            val labelBySeries = activeRules.associate { it.id to RecurrenceLabelFormatter.format(it) }
             val baseNormalized = baseLessons.map { detail ->
                 val seriesId = detail.seriesId
                 if (seriesId != null) {
@@ -333,7 +334,7 @@ class RoomLessonsRepository(
     ): List<LessonDetails> {
         if (occurrences.isEmpty()) return emptyList()
         val exceptionByOriginal = exceptions.associateBy { it.originalDateTime }
-        val label = buildRecurrenceLabel(rule)
+        val label = RecurrenceLabelFormatter.format(rule)
         val results = mutableListOf<LessonDetails>()
 
         for (occurrence in occurrences) {
@@ -367,56 +368,6 @@ class RoomLessonsRepository(
         }
 
         return results
-    }
-
-    private fun buildRecurrenceLabel(rule: RecurrenceRule): String {
-        return when (rule.frequency) {
-            RecurrenceFrequency.MONTHLY_BY_DOW -> {
-                val zone = runCatching { ZoneId.of(rule.timezone) }.getOrDefault(ZoneId.systemDefault())
-                val base = rule.startDateTime.atZone(zone)
-                val ordinal = ((base.dayOfMonth - 1) / 7) + 1
-                val ordinalLabel = when (ordinal) {
-                    1 -> "первую"
-                    2 -> "вторую"
-                    3 -> "третью"
-                    4 -> "четвертую"
-                    else -> "пятую"
-                }
-                "каждую ${ordinalLabel} ${base.dayOfWeek.toShortLabel()}"
-            }
-            RecurrenceFrequency.WEEKLY -> {
-                val interval = maxOf(1, rule.interval)
-                val targetDays = if (rule.daysOfWeek.isEmpty()) listOf(baseDayOfWeek(rule)) else rule.daysOfWeek
-                val daysLabel = targetDays.joinToString(separator = ", ") { it.toShortLabel() }
-                if (interval == 1) {
-                    "каждую $daysLabel"
-                } else {
-                    "каждые $interval недели"
-                }
-            }
-            RecurrenceFrequency.BIWEEKLY -> {
-                val targetDays = if (rule.daysOfWeek.isEmpty()) listOf(baseDayOfWeek(rule)) else rule.daysOfWeek
-                val daysLabel = targetDays.joinToString(separator = ", ") { it.toShortLabel() }
-                "каждые 2 недели ($daysLabel)"
-            }
-        }
-    }
-
-    private fun baseDayOfWeek(rule: RecurrenceRule): DayOfWeek {
-        val zone = runCatching { ZoneId.of(rule.timezone) }.getOrDefault(ZoneId.systemDefault())
-        return rule.startDateTime.atZone(zone).dayOfWeek
-    }
-
-    private fun DayOfWeek.toShortLabel(): String {
-        return when (this) {
-            DayOfWeek.MONDAY -> "Пн"
-            DayOfWeek.TUESDAY -> "Вт"
-            DayOfWeek.WEDNESDAY -> "Ср"
-            DayOfWeek.THURSDAY -> "Чт"
-            DayOfWeek.FRIDAY -> "Пт"
-            DayOfWeek.SATURDAY -> "Сб"
-            DayOfWeek.SUNDAY -> "Вс"
-        }
     }
 
     private fun syntheticId(seriesId: Long, start: Instant): Long {

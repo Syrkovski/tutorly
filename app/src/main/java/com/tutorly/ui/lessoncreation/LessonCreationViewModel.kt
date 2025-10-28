@@ -4,15 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonCreateRequest
 import com.tutorly.domain.model.LessonDetails
+import com.tutorly.domain.model.RecurrenceCreateRequest
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.domain.repo.UserSettingsRepository
+import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
+import com.tutorly.models.RecurrenceFrequency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -119,26 +123,33 @@ class LessonCreationViewModel @Inject constructor(
             val students = loadStudents("")
             val subjectOptions = cachedSubjects.map { it.toOption() }
 
-            _uiState.value = LessonCreationUiState(
-                isVisible = true,
-                studentQuery = "",
-                students = students,
-                selectedStudent = null,
-                studentGrade = config.studentGrade?.trim().orEmpty(),
-                subjects = subjectOptions,
-                availableSubjects = subjectOptions,
-                selectedSubjectId = null,
-                selectedSubjectChips = emptyList(),
-                date = roundedStart.toLocalDate(),
-                time = roundedStart.toLocalTime(),
-                durationMinutes = baseDuration,
-                priceCents = basePrice,
-                note = config.note.orEmpty(),
-                currencySymbol = currencySymbol,
-                slotStepMinutes = slotStep,
-                origin = config.origin,
-                locale = locale,
-                zoneId = currentZone
+            _uiState.value = refreshRecurrence(
+                LessonCreationUiState(
+                    isVisible = true,
+                    studentQuery = "",
+                    students = students,
+                    selectedStudent = null,
+                    studentGrade = config.studentGrade?.trim().orEmpty(),
+                    subjects = subjectOptions,
+                    availableSubjects = subjectOptions,
+                    selectedSubjectId = null,
+                    selectedSubjectChips = emptyList(),
+                    date = roundedStart.toLocalDate(),
+                    time = roundedStart.toLocalTime(),
+                    durationMinutes = baseDuration,
+                    priceCents = basePrice,
+                    note = config.note.orEmpty(),
+                    currencySymbol = currencySymbol,
+                    slotStepMinutes = slotStep,
+                    origin = config.origin,
+                    locale = locale,
+                    zoneId = currentZone,
+                    recurrenceMode = RecurrenceMode.NONE,
+                    recurrenceInterval = 1,
+                    recurrenceDays = emptySet(),
+                    recurrenceEndEnabled = false,
+                    recurrenceEndDate = null
+                )
             )
 
             config.studentId?.let { selectStudent(it, applyDefaults = config.duration == null && config.subjectId == null) }
@@ -500,12 +511,25 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onDateSelected(date: LocalDate) {
-        _uiState.update { it.copy(date = date) }
+        updateUiState(recalculateRecurrence = true) { state ->
+            val previousDay = state.date.dayOfWeek
+            val updatedDays = when {
+                state.isRecurring && state.recurrenceMode != RecurrenceMode.MONTHLY_BY_DOW -> {
+                    when {
+                        state.recurrenceDays.isEmpty() -> setOf(date.dayOfWeek)
+                        state.recurrenceDays.size == 1 && state.recurrenceDays.contains(previousDay) -> setOf(date.dayOfWeek)
+                        else -> state.recurrenceDays
+                    }
+                }
+                else -> state.recurrenceDays
+            }
+            state.copy(date = date, recurrenceDays = updatedDays)
+        }
     }
 
     fun onTimeSelected(time: LocalTime) {
         val rounded = roundTimeToStep(time, _uiState.value.slotStepMinutes)
-        _uiState.update { it.copy(time = rounded) }
+        updateUiState(recalculateRecurrence = true) { it.copy(time = rounded) }
     }
 
     fun onDurationChanged(value: Int) {
@@ -526,6 +550,66 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onNoteChanged(value: String) {
         _uiState.update { it.copy(note = value) }
+    }
+
+    fun onRecurrenceModeSelected(mode: RecurrenceMode) {
+        updateUiState(recalculateRecurrence = true) { state ->
+            val normalizedInterval = when (mode) {
+                RecurrenceMode.CUSTOM_WEEKS -> max(2, state.recurrenceInterval)
+                RecurrenceMode.MONTHLY_BY_DOW -> state.recurrenceInterval.coerceAtLeast(1)
+                else -> state.recurrenceInterval
+            }
+            val days = when (mode) {
+                RecurrenceMode.NONE -> emptySet()
+                RecurrenceMode.MONTHLY_BY_DOW -> emptySet()
+                else -> if (state.recurrenceDays.isEmpty()) setOf(state.date.dayOfWeek) else state.recurrenceDays
+            }
+            state.copy(
+                recurrenceMode = mode,
+                recurrenceInterval = normalizedInterval,
+                recurrenceDays = days,
+                recurrenceEndEnabled = state.recurrenceEndEnabled && mode != RecurrenceMode.NONE
+            )
+        }
+    }
+
+    fun onRecurrenceDayToggled(day: DayOfWeek) {
+        updateUiState(recalculateRecurrence = true) { state ->
+            if (state.recurrenceMode == RecurrenceMode.NONE || state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW) {
+                return@updateUiState state
+            }
+            val current = state.recurrenceDays
+            val updated = if (current.contains(day)) current - day else current + day
+            val normalized = if (updated.isEmpty()) setOf(state.date.dayOfWeek) else updated
+            state.copy(recurrenceDays = normalized)
+        }
+    }
+
+    fun onRecurrenceIntervalChanged(value: Int) {
+        updateUiState(recalculateRecurrence = true) { state ->
+            state.copy(recurrenceInterval = value.coerceAtLeast(0))
+        }
+    }
+
+    fun onRecurrenceEndEnabledChanged(enabled: Boolean) {
+        updateUiState(recalculateRecurrence = true) { state ->
+            val effective = enabled && state.recurrenceMode != RecurrenceMode.NONE
+            val endDate = if (effective) state.recurrenceEndDate ?: state.date else null
+            state.copy(
+                recurrenceEndEnabled = effective,
+                recurrenceEndDate = endDate
+            )
+        }
+    }
+
+    fun onRecurrenceEndDateSelected(date: LocalDate) {
+        updateUiState(recalculateRecurrence = true) { state ->
+            val normalized = if (date.isBefore(state.date)) state.date else date
+            state.copy(
+                recurrenceEndEnabled = true,
+                recurrenceEndDate = normalized
+            )
+        }
     }
 
     fun submit() {
@@ -604,7 +688,8 @@ class LessonCreationViewModel @Inject constructor(
             startAt = start.toInstant(),
             endAt = end.toInstant(),
             priceCents = state.priceCents,
-            note = state.note.takeUnless { it.isBlank() }
+            note = state.note.takeUnless { it.isBlank() },
+            recurrence = buildRecurrenceRequest(state, start)
         )
 
         if (!force) {
@@ -679,6 +764,110 @@ class LessonCreationViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun updateUiState(
+        recalculateRecurrence: Boolean = false,
+        block: (LessonCreationUiState) -> LessonCreationUiState
+    ) {
+        _uiState.update { current ->
+            val updated = block(current)
+            if (recalculateRecurrence) refreshRecurrence(updated) else updated
+        }
+    }
+
+    private fun refreshRecurrence(state: LessonCreationUiState): LessonCreationUiState {
+        val isRecurring = state.recurrenceMode != RecurrenceMode.NONE
+        val baseDay = state.date.dayOfWeek
+        val sanitizedInterval = state.recurrenceInterval.coerceAtLeast(1)
+        val effectiveInterval = when (state.recurrenceMode) {
+            RecurrenceMode.CUSTOM_WEEKS -> sanitizedInterval
+            RecurrenceMode.MONTHLY_BY_DOW -> sanitizedInterval
+            RecurrenceMode.WEEKLY -> 1
+            RecurrenceMode.NONE -> sanitizedInterval
+        }
+        val normalizedDays = when {
+            !isRecurring -> emptySet()
+            state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW -> emptySet()
+            else -> {
+                val candidate = if (state.recurrenceDays.isEmpty()) setOf(baseDay) else state.recurrenceDays
+                if (candidate.isEmpty()) setOf(baseDay) else candidate
+            }
+        }
+        val endEnabled = state.recurrenceEndEnabled && isRecurring
+        val untilDate = if (endEnabled) {
+            val candidate = state.recurrenceEndDate ?: state.date
+            if (candidate.isBefore(state.date)) state.date else candidate
+        } else {
+            null
+        }
+        val label = if (isRecurring) {
+            val start = ZonedDateTime.of(state.date, state.time, currentZone)
+            val frequency = when (state.recurrenceMode) {
+                RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
+                RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY
+                RecurrenceMode.NONE -> RecurrenceFrequency.WEEKLY
+            }
+            val days = if (state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW) {
+                emptyList()
+            } else {
+                normalizedDays.toList().sortedBy { it.value }
+            }
+            RecurrenceLabelFormatter.format(frequency, effectiveInterval, days, start)
+        } else {
+            null
+        }
+        val nextInterval = when (state.recurrenceMode) {
+            RecurrenceMode.CUSTOM_WEEKS, RecurrenceMode.MONTHLY_BY_DOW -> effectiveInterval
+            else -> sanitizedInterval
+        }
+        return state.copy(
+            isRecurring = isRecurring,
+            recurrenceDays = normalizedDays,
+            recurrenceEndEnabled = endEnabled,
+            recurrenceEndDate = untilDate,
+            recurrenceLabel = label,
+            recurrenceInterval = nextInterval
+        )
+    }
+
+    private fun buildRecurrenceRequest(
+        state: LessonCreationUiState,
+        start: ZonedDateTime
+    ): RecurrenceCreateRequest? {
+        if (state.recurrenceMode == RecurrenceMode.NONE) return null
+        val frequency = when (state.recurrenceMode) {
+            RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
+            RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY
+            RecurrenceMode.NONE -> return null
+        }
+        val interval = when (state.recurrenceMode) {
+            RecurrenceMode.CUSTOM_WEEKS -> state.recurrenceInterval.coerceAtLeast(1)
+            RecurrenceMode.MONTHLY_BY_DOW -> state.recurrenceInterval.coerceAtLeast(1)
+            RecurrenceMode.WEEKLY -> 1
+            RecurrenceMode.NONE -> 1
+        }
+        val days = if (state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW) {
+            emptyList()
+        } else {
+            val base = start.dayOfWeek
+            val selection = if (state.recurrenceDays.isEmpty()) setOf(base) else state.recurrenceDays
+            selection.toList().sortedBy { it.value }
+        }
+        val until = if (state.recurrenceEndEnabled) {
+            val candidate = state.recurrenceEndDate ?: state.date
+            val normalized = if (candidate.isBefore(state.date)) state.date else candidate
+            ZonedDateTime.of(normalized, state.time, currentZone).toInstant()
+        } else {
+            null
+        }
+        return RecurrenceCreateRequest(
+            frequency = frequency,
+            interval = interval,
+            daysOfWeek = days,
+            until = until,
+            timezone = currentZone
+        )
     }
 
     private suspend fun loadStudents(query: String): List<StudentOption> {

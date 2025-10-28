@@ -1,5 +1,6 @@
 package com.tutorly.ui.lessoncreation
 
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -34,7 +35,12 @@ data class LessonCreationUiState(
     val locale: Locale = Locale.getDefault(),
     val zoneId: ZoneId = ZoneId.systemDefault(),
     val isRecurring: Boolean = false,
-    val recurrenceLabel: String? = null
+    val recurrenceLabel: String? = null,
+    val recurrenceMode: RecurrenceMode = RecurrenceMode.NONE,
+    val recurrenceInterval: Int = 1,
+    val recurrenceDays: Set<DayOfWeek> = emptySet(),
+    val recurrenceEndEnabled: Boolean = false,
+    val recurrenceEndDate: LocalDate? = null
 )
 
 data class LessonCreationConfig(
@@ -59,6 +65,13 @@ enum class LessonCreationField {
 enum class LessonCreationOrigin {
     CALENDAR,
     STUDENT
+}
+
+enum class RecurrenceMode {
+    NONE,
+    WEEKLY,
+    CUSTOM_WEEKS,
+    MONTHLY_BY_DOW
 }
 
 data class SubjectOption(
