@@ -99,6 +99,8 @@ class LessonCardViewModel @Inject constructor(
                             paidCents = details.paidCents,
                             note = details.lessonNote,
                             studentOptions = reorderOptions(state.studentOptions, details.studentId),
+                            isRecurring = details.isRecurring,
+                            recurrenceLabel = details.recurrenceLabel,
                         )
                     }
                     loadStudents(details.studentId)
@@ -120,6 +122,8 @@ class LessonCardViewModel @Inject constructor(
                 isLoading = false,
                 isPaymentActionRunning = false,
                 isDeleting = false,
+                isRecurring = false,
+                recurrenceLabel = null,
             )
         }
     }

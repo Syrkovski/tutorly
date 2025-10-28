@@ -32,7 +32,9 @@ data class LessonCreationUiState(
     val showConflictDialog: ConflictInfo? = null,
     val origin: LessonCreationOrigin = LessonCreationOrigin.CALENDAR,
     val locale: Locale = Locale.getDefault(),
-    val zoneId: ZoneId = ZoneId.systemDefault()
+    val zoneId: ZoneId = ZoneId.systemDefault(),
+    val isRecurring: Boolean = false,
+    val recurrenceLabel: String? = null
 )
 
 data class LessonCreationConfig(
