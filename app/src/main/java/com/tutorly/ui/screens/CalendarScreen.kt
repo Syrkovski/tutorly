@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 //import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
 import com.tutorly.R
@@ -371,7 +374,8 @@ fun CalendarScreen(
                                         startTime,
                                         DefaultSlotDuration
                                     )
-                                }
+                                },
+                                onLessonMoved = viewModel::onLessonMoved
                             )
                         }
 
@@ -733,7 +737,8 @@ private fun DayTimeline(
     workDayStartMinutes: Int,
     workDayEndMinutes: Int,
     onLessonClick: (CalendarLesson) -> Unit,
-    onEmptySlot: (LocalTime) -> Unit
+    onEmptySlot: (LocalTime) -> Unit,
+    onLessonMoved: (CalendarLesson, ZonedDateTime) -> Unit
 ) {
     val dayLessons = remember(date, lessons) { lessons }
     val isToday = remember(date, currentDateTime) { currentDateTime.toLocalDate() == date }
@@ -785,6 +790,15 @@ private fun DayTimeline(
             }
         }
     }
+    var dragState by remember { mutableStateOf<LessonDragState?>(null) }
+    LaunchedEffect(dayLessons) {
+        dragState?.let { state ->
+            if (dayLessons.none { it.id == state.lesson.id }) {
+                dragState = null
+            }
+        }
+    }
+
     val lessonRegions = remember(dayLessons, startMinutes, minuteHeightPx, labelWidthPx, cardInsetPx) {
         val baseMin = startMinutes
         dayLessons.map { lesson ->
@@ -920,12 +934,73 @@ private fun DayTimeline(
                     }
 
                     dayLessons.forEach { lesson ->
+                        val lessonStartTime = lesson.start.toLocalTime()
+                        val lessonStartMinutes = lessonStartTime.hour * MinutesPerHour + lessonStartTime.minute
+                        val offsetMinutes = (lessonStartMinutes - startMinutes).coerceAtLeast(0)
+                        val durationMinutes = lesson.duration
+                            .toMinutes()
+                            .toInt()
+                            .coerceAtLeast(SlotIncrementMinutes)
+                        val baseTopPx = offsetMinutes * minuteHeightPx
+                        val baseHeightPx = durationMinutes * minuteHeightPx
+                        val isDragging = dragState?.lesson?.id == lesson.id
+                        val translationPx = if (isDragging) dragState!!.translationPx else 0f
+
                         LessonBlock(
                             lesson = lesson,
                             baseMinutes = startMinutes,
                             minuteHeight = minuteHeight,
                             now = currentDateTime,
-                            onLessonClick = onLessonClick
+                            onLessonClick = onLessonClick,
+                            onDragStart = {
+                                dragState = LessonDragState(
+                                    lesson = lesson,
+                                    baseTopPx = baseTopPx,
+                                    baseHeightPx = baseHeightPx
+                                )
+                            },
+                            onDrag = { _, delta ->
+                                dragState?.takeIf { it.lesson.id == lesson.id }?.let { state ->
+                                    val minTranslation = -state.baseTopPx
+                                    val maxTranslation = totalHeightPx - state.baseTopPx - state.baseHeightPx
+                                    val newTranslation = (state.translationPx + delta)
+                                        .coerceIn(minTranslation, maxTranslation)
+                                    dragState = state.copy(translationPx = newTranslation)
+                                }
+                            },
+                            onDragEnd = {
+                                val state = dragState?.takeIf { it.lesson.id == lesson.id } ?: run {
+                                    dragState = null
+                                    return@LessonBlock
+                                }
+                                val stateLesson = state.lesson
+                                val targetTopPx = (state.baseTopPx + state.translationPx)
+                                    .coerceIn(0f, totalHeightPx - state.baseHeightPx)
+                                val minutesWithin = (targetTopPx / minuteHeightPx).roundToInt()
+                                val candidate = startMinutes + minutesWithin
+                                val lessonDurationMinutes = stateLesson.duration
+                                    .toMinutes()
+                                    .toInt()
+                                    .coerceAtLeast(SlotIncrementMinutes)
+                                val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(startMinutes)
+                                val normalized = candidate.coerceIn(startMinutes, maxStart)
+                                val slots = (normalized - startMinutes) / SlotIncrementMinutes
+                                val snapped = (startMinutes + slots * SlotIncrementMinutes)
+                                    .coerceIn(startMinutes, maxStart)
+                                val hour = snapped / MinutesPerHour
+                                val minute = snapped % MinutesPerHour
+                                val zone = stateLesson.start.zone
+                                val baseLocal = date.atTime(hour, minute)
+                                val adjustedLocal = baseLocal
+                                    .withSecond(stateLesson.start.second)
+                                    .withNano(stateLesson.start.nano)
+                                val newStart = adjustedLocal.atZone(zone)
+                                onLessonMoved(stateLesson, newStart)
+                                dragState = null
+                            },
+                            onDragCancel = { dragState = null },
+                            isDragging = isDragging,
+                            dragTranslationPx = translationPx
                         )
                     }
 
@@ -960,13 +1035,26 @@ private data class TimelineLessonRegion(
     val leftPx: Float
 )
 
+private data class LessonDragState(
+    val lesson: CalendarLesson,
+    val baseTopPx: Float,
+    val baseHeightPx: Float,
+    val translationPx: Float = 0f
+)
+
 @Composable
 private fun LessonBlock(
     lesson: CalendarLesson,
     baseMinutes: Int,
     minuteHeight: Dp,
     now: ZonedDateTime,
-    onLessonClick: (CalendarLesson) -> Unit
+    onLessonClick: (CalendarLesson) -> Unit,
+    onDragStart: (CalendarLesson) -> Unit,
+    onDrag: (CalendarLesson, Float) -> Unit,
+    onDragEnd: (CalendarLesson) -> Unit,
+    onDragCancel: () -> Unit,
+    isDragging: Boolean,
+    dragTranslationPx: Float
 ) {
     val startTime = lesson.start.toLocalTime()
     val startMin = startTime.hour * MinutesPerHour + startTime.minute
@@ -984,6 +1072,19 @@ private fun LessonBlock(
             .offset(y = top+4.dp)
             .height(height-8.dp)
             .padding(start = LabelWidth + 16.dp, end = 20.dp)
+            .graphicsLayer { translationY = dragTranslationPx }
+            .zIndex(if (isDragging) 1f else 0f)
+            .pointerInput(lesson.id) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onDragStart(lesson) },
+                    onDragEnd = { onDragEnd(lesson) },
+                    onDragCancel = onDragCancel,
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(lesson, dragAmount.y)
+                    }
+                )
+            }
             .clip(RoundedCornerShape(12.dp))
     ) {
         val cardShape = RoundedCornerShape(12.dp)
@@ -993,7 +1094,8 @@ private fun LessonBlock(
             onClick = { onLessonClick(lesson) },
             shape = cardShape,
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            enabled = !isDragging
         ) {
             Box(
                 modifier = Modifier

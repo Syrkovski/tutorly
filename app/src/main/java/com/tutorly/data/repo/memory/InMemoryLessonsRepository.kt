@@ -14,6 +14,7 @@ import com.tutorly.models.LessonStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -106,6 +107,30 @@ class InMemoryLessonsRepository : LessonsRepository {
         store[id] = newLesson
         emit()
         return id
+    }
+
+    override suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant) {
+        store[lessonId]?.let { lesson ->
+            store[lessonId] = lesson.copy(
+                startAt = newStart,
+                endAt = newEnd,
+                updatedAt = Instant.now()
+            )
+            emit()
+        }
+    }
+
+    override suspend fun moveRecurringOccurrence(
+        seriesId: Long,
+        originalStart: Instant,
+        newStart: Instant,
+        duration: Duration
+    ) {
+        // Recurrence support is not implemented in the in-memory repository used for tests.
+    }
+
+    override suspend fun clearRecurringOverride(seriesId: Long, originalStart: Instant) {
+        // Recurrence support is not implemented in the in-memory repository used for tests.
     }
 
     override suspend fun findConflicts(start: Instant, end: Instant): List<LessonDetails> {

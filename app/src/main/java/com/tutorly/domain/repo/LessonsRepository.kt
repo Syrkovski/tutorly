@@ -6,6 +6,7 @@ import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.LessonsRangeStats
 import com.tutorly.models.Lesson
 import kotlinx.coroutines.flow.Flow
+import java.time.Duration
 import java.time.Instant
 
 interface LessonsRepository {
@@ -19,6 +20,14 @@ interface LessonsRepository {
     suspend fun getById(id: Long): Lesson?
     suspend fun upsert(lesson: Lesson): Long
     suspend fun create(request: LessonCreateRequest): Long
+    suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant)
+    suspend fun moveRecurringOccurrence(
+        seriesId: Long,
+        originalStart: Instant,
+        newStart: Instant,
+        duration: Duration
+    )
+    suspend fun clearRecurringOverride(seriesId: Long, originalStart: Instant)
     suspend fun findConflicts(start: Instant, end: Instant): List<LessonDetails>
     suspend fun latestLessonForStudent(studentId: Long): Lesson?
     suspend fun delete(id: Long)
