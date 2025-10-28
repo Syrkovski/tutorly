@@ -974,21 +974,22 @@ private fun DayTimeline(
                                     return@LessonBlock
                                 }
                                 val stateLesson = state.lesson
-                                val targetTopPx = (state.baseTopPx + state.translationPx)
-                                    .coerceIn(0f, totalHeightPx - state.baseHeightPx)
-                                val minutesWithin = (targetTopPx / minuteHeightPx).roundToInt()
-                                val candidate = startMinutes + minutesWithin
                                 val lessonDurationMinutes = stateLesson.duration
                                     .toMinutes()
                                     .toInt()
                                     .coerceAtLeast(SlotIncrementMinutes)
-                                val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(startMinutes)
-                                val normalized = candidate.coerceIn(startMinutes, maxStart)
-                                val slots = (normalized - startMinutes) / SlotIncrementMinutes
-                                val snapped = (startMinutes + slots * SlotIncrementMinutes)
-                                    .coerceIn(startMinutes, maxStart)
-                                val hour = snapped / MinutesPerHour
-                                val minute = snapped % MinutesPerHour
+                                val minStart = startMinutes
+                                val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
+                                val minutesDelta = (state.translationPx / minuteHeightPx).roundToInt()
+                                val lessonStartTime = stateLesson.start.toLocalTime()
+                                val baseStartMinutes = lessonStartTime.hour * MinutesPerHour + lessonStartTime.minute
+                                val candidateMinutes = (baseStartMinutes + minutesDelta)
+                                    .coerceIn(minStart, maxStart)
+                                val snappedSlots = (candidateMinutes - minStart) / SlotIncrementMinutes
+                                val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
+                                    .coerceIn(minStart, maxStart)
+                                val hour = snappedMinutes / MinutesPerHour
+                                val minute = snappedMinutes % MinutesPerHour
                                 val zone = stateLesson.start.zone
                                 val baseLocal = date.atTime(hour, minute)
                                 val adjustedLocal = baseLocal
