@@ -728,6 +728,7 @@ private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
 private const val SlotIncrementMinutes: Int = 15
 private const val MaxHighlightOffsetMinutes: Int = 30
+private const val HighlightCardOverlapMinutes: Int = 15
 private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
 private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
 private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
@@ -951,8 +952,20 @@ private fun DayTimeline(
                             endMinutes = endMinutes,
                             lessonDurationMinutes = lessonDurationMinutes
                         )
-                        val highlightTop = minuteHeight * (snappedMinutes - startMinutes).toFloat()
-                        val highlightHeight = minuteHeight * lessonDurationMinutes.toFloat()
+                        val desiredBottomMinutes = (snappedMinutes + HighlightCardOverlapMinutes)
+                            .coerceAtMost(endMinutes)
+                        val minimumBottomMinutes = (startMinutes + lessonDurationMinutes)
+                            .coerceAtMost(endMinutes)
+                        val highlightBottomMinutes = desiredBottomMinutes
+                            .coerceAtLeast(minimumBottomMinutes)
+                        val highlightStartMinutes = (highlightBottomMinutes - lessonDurationMinutes)
+                            .coerceAtLeast(startMinutes)
+                        val highlightTopMinutes = (highlightStartMinutes - startMinutes)
+                            .coerceAtLeast(0)
+                        val highlightVisibleMinutes = (highlightBottomMinutes - highlightStartMinutes)
+                            .coerceAtLeast(0)
+                        val highlightTop = minuteHeight * highlightTopMinutes.toFloat()
+                        val highlightHeight = minuteHeight * highlightVisibleMinutes.toFloat()
                         val clippedHighlightHeight = maxOf(0.dp, highlightHeight - 8.dp)
 
                         Box(
