@@ -1133,8 +1133,8 @@ private fun resolveDragTargetMinutes(
 
     val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
     val slotsFloat = (clampedStartMinutes - minStart.toFloat()) / SlotIncrementMinutes.toFloat()
-    val snappedSlots = slotsFloat
-        .roundToInt()
+    val snappedSlots = floor(slotsFloat.toDouble())
+        .toInt()
         .coerceIn(0, maxSlots)
     val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
         .coerceIn(minStart, maxStart)
