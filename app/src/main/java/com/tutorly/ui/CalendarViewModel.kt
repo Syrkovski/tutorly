@@ -115,6 +115,37 @@ class CalendarViewModel @Inject constructor(
         _events.tryEmit(CalendarEvent.CreateLesson(start, duration, null))
     }
 
+    fun onLessonMoved(lesson: CalendarLesson, newStart: ZonedDateTime) {
+        val currentStart = lesson.start.toInstant()
+        val targetStart = newStart.toInstant()
+        if (currentStart == targetStart) return
+        viewModelScope.launch {
+            val duration = lesson.duration
+            val newEnd = newStart.plus(duration).toInstant()
+            runCatching {
+                if (lesson.seriesId != null && lesson.id != lesson.baseLessonId) {
+                    val originalInstant = lesson.originalStart.toInstant()
+                    if (targetStart == originalInstant) {
+                        lessonsRepository.clearRecurringOverride(lesson.seriesId, originalInstant)
+                    } else {
+                        lessonsRepository.moveRecurringOccurrence(
+                            seriesId = lesson.seriesId,
+                            originalStart = originalInstant,
+                            newStart = targetStart,
+                            duration = duration
+                        )
+                    }
+                } else {
+                    lessonsRepository.moveLesson(
+                        lessonId = lesson.baseLessonId,
+                        newStart = targetStart,
+                        newEnd = newEnd
+                    )
+                }
+            }
+        }
+    }
+
     private fun buildUiState(
         query: CalendarQuery,
         lessons: List<LessonDetails>,

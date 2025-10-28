@@ -134,6 +134,19 @@
     <string name="calendar_status_planned">Запланировано</string>
     <string name="calendar_status_prepaid">Предоплачено</string>
     <string name="calendar_status_in_progress">Идёт сейчас</string>
+    <string name="calendar_day_progress_summary">%1$s, %2$s</string>
+    <plurals name="calendar_day_completed_lessons">
+        <item quantity="one">Уже прошло %d занятие</item>
+        <item quantity="few">Уже прошло %d занятия</item>
+        <item quantity="many">Уже прошло %d занятий</item>
+        <item quantity="other">Уже прошло %d занятий</item>
+    </plurals>
+    <plurals name="calendar_day_remaining_lessons">
+        <item quantity="one">осталось всего %d занятие</item>
+        <item quantity="few">осталось всего %d занятия</item>
+        <item quantity="many">осталось всего %d занятий</item>
+        <item quantity="other">осталось всего %d занятий</item>
+    </plurals>
     <string name="lesson_recurring_short">Повтор</string>
     <string name="lesson_recurrence_label">Повторяемость</string>
     <string name="lesson_recurrence_none">Не повторяется</string>

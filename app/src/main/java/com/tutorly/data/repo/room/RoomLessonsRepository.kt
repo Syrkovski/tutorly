@@ -170,6 +170,51 @@ class RoomLessonsRepository(
         return id
     }
 
+    override suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant) {
+        val existing = lessonDao.findById(lessonId) ?: return
+        val updated = existing.copy(
+            startAt = newStart,
+            endAt = newEnd,
+            updatedAt = Instant.now()
+        )
+        lessonDao.upsert(updated)
+        if (updated.seriesId != null) {
+            val rule = recurrenceRuleDao.findById(updated.seriesId)
+            if (rule != null) {
+                recurrenceRuleDao.upsert(
+                    rule.copy(
+                        startDateTime = newStart,
+                        untilDateTime = rule.untilDateTime
+                    )
+                )
+            }
+            recurrenceExceptionDao.deleteInstance(updated.seriesId, existing.startAt)
+        }
+    }
+
+    override suspend fun moveRecurringOccurrence(
+        seriesId: Long,
+        originalStart: Instant,
+        newStart: Instant,
+        duration: Duration
+    ) {
+        val minutes = duration.toMinutes().toInt().coerceAtLeast(0)
+        val exception = RecurrenceException(
+            seriesId = seriesId,
+            originalDateTime = originalStart,
+            type = RecurrenceExceptionType.OVERRIDDEN,
+            overrideStartDateTime = newStart,
+            overrideDurationMinutes = minutes.takeIf { it > 0 },
+            overrideNotes = null,
+            overridePrice = null
+        )
+        recurrenceExceptionDao.upsert(exception)
+    }
+
+    override suspend fun clearRecurringOverride(seriesId: Long, originalStart: Instant) {
+        recurrenceExceptionDao.deleteInstance(seriesId, originalStart)
+    }
+
     override suspend fun findConflicts(start: Instant, end: Instant): List<LessonDetails> {
         return lessonDao.findOverlapping(start, end).map { it.toLessonDetails() }
     }
