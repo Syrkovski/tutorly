@@ -40,6 +40,7 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
 
     return LessonDetails(
         id = lesson.id,
+        baseLessonId = lesson.id,
         studentId = lesson.studentId,
         startAt = lesson.startAt,
         endAt = normalizedEnd,
@@ -55,7 +56,10 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         priceCents = lesson.priceCents,
         paidCents = lesson.paidCents,
         lessonTitle = lesson.title,
-        lessonNote = lesson.note
+        lessonNote = lesson.note,
+        isRecurring = lesson.seriesId != null,
+        seriesId = lesson.seriesId,
+        originalStartAt = lesson.startAt
     )
 }
 

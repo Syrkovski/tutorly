@@ -103,7 +103,7 @@ class CalendarViewModel @Inject constructor(
     fun onLessonSelected(lesson: CalendarLesson) {
         _events.tryEmit(
             CalendarEvent.OpenLesson(
-                lessonId = lesson.id,
+                lessonId = lesson.baseLessonId,
                 studentId = lesson.studentId,
                 start = lesson.start
             )
@@ -252,6 +252,7 @@ private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
 
     return CalendarLesson(
         id = id,
+        baseLessonId = baseLessonId,
         studentId = studentId,
         start = lessonStart,
         end = lessonEnd,
@@ -268,7 +269,11 @@ private fun LessonDetails.toCalendarLesson(zoneId: ZoneId): CalendarLesson {
         paymentStatusIcon = paymentStatusIcon,
         paidCents = paidCents,
         priceCents = priceCents,
-        subjectColorArgb = subjectColorArgb
+        subjectColorArgb = subjectColorArgb,
+        isRecurring = isRecurring,
+        recurrenceLabel = recurrenceLabel,
+        seriesId = seriesId,
+        originalStart = (originalStartAt ?: startAt).atZone(zoneId)
     )
 }
 
@@ -276,6 +281,7 @@ private data class CalendarRange(val start: Instant, val end: Instant)
 
 data class CalendarLesson(
     val id: Long,
+    val baseLessonId: Long,
     val studentId: Long,
     val start: ZonedDateTime,
     val end: ZonedDateTime,
@@ -290,7 +296,11 @@ data class CalendarLesson(
     val paymentStatusIcon: PaymentStatusIcon,
     val paidCents: Int,
     val priceCents: Int,
-    val subjectColorArgb: Int?
+    val subjectColorArgb: Int?,
+    val isRecurring: Boolean,
+    val recurrenceLabel: String?,
+    val seriesId: Long?,
+    val originalStart: ZonedDateTime
 )
 
 data class CalendarUiState(

@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -162,6 +163,12 @@ fun CalendarScreen(
         onDateSelect = creationViewModel::onDateSelected,
         onTimeSelect = creationViewModel::onTimeSelected,
         onDurationChange = creationViewModel::onDurationChanged,
+        onRecurrenceToggle = creationViewModel::onRecurrenceEnabledChanged,
+        onRecurrenceModeChange = creationViewModel::onRecurrenceModeSelected,
+        onRecurrenceDayToggle = creationViewModel::onRecurrenceDayToggled,
+        onRecurrenceIntervalChange = creationViewModel::onRecurrenceIntervalChanged,
+        onRecurrenceEndToggle = creationViewModel::onRecurrenceEndEnabledChanged,
+        onRecurrenceEndDateSelect = creationViewModel::onRecurrenceEndDateSelected,
         onPriceChange = creationViewModel::onPriceChanged,
         onNoteChange = creationViewModel::onNoteChanged,
         onSubmit = creationViewModel::submit,
@@ -978,6 +985,29 @@ private fun LessonBlock(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (lessonUi.isRecurring) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CalendarMonth,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = lessonUi.recurrenceLabel ?: stringResource(id = R.string.lesson_recurring_short),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(start = 4.dp)
+                                    .weight(1f, fill = false),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                     lessonUi.secondaryLine?.let { secondaryLine ->
                         Text(
                             text = secondaryLine,
@@ -1030,7 +1060,9 @@ private data class LessonUi(
     val secondaryLine: String?,
     val note: String?,
     val statusDescription: String,
-    val statusColor: Color
+    val statusColor: Color,
+    val isRecurring: Boolean,
+    val recurrenceLabel: String?
 )
 
 @Composable
@@ -1042,13 +1074,16 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
         .takeIf { it.isNotEmpty() }
         ?.joinToString(separator = " • ")
     val note = lessonNote?.takeIf { it.isNotBlank() }?.trim()
+    val recurrence = recurrenceLabel?.takeIf { isRecurring }
 
     return LessonUi(
         studentName = studentName,
         secondaryLine = secondaryLine,
         note = note,
         statusDescription = status.description,
-        statusColor = status.background
+        statusColor = status.background,
+        isRecurring = isRecurring,
+        recurrenceLabel = recurrence
     )
 }
 

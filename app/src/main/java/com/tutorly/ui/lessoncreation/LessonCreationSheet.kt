@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CurrencyRuble
@@ -47,6 +49,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -86,9 +90,11 @@ import com.tutorly.ui.subject.SubjectSuggestionDefaults
 import com.tutorly.ui.theme.extendedColors
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
 
 private val SectionSpacing = 12.dp
@@ -108,6 +114,12 @@ fun LessonCreationSheet(
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationChange: (Int) -> Unit,
+    onRecurrenceToggle: (Boolean) -> Unit,
+    onRecurrenceModeChange: (RecurrenceMode) -> Unit,
+    onRecurrenceDayToggle: (DayOfWeek) -> Unit,
+    onRecurrenceIntervalChange: (Int) -> Unit,
+    onRecurrenceEndToggle: (Boolean) -> Unit,
+    onRecurrenceEndDateSelect: (LocalDate) -> Unit,
     onPriceChange: (Int) -> Unit,
     onNoteChange: (String) -> Unit,
     onSubmit: () -> Unit,
@@ -145,6 +157,15 @@ fun LessonCreationSheet(
                 )
                 TimeSection(state = state, onDateSelect = onDateSelect, onTimeSelect = onTimeSelect)
                 DurationSection(state = state, onDurationChange = onDurationChange)
+                RecurrenceSection(
+                    state = state,
+                    onToggle = onRecurrenceToggle,
+                    onModeSelect = onRecurrenceModeChange,
+                    onDayToggle = onRecurrenceDayToggle,
+                    onIntervalChange = onRecurrenceIntervalChange,
+                    onEndToggle = onRecurrenceEndToggle,
+                    onEndDateSelect = onRecurrenceEndDateSelect
+                )
                 SubjectSection(
                     state = state,
                     onSubjectInputChange = onSubjectInputChange,
@@ -708,6 +729,200 @@ private fun DurationSection(
             }
         }
         state.errors[LessonCreationField.DURATION]?.let { ErrorText(it) }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RecurrenceSection(
+    state: LessonCreationUiState,
+    onToggle: (Boolean) -> Unit,
+    onModeSelect: (RecurrenceMode) -> Unit,
+    onDayToggle: (DayOfWeek) -> Unit,
+    onIntervalChange: (Int) -> Unit,
+    onEndToggle: (Boolean) -> Unit,
+    onEndDateSelect: (LocalDate) -> Unit
+) {
+    val recurrenceText = state.recurrenceLabel ?: stringResource(id = R.string.lesson_recurrence_none)
+    val iconColor = if (state.isRecurring) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val textColor = if (state.isRecurring) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val locale = state.locale
+    val context = LocalContext.current
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
+    val minDateMillis = remember(state.date, state.zoneId) {
+        state.date.atStartOfDay(state.zoneId).toInstant().toEpochMilli()
+    }
+    val modeOptions = listOf(
+        RecurrenceMode.WEEKLY to R.string.lesson_recurrence_option_weekly,
+        RecurrenceMode.CUSTOM_WEEKS to R.string.lesson_recurrence_option_custom_weeks,
+        RecurrenceMode.MONTHLY_BY_DOW to R.string.lesson_recurrence_option_monthly_dow
+    )
+    var intervalInput by remember(state.recurrenceInterval to state.recurrenceMode) {
+        mutableStateOf(state.recurrenceInterval.takeIf { it > 0 }?.toString().orEmpty())
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(id = R.string.lesson_recurrence_label),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    tint = iconColor
+                )
+                Text(
+                    text = recurrenceText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(id = R.string.lesson_recurrence_toggle_label),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Switch(checked = state.isRecurring, onCheckedChange = onToggle)
+        }
+
+        if (state.isRecurring) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                modeOptions.forEach { (mode, labelRes) ->
+                    FilterChip(
+                        selected = state.recurrenceMode == mode,
+                        onClick = { onModeSelect(mode) },
+                        label = { Text(text = stringResource(id = labelRes)) },
+                        leadingIcon = if (state.recurrenceMode == mode) {
+                            { Icon(imageVector = Icons.Filled.Repeat, contentDescription = null) }
+                        } else {
+                            null
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                }
+            }
+        }
+
+        if (state.isRecurring && (state.recurrenceMode == RecurrenceMode.WEEKLY || state.recurrenceMode == RecurrenceMode.CUSTOM_WEEKS)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(id = R.string.lesson_recurrence_days_label),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DayOfWeek.values().forEach { day ->
+                        val selected = state.recurrenceDays.contains(day)
+                        val label = day.getDisplayName(TextStyle.SHORT, locale).replaceFirstChar { ch ->
+                            if (ch.isLowerCase()) ch.titlecase(locale) else ch.toString()
+                        }
+                        FilterChip(
+                            selected = selected,
+                            onClick = { onDayToggle(day) },
+                            label = { Text(text = label) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        if (state.isRecurring && state.recurrenceMode == RecurrenceMode.CUSTOM_WEEKS) {
+            OutlinedTextField(
+                value = intervalInput,
+                onValueChange = { value ->
+                    val digits = value.filter { it.isDigit() }
+                    intervalInput = digits
+                    onIntervalChange(digits.toIntOrNull() ?: 0)
+                },
+                label = { Text(text = stringResource(id = R.string.lesson_recurrence_interval_label)) },
+                leadingIcon = { Icon(imageVector = Icons.Filled.Repeat, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        }
+
+        if (state.isRecurring) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.lesson_recurrence_end_toggle),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(checked = state.recurrenceEndEnabled, onCheckedChange = onEndToggle)
+                }
+                if (state.recurrenceEndEnabled) {
+                    val selectedDate = state.recurrenceEndDate ?: state.date
+                    OutlinedButton(
+                        onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    onEndDateSelect(LocalDate.of(year, month + 1, day))
+                                },
+                                selectedDate.year,
+                                selectedDate.monthValue - 1,
+                                selectedDate.dayOfMonth
+                            ).apply {
+                                datePicker.minDate = minDateMillis
+                            }.show()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = selectedDate.format(dateFormatter), textAlign = TextAlign.Center)
+                    }
+                }
+            }
+        }
     }
 }
 

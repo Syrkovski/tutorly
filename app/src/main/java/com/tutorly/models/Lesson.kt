@@ -36,5 +36,7 @@ data class Lesson(
     val note: String? = null,            // заметка урока (тема/замечания)
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
-    val canceledAt: Instant? = null
+    val canceledAt: Instant? = null,
+    val seriesId: Long? = null,          // ссылка на правило повторения, если есть
+    val isInstance: Boolean = false      // true только для материализованных экземпляров
 )

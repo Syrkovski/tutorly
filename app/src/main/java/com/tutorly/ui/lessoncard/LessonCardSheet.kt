@@ -241,6 +241,12 @@ internal fun LessonCardSheet(
                             onDurationClick = onDurationClick
                         )
 
+                        RecurrenceRow(
+                            isRecurring = state.isRecurring,
+                            recurrenceText = state.recurrenceLabel
+                                ?: stringResource(id = R.string.lesson_recurrence_none)
+                        )
+
                         PriceRow(
                             price = priceText,
                             paymentStatus = state.paymentStatus,
@@ -474,6 +480,53 @@ private fun TimeDurationRow(
             onClick = onDurationClick,
             modifier = Modifier.weight(1f)
         )
+    }
+}
+
+@Composable
+private fun RecurrenceRow(
+    isRecurring: Boolean,
+    recurrenceText: String,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = TutorlyCardDefaults.colors(),
+        elevation = TutorlyCardDefaults.elevation(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CalendarMonth,
+                contentDescription = null,
+                tint = if (isRecurring) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            Column {
+                Text(
+                    text = stringResource(id = R.string.lesson_recurrence_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = recurrenceText,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isRecurring) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            }
+        }
     }
 }
 

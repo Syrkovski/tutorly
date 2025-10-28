@@ -30,6 +30,8 @@ data class LessonCardUiState(
     val zoneId: ZoneId = ZoneId.systemDefault(),
     val isPaymentActionRunning: Boolean = false,
     val isDeleting: Boolean = false,
+    val isRecurring: Boolean = false,
+    val recurrenceLabel: String? = null,
 )
 
 data class LessonStudentOption(

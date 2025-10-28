@@ -12,5 +12,6 @@ data class LessonCreateRequest(
     val startAt: Instant,
     val endAt: Instant,
     val priceCents: Int,
-    val note: String?
+    val note: String?,
+    val recurrence: RecurrenceCreateRequest? = null
 )

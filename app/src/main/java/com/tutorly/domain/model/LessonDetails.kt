@@ -12,6 +12,7 @@ import java.time.Instant
  */
 data class LessonDetails(
     val id: Long,
+    val baseLessonId: Long,
     val studentId: Long,
     val startAt: Instant,
     val endAt: Instant,
@@ -27,7 +28,11 @@ data class LessonDetails(
     val priceCents: Int,
     val paidCents: Int,
     val lessonTitle: String?,
-    val lessonNote: String?
+    val lessonNote: String?,
+    val isRecurring: Boolean = false,
+    val seriesId: Long? = null,
+    val originalStartAt: Instant? = null,
+    val recurrenceLabel: String? = null
 ) {
     companion object {
         val DEFAULT_DURATION: Duration = Duration.ofMinutes(DEFAULT_LESSON_DURATION_MINUTES)
