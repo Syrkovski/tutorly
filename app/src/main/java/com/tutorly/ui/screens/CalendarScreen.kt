@@ -44,6 +44,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 //import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -258,6 +259,31 @@ fun CalendarScreen(
 //            containerColor = Color.Transparent
         }
     ) { padding ->
+        val dayProgressMessage = if (mode == CalendarMode.DAY) {
+            val lessonsForDay = uiState.lessonsWithinBoundsByDate[anchor].orEmpty()
+            val completedCount = lessonsForDay.count { lesson ->
+                !lesson.end.isAfter(uiState.currentDateTime)
+            }
+            val remainingCount = (lessonsForDay.size - completedCount).coerceAtLeast(0)
+            val completedText = pluralStringResource(
+                id = R.plurals.calendar_day_completed_lessons,
+                count = completedCount,
+                completedCount
+            )
+            val remainingText = pluralStringResource(
+                id = R.plurals.calendar_day_remaining_lessons,
+                count = remainingCount,
+                remainingCount
+            )
+            stringResource(
+                id = R.string.calendar_day_progress_summary,
+                completedText,
+                remainingText
+            )
+        } else {
+            null
+        }
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -273,7 +299,8 @@ fun CalendarScreen(
                     viewModel.setMode(newMode)
                 },
                 onSwipeLeft = nextPeriod,
-                onSwipeRight = prevPeriod
+                onSwipeRight = prevPeriod,
+                progressMessage = dayProgressMessage
             )
 
             // Контент занимает остаток экрана и скроллится внутри
@@ -471,6 +498,7 @@ private fun CalendarTimelineHeader(
     onSelectMode: (CalendarMode) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
+    progressMessage: String?,
     modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru") }
@@ -541,6 +569,18 @@ private fun CalendarTimelineHeader(
                     )
                 }
         )
+
+        progressMessage?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp)
+            )
+        }
     }
 }
 
