@@ -933,6 +933,41 @@ private fun DayTimeline(
                         }
                     }
 
+                    dragState?.let { state ->
+                        val accent = MaterialTheme.extendedColors.accent
+                        val stateLesson = state.lesson
+                        val lessonDurationMinutes = stateLesson.duration
+                            .toMinutes()
+                            .toInt()
+                            .coerceAtLeast(SlotIncrementMinutes)
+                        val minStart = startMinutes
+                        val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
+                        val newTopMinutesFromStart = (state.baseTopPx + state.translationPx) / minuteHeightPx
+                        val rawStartMinutes = startMinutes + newTopMinutesFromStart
+                        val clampedStartMinutes = rawStartMinutes
+                            .coerceIn(minStart.toFloat(), maxStart.toFloat())
+                        val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
+                        val snappedSlots = ((clampedStartMinutes - minStart) / SlotIncrementMinutes.toFloat())
+                            .toInt()
+                            .coerceIn(0, maxSlots)
+                        val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
+                            .coerceIn(minStart, maxStart)
+                        val highlightTop = minuteHeight * (snappedMinutes - startMinutes).toFloat()
+                        val highlightHeight = minuteHeight * lessonDurationMinutes.toFloat()
+                        val clippedHighlightHeight = maxOf(0.dp, highlightHeight - 8.dp)
+
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .offset(y = highlightTop + 4.dp)
+                                .height(clippedHighlightHeight)
+                                .padding(start = LabelWidth + 16.dp, end = 20.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(accent.copy(alpha = 0.15f))
+                                .zIndex(0.5f)
+                        )
+                    }
+
                     dayLessons.forEach { lesson ->
                         val lessonStartTime = lesson.start.toLocalTime()
                         val lessonStartMinutes = lessonStartTime.hour * MinutesPerHour + lessonStartTime.minute
