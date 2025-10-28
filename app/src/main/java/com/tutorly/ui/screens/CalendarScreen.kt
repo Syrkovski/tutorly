@@ -952,32 +952,31 @@ private fun DayTimeline(
                             endMinutes = endMinutes,
                             lessonDurationMinutes = lessonDurationMinutes
                         )
-                        val desiredBottomMinutes = (snappedMinutes + HighlightCardOverlapMinutes)
-                            .coerceAtMost(endMinutes)
-                        val minimumBottomMinutes = (startMinutes + lessonDurationMinutes)
-                            .coerceAtMost(endMinutes)
-                        val highlightBottomMinutes = desiredBottomMinutes
-                            .coerceAtLeast(minimumBottomMinutes)
-                        val highlightStartMinutes = (highlightBottomMinutes - lessonDurationMinutes)
+                        val highlightAboveMinutes = (lessonDurationMinutes - HighlightCardOverlapMinutes)
+                            .coerceAtLeast(0)
+                            .coerceAtMost(MaxHighlightOffsetMinutes)
+                        val highlightTopMinutes = (snappedMinutes - highlightAboveMinutes)
                             .coerceAtLeast(startMinutes)
-                        val highlightTopMinutes = (highlightStartMinutes - startMinutes)
+                        val highlightBottomMinutes = (snappedMinutes + HighlightCardOverlapMinutes)
+                            .coerceAtMost(endMinutes)
+                        val highlightVisibleMinutes = (highlightBottomMinutes - highlightTopMinutes)
                             .coerceAtLeast(0)
-                        val highlightVisibleMinutes = (highlightBottomMinutes - highlightStartMinutes)
-                            .coerceAtLeast(0)
-                        val highlightTop = minuteHeight * highlightTopMinutes.toFloat()
-                        val highlightHeight = minuteHeight * highlightVisibleMinutes.toFloat()
-                        val clippedHighlightHeight = maxOf(0.dp, highlightHeight - 8.dp)
+                        if (highlightVisibleMinutes > 0) {
+                            val highlightTop = minuteHeight * (highlightTopMinutes - startMinutes).toFloat()
+                            val highlightHeight = minuteHeight * highlightVisibleMinutes.toFloat()
+                            val clippedHighlightHeight = maxOf(0.dp, highlightHeight - 8.dp)
 
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .offset(y = highlightTop + 4.dp)
-                                .height(clippedHighlightHeight)
-                                .padding(start = LabelWidth + 16.dp, end = 20.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(accent.copy(alpha = 0.15f))
-                                .zIndex(0.5f)
-                        )
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .offset(y = highlightTop + 4.dp)
+                                    .height(clippedHighlightHeight)
+                                    .padding(start = LabelWidth + 16.dp, end = 20.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(accent.copy(alpha = 0.15f))
+                                    .zIndex(0.5f)
+                            )
+                        }
                     }
 
                     dayLessons.forEach { lesson ->
@@ -991,7 +990,25 @@ private fun DayTimeline(
                         val baseTopPx = offsetMinutes * minuteHeightPx
                         val baseHeightPx = durationMinutes * minuteHeightPx
                         val isDragging = dragState?.lesson?.id == lesson.id
-                        val translationPx = if (isDragging) dragState!!.translationPx else 0f
+                        val translationPx = if (isDragging) {
+                            val state = dragState!!
+                            val lessonDurationMinutes = state.lesson.duration
+                                .toMinutes()
+                                .toInt()
+                                .coerceAtLeast(SlotIncrementMinutes)
+                            val snappedMinutes = resolveDragTargetMinutes(
+                                baseTopPx = state.baseTopPx,
+                                translationPx = state.translationPx,
+                                minuteHeightPx = minuteHeightPx,
+                                startMinutes = startMinutes,
+                                endMinutes = endMinutes,
+                                lessonDurationMinutes = lessonDurationMinutes
+                            )
+                            val snappedTopMinutes = (snappedMinutes - startMinutes)
+                                .coerceAtLeast(0)
+                            val snappedTopPx = snappedTopMinutes * minuteHeightPx
+                            snappedTopPx - state.baseTopPx
+                        } else 0f
 
                         LessonBlock(
                             lesson = lesson,
