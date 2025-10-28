@@ -58,6 +58,10 @@ interface LessonDao {
     suspend fun findById(id: Long): Lesson?
 
     @Transaction
+    @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
+    suspend fun findByIdWithStudent(id: Long): LessonWithStudent?
+
+    @Transaction
     @Query("SELECT * FROM lessons WHERE startAt < :end AND endAt > :start ORDER BY startAt")
     suspend fun findOverlapping(start: Instant, end: Instant): List<LessonWithStudent>
 

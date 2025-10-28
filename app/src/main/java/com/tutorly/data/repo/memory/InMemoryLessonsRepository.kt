@@ -99,7 +99,9 @@ class InMemoryLessonsRepository : LessonsRepository {
             status = LessonStatus.PLANNED,
             note = request.note,
             createdAt = now,
-            updatedAt = now
+            updatedAt = now,
+            seriesId = null,
+            isInstance = false
         )
         store[id] = newLesson
         emit()
@@ -207,6 +209,7 @@ private fun Lesson.toDetailsStub(): LessonDetails {
 
     return LessonDetails(
         id = id,
+        baseLessonId = id,
         studentId = studentId,
         startAt = startAt,
         endAt = normalizedEnd,
@@ -222,7 +225,11 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         priceCents = priceCents,
         paidCents = paidCents,
         lessonTitle = title,
-        lessonNote = note
+        lessonNote = note,
+        isRecurring = false,
+        seriesId = null,
+        originalStartAt = startAt,
+        recurrenceLabel = null
     )
 }
 

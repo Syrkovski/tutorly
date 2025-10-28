@@ -10,6 +10,7 @@ import androidx.room.Room
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
 import com.tutorly.data.db.migrations.MIGRATION_5_6
+import com.tutorly.data.db.migrations.MIGRATION_6_7
 import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.preferences.PreferencesDayClosureRepository
 import com.tutorly.data.repo.preferences.PreferencesUserProfileRepository
@@ -42,7 +43,7 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideDb(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "tutorly.db")
-            .addMigrations(MIGRATION_5_6)
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
             .fallbackToDestructiveMigration() // на MVP ок
             .build()
 
@@ -50,6 +51,8 @@ object DatabaseModule {
     @Provides fun provideSubjectDao(db: AppDatabase): SubjectPresetDao = db.subjectDao()
     @Provides fun provideLessonDao(db: AppDatabase): LessonDao = db.lessonDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
+    @Provides fun provideRecurrenceRuleDao(db: AppDatabase): RecurrenceRuleDao = db.recurrenceRuleDao()
+    @Provides fun provideRecurrenceExceptionDao(db: AppDatabase): RecurrenceExceptionDao = db.recurrenceExceptionDao()
 
     @Provides @Singleton
     fun provideStudentsRepo(
@@ -77,8 +80,16 @@ object DatabaseModule {
     fun provideLessonsRepo(
         lessonDao: LessonDao,
         paymentDao: PaymentDao,
+        recurrenceRuleDao: RecurrenceRuleDao,
+        recurrenceExceptionDao: RecurrenceExceptionDao,
         prepaymentAllocator: StudentPrepaymentAllocator
-    ): LessonsRepository = RoomLessonsRepository(lessonDao, paymentDao, prepaymentAllocator)
+    ): LessonsRepository = RoomLessonsRepository(
+        lessonDao,
+        paymentDao,
+        recurrenceRuleDao,
+        recurrenceExceptionDao,
+        prepaymentAllocator
+    )
 
     @Provides @Singleton
     fun provideUserSettingsRepo(): UserSettingsRepository = StaticUserSettingsRepository()

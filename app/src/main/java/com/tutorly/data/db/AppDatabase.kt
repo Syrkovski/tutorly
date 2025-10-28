@@ -13,9 +13,11 @@ import com.tutorly.models.*
         Student::class,
         Lesson::class,
         Payment::class,
-        SubjectPreset::class
+        SubjectPreset::class,
+        RecurrenceRule::class,
+        RecurrenceException::class
     ],
-    version = 6, // ↑ увеличь версию
+    version = 7, // ↑ увеличь версию
     exportSchema = true
 )
 @TypeConverters(InstantConverter::class, EnumConverters::class)
@@ -24,6 +26,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lessonDao(): LessonDao
     abstract fun paymentDao(): PaymentDao
     abstract fun subjectPresetDao(): SubjectPresetDao
+    abstract fun recurrenceRuleDao(): RecurrenceRuleDao
+    abstract fun recurrenceExceptionDao(): RecurrenceExceptionDao
 
     /**
      * Backwards-compatible accessor for subject presets DAO.
