@@ -264,6 +264,7 @@ private fun Lesson.toTodayStub(): LessonForToday {
 
     return LessonForToday(
         id = id,
+        baseLessonId = id,
         studentId = studentId,
         studentName = "Student #$studentId",
         studentGrade = null,
@@ -276,6 +277,10 @@ private fun Lesson.toTodayStub(): LessonForToday {
         studentRateCents = null,
         note = note,
         paymentStatus = paymentStatus,
-        markedAt = markedAt
+        markedAt = markedAt,
+        isRecurring = seriesId != null,
+        seriesId = seriesId,
+        originalStartAt = startAt,
+        recurrenceLabel = null
     )
 }

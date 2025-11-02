@@ -10,6 +10,7 @@ import java.time.Instant
  */
 data class LessonForToday(
     val id: Long,
+    val baseLessonId: Long,
     val studentId: Long,
     val studentName: String,
     val studentGrade: String?,
@@ -22,5 +23,9 @@ data class LessonForToday(
     val studentRateCents: Int?,
     val note: String?,
     val paymentStatus: PaymentStatus,
-    val markedAt: Instant?
+    val markedAt: Instant?,
+    val isRecurring: Boolean,
+    val seriesId: Long?,
+    val originalStartAt: Instant?,
+    val recurrenceLabel: String?
 )

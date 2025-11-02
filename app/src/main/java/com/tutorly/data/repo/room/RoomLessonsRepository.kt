@@ -66,7 +66,8 @@ class RoomLessonsRepository(
             ).map { bundle ->
                 val detail = bundle.details
                 LessonForToday(
-                    id = detail.baseLessonId,
+                    id = detail.id,
+                    baseLessonId = detail.baseLessonId,
                     studentId = detail.studentId,
                     studentName = detail.studentName,
                     studentGrade = detail.studentGrade,
@@ -79,7 +80,11 @@ class RoomLessonsRepository(
                     studentRateCents = bundle.studentRateCents,
                     note = detail.lessonNote,
                     paymentStatus = detail.paymentStatus,
-                    markedAt = bundle.markedAt
+                    markedAt = bundle.markedAt,
+                    isRecurring = detail.isRecurring,
+                    seriesId = detail.seriesId,
+                    originalStartAt = detail.originalStartAt,
+                    recurrenceLabel = detail.recurrenceLabel
                 )
             }
         }
@@ -99,7 +104,8 @@ class RoomLessonsRepository(
             ).map { bundle ->
                 val detail = bundle.details
                 LessonForToday(
-                    id = detail.baseLessonId,
+                    id = detail.id,
+                    baseLessonId = detail.baseLessonId,
                     studentId = detail.studentId,
                     studentName = detail.studentName,
                     studentGrade = detail.studentGrade,
@@ -112,7 +118,11 @@ class RoomLessonsRepository(
                     studentRateCents = bundle.studentRateCents,
                     note = detail.lessonNote,
                     paymentStatus = detail.paymentStatus,
-                    markedAt = bundle.markedAt
+                    markedAt = bundle.markedAt,
+                    isRecurring = detail.isRecurring,
+                    seriesId = detail.seriesId,
+                    originalStartAt = detail.originalStartAt,
+                    recurrenceLabel = detail.recurrenceLabel
                 )
             }
         }

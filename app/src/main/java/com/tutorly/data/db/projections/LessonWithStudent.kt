@@ -76,6 +76,7 @@ fun LessonWithStudent.toLessonForToday(): LessonForToday {
 
     return LessonForToday(
         id = lesson.id,
+        baseLessonId = lesson.id,
         studentId = lesson.studentId,
         studentName = student.name,
         studentGrade = student.grade,
@@ -88,7 +89,11 @@ fun LessonWithStudent.toLessonForToday(): LessonForToday {
         studentRateCents = student.rateCents,
         note = lesson.note,
         paymentStatus = lesson.paymentStatus,
-        markedAt = lesson.markedAt
+        markedAt = lesson.markedAt,
+        isRecurring = lesson.seriesId != null,
+        seriesId = lesson.seriesId,
+        originalStartAt = lesson.startAt,
+        recurrenceLabel = null
     )
 }
 

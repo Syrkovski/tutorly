@@ -85,6 +85,63 @@ class RoomLessonsRepositoryTest {
         assertTrue(generatedStarts.isNotEmpty())
         assertEquals(start.plusWeeks(1).toInstant(), generatedStarts.minOrNull())
     }
+
+    @Test
+    fun `recurring lesson surfaces in today stream`() = runBlocking {
+        val lessonDao = FakeLessonDao()
+        val paymentDao = FakePaymentDao()
+        val recurrenceRuleDao = FakeRecurrenceRuleDao()
+        val recurrenceExceptionDao = FakeRecurrenceExceptionDao()
+        val prepaymentAllocator = StudentPrepaymentAllocator(lessonDao, paymentDao)
+
+        val student = Student(id = 1L, name = "Alice")
+        lessonDao.registerStudent(student)
+
+        val repository = RoomLessonsRepository(
+            lessonDao = lessonDao,
+            paymentDao = paymentDao,
+            recurrenceRuleDao = recurrenceRuleDao,
+            recurrenceExceptionDao = recurrenceExceptionDao,
+            prepaymentAllocator = prepaymentAllocator
+        )
+
+        val zone = ZoneId.of("Europe/Moscow")
+        val baseStart = LocalDate.of(2024, 6, 3).atTime(LocalTime.of(10, 0)).atZone(zone)
+
+        val request = LessonCreateRequest(
+            studentId = student.id,
+            subjectId = null,
+            title = "Math",
+            startAt = baseStart.toInstant(),
+            endAt = baseStart.plusHours(1).toInstant(),
+            priceCents = 2000,
+            note = null,
+            recurrence = RecurrenceCreateRequest(
+                frequency = com.tutorly.models.RecurrenceFrequency.WEEKLY,
+                interval = 1,
+                daysOfWeek = listOf(DayOfWeek.MONDAY),
+                until = null,
+                timezone = zone
+            )
+        )
+
+        repository.create(request)
+
+        val seriesId = recurrenceRuleDao.observeAll().first().single().id
+
+        val targetStart = baseStart.plusWeeks(2)
+        val lessons = repository.observeTodayLessons(
+            dayStart = targetStart.toInstant(),
+            dayEnd = targetStart.plusDays(1).toInstant()
+        ).first { it.isNotEmpty() }
+
+        val occurrence = lessons.single()
+        assertTrue(occurrence.isRecurring)
+        assertEquals(seriesId, occurrence.seriesId)
+        assertEquals(targetStart.toInstant(), occurrence.startAt)
+        assertTrue(occurrence.id < 0)
+        assertTrue(occurrence.baseLessonId > 0)
+    }
 }
 
 private class FakeLessonDao : LessonDao {
