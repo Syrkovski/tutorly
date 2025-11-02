@@ -41,7 +41,7 @@ data class Lesson(
     val canceledAt: Instant? = null,
     val seriesId: Long? = null,          // ссылка на правило повторения, если есть
     val isInstance: Boolean = false,     // true только для материализованных экземпляров
-    @field:Ignore val recurrence: LessonRecurrence? = null
+    @Ignore val recurrence: LessonRecurrence? = null
 )
 
 data class LessonRecurrence(
