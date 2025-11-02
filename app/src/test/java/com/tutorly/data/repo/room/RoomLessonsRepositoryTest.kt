@@ -282,6 +282,72 @@ class RoomLessonsRepositoryTest {
     }
 
     @Test
+    fun `missing series id is recovered from recurrence rule`() = runBlocking {
+        val lessonDao = FakeLessonDao()
+        val paymentDao = FakePaymentDao()
+        val recurrenceRuleDao = FakeRecurrenceRuleDao()
+        val recurrenceExceptionDao = FakeRecurrenceExceptionDao()
+        val prepaymentAllocator = StudentPrepaymentAllocator(lessonDao, paymentDao)
+
+        val student = Student(id = 1L, name = "Alice")
+        lessonDao.registerStudent(student)
+
+        val repository = RoomLessonsRepository(
+            lessonDao = lessonDao,
+            paymentDao = paymentDao,
+            recurrenceRuleDao = recurrenceRuleDao,
+            recurrenceExceptionDao = recurrenceExceptionDao,
+            prepaymentAllocator = prepaymentAllocator
+        )
+
+        val zone = ZoneId.of("Europe/Moscow")
+        val start = LocalDate.of(2024, 6, 3).atTime(LocalTime.of(9, 0)).atZone(zone)
+        val baseLesson = Lesson(
+            id = 100L,
+            studentId = student.id,
+            subjectId = null,
+            title = "Chemistry",
+            startAt = start.toInstant(),
+            endAt = start.plusHours(1).toInstant(),
+            priceCents = 1500,
+            paidCents = 0,
+            paymentStatus = PaymentStatus.UNPAID,
+            markedAt = null,
+            status = com.tutorly.models.LessonStatus.PLANNED,
+            note = null,
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        lessonDao.upsert(baseLesson)
+
+        val ruleId = recurrenceRuleDao.upsert(
+            RecurrenceRule(
+                baseLessonId = baseLesson.id,
+                frequency = com.tutorly.models.RecurrenceFrequency.WEEKLY,
+                interval = 1,
+                daysOfWeek = listOf(DayOfWeek.MONDAY),
+                startDateTime = start.toInstant(),
+                untilDateTime = null,
+                timezone = zone.id
+            )
+        )
+
+        val details = repository.observeLessonDetails(baseLesson.id)
+            .first { it != null }
+            ?: error("Expected details")
+
+        assertTrue(details.isRecurring)
+        assertEquals(ruleId, details.seriesId)
+
+        val persisted = repository.getById(baseLesson.id) ?: error("Expected lesson")
+        assertEquals(ruleId, persisted.seriesId)
+        assertTrue(persisted.recurrence != null)
+
+        val stored = lessonDao.findById(baseLesson.id) ?: error("Stored lesson missing")
+        assertEquals(ruleId, stored.seriesId)
+    }
+
+    @Test
     fun `upsert clears recurrence rule when removed`() = runBlocking {
         val lessonDao = FakeLessonDao()
         val paymentDao = FakePaymentDao()
@@ -498,6 +564,9 @@ private class FakeRecurrenceRuleDao : RecurrenceRuleDao {
         rules.values.toList()
 
     override suspend fun findById(id: Long): RecurrenceRule? = rules[id]
+
+    override suspend fun findByBaseLessonId(baseLessonId: Long): RecurrenceRule? =
+        rules.values.firstOrNull { it.baseLessonId == baseLessonId }
 
     override fun observeAll(): Flow<List<RecurrenceRule>> = state
 
