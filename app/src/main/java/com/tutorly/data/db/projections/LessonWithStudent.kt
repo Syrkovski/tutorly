@@ -89,6 +89,7 @@ fun LessonWithStudent.toLessonForToday(): LessonForToday {
         studentRateCents = student.rateCents,
         note = lesson.note,
         paymentStatus = lesson.paymentStatus,
+        lessonStatus = lesson.status,
         markedAt = lesson.markedAt,
         isRecurring = lesson.seriesId != null,
         seriesId = lesson.seriesId,

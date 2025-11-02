@@ -277,6 +277,7 @@ private fun Lesson.toTodayStub(): LessonForToday {
         studentRateCents = null,
         note = note,
         paymentStatus = paymentStatus,
+        lessonStatus = status,
         markedAt = markedAt,
         isRecurring = seriesId != null,
         seriesId = seriesId,
