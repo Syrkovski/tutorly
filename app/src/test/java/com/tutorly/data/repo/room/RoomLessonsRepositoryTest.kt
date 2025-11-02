@@ -209,6 +209,76 @@ class RoomLessonsRepositoryTest {
     }
 
     @Test
+    fun `repository exposes recurrence metadata`() = runBlocking {
+        val lessonDao = FakeLessonDao()
+        val paymentDao = FakePaymentDao()
+        val recurrenceRuleDao = FakeRecurrenceRuleDao()
+        val recurrenceExceptionDao = FakeRecurrenceExceptionDao()
+        val prepaymentAllocator = StudentPrepaymentAllocator(lessonDao, paymentDao)
+
+        val student = Student(id = 1L, name = "Alice")
+        lessonDao.registerStudent(student)
+
+        val repository = RoomLessonsRepository(
+            lessonDao = lessonDao,
+            paymentDao = paymentDao,
+            recurrenceRuleDao = recurrenceRuleDao,
+            recurrenceExceptionDao = recurrenceExceptionDao,
+            prepaymentAllocator = prepaymentAllocator
+        )
+
+        val zone = ZoneId.of("Europe/Moscow")
+        val start = LocalDate.of(2024, 6, 3).atTime(LocalTime.of(9, 0)).atZone(zone)
+        val baseLesson = Lesson(
+            id = 42L,
+            studentId = student.id,
+            subjectId = null,
+            title = "Physics",
+            startAt = start.toInstant(),
+            endAt = start.plusHours(1).toInstant(),
+            priceCents = 1800,
+            paidCents = 0,
+            paymentStatus = PaymentStatus.UNPAID,
+            markedAt = null,
+            status = com.tutorly.models.LessonStatus.PLANNED,
+            note = null,
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        lessonDao.upsert(baseLesson)
+
+        val recurrence = LessonRecurrence(
+            frequency = com.tutorly.models.RecurrenceFrequency.WEEKLY,
+            interval = 1,
+            daysOfWeek = listOf(DayOfWeek.MONDAY),
+            startDateTime = start.toInstant(),
+            untilDateTime = null,
+            timezone = zone
+        )
+
+        repository.upsert(baseLesson.copy(recurrence = recurrence))
+
+        val persisted = repository.getById(baseLesson.id)!!
+        val observed = repository.observeByStudent(student.id)
+            .first { lessons -> lessons.any { it.id == baseLesson.id && it.recurrence != null } }
+            .first { it.id == baseLesson.id }
+
+        assertEquals(recurrence.frequency, persisted.recurrence?.frequency)
+        assertEquals(recurrence.interval, persisted.recurrence?.interval)
+        assertEquals(recurrence.daysOfWeek, persisted.recurrence?.daysOfWeek)
+        assertEquals(recurrence.startDateTime, persisted.recurrence?.startDateTime)
+        assertEquals(recurrence.untilDateTime, persisted.recurrence?.untilDateTime)
+        assertEquals(recurrence.timezone, persisted.recurrence?.timezone)
+
+        assertEquals(recurrence.frequency, observed.recurrence?.frequency)
+        assertEquals(recurrence.interval, observed.recurrence?.interval)
+        assertEquals(recurrence.daysOfWeek, observed.recurrence?.daysOfWeek)
+        assertEquals(recurrence.startDateTime, observed.recurrence?.startDateTime)
+        assertEquals(recurrence.untilDateTime, observed.recurrence?.untilDateTime)
+        assertEquals(recurrence.timezone, observed.recurrence?.timezone)
+    }
+
+    @Test
     fun `upsert clears recurrence rule when removed`() = runBlocking {
         val lessonDao = FakeLessonDao()
         val paymentDao = FakePaymentDao()

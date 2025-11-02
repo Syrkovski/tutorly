@@ -15,6 +15,7 @@ import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.models.LessonStatus
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.RecurrenceException
@@ -185,9 +186,20 @@ class RoomLessonsRepository(
         }
 
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
-        lessonDao.observeByStudent(studentId)
+        combine(
+            lessonDao.observeByStudent(studentId),
+            recurrenceRuleDao.observeAll()
+        ) { lessons, rules ->
+            attachRecurrence(lessons, rules)
+        }
 
-    override suspend fun getById(id: Long): Lesson? = lessonDao.findById(id)
+    override suspend fun getById(id: Long): Lesson? {
+        val lesson = lessonDao.findById(id) ?: return null
+        val recurrence = lesson.seriesId?.let { seriesId ->
+            recurrenceRuleDao.findById(seriesId)?.toLessonRecurrence()
+        }
+        return lesson.copy(recurrence = recurrence)
+    }
 
     override suspend fun upsert(lesson: Lesson): Long {
         val existing = lesson.id.takeIf { it != 0L }?.let { lessonDao.findById(it) }
@@ -315,7 +327,12 @@ class RoomLessonsRepository(
     }
 
     override suspend fun latestLessonForStudent(studentId: Long): Lesson? {
-        return lessonDao.findLatestForStudent(studentId)?.lesson
+        val projection = lessonDao.findLatestForStudent(studentId) ?: return null
+        val lesson = projection.lesson
+        val recurrence = lesson.seriesId?.let { seriesId ->
+            recurrenceRuleDao.findById(seriesId)?.toLessonRecurrence()
+        }
+        return lesson.copy(recurrence = recurrence)
     }
 
     override suspend fun delete(id: Long) {
@@ -594,6 +611,34 @@ class RoomLessonsRepository(
         }
 
         return results
+    }
+
+    private fun attachRecurrence(
+        lessons: List<Lesson>,
+        rules: List<RecurrenceRule>
+    ): List<Lesson> {
+        if (lessons.isEmpty()) return emptyList()
+        if (rules.isEmpty()) return lessons.map { it.copy(recurrence = null) }
+
+        val ruleMap = rules.associateBy { it.id }
+        return lessons.map { lesson ->
+            val recurrence = lesson.seriesId?.let { seriesId ->
+                ruleMap[seriesId]?.toLessonRecurrence()
+            }
+            lesson.copy(recurrence = recurrence)
+        }
+    }
+
+    private fun RecurrenceRule.toLessonRecurrence(): LessonRecurrence {
+        val zone = runCatching { ZoneId.of(timezone) }.getOrDefault(ZoneId.systemDefault())
+        return LessonRecurrence(
+            frequency = frequency,
+            interval = interval,
+            daysOfWeek = daysOfWeek,
+            startDateTime = startDateTime,
+            untilDateTime = untilDateTime,
+            timezone = zone
+        )
     }
 
     private fun syntheticId(seriesId: Long, start: Instant): Long {

@@ -42,7 +42,46 @@ data class Lesson(
     val seriesId: Long? = null,          // ссылка на правило повторения, если есть
     val isInstance: Boolean = false,     // true только для материализованных экземпляров
     @Ignore val recurrence: LessonRecurrence? = null
-)
+) {
+    constructor(
+        id: Long = 0L,
+        studentId: Long,
+        subjectId: Long?,
+        title: String? = null,
+        startAt: Instant,
+        endAt: Instant,
+        priceCents: Int,
+        paidCents: Int = 0,
+        paymentStatus: PaymentStatus = PaymentStatus.UNPAID,
+        markedAt: Instant? = null,
+        status: LessonStatus = LessonStatus.PLANNED,
+        note: String? = null,
+        createdAt: Instant = Instant.now(),
+        updatedAt: Instant = Instant.now(),
+        canceledAt: Instant? = null,
+        seriesId: Long? = null,
+        isInstance: Boolean = false
+    ) : this(
+        id = id,
+        studentId = studentId,
+        subjectId = subjectId,
+        title = title,
+        startAt = startAt,
+        endAt = endAt,
+        priceCents = priceCents,
+        paidCents = paidCents,
+        paymentStatus = paymentStatus,
+        markedAt = markedAt,
+        status = status,
+        note = note,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        canceledAt = canceledAt,
+        seriesId = seriesId,
+        isInstance = isInstance,
+        recurrence = null
+    )
+}
 
 data class LessonRecurrence(
     val frequency: RecurrenceFrequency,
