@@ -44,6 +44,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 //import androidx.compose.ui.layout.wrapContentSize
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -724,6 +726,7 @@ private fun WeekDayCell(
 private val LabelWidth = 64.dp
 private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
+private val LessonCardVerticalInset = 4.dp
 private const val MinutesPerHour: Int = 60
 private const val SlotIncrementMinutes: Int = 15
 private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
@@ -761,6 +764,8 @@ private fun DayTimeline(
     val labelWidthPx = remember(density) { with(density) { LabelWidth.toPx() } }
     val cardInsetPx = remember(density) { with(density) { 16.dp.toPx() } }
     val totalHeightPx = remember(totalHeight, density) { with(density) { totalHeight.toPx() } }
+    val cardVerticalInsetPx = remember(density) { with(density) { LessonCardVerticalInset.toPx() } }
+    val lessonTopCache = remember(date) { mutableStateMapOf<Long, Float>() }
     val nowMinutesFromStart = remember(isToday, currentDateTime, startMinutes, totalMinutes) {
         if (!isToday) {
             null
@@ -796,6 +801,14 @@ private fun DayTimeline(
         dragState?.let { state ->
             if (dayLessons.none { it.id == state.lesson.id }) {
                 dragState = null
+            }
+        }
+        val validIds = dayLessons.mapTo(mutableSetOf()) { it.id }
+        val keyIterator = lessonTopCache.keys.iterator()
+        while (keyIterator.hasNext()) {
+            val key = keyIterator.next()
+            if (!validIds.contains(key)) {
+                keyIterator.remove()
             }
         }
     }
@@ -974,8 +987,8 @@ private fun DayTimeline(
                                     .zIndex(0.5f)
                             )
 
-                            val overlayTop = highlightTop + 4.dp
-                            val overlayHeight = highlightHeight - 8.dp
+                            val overlayTop = highlightTop + LessonCardVerticalInset
+                            val overlayHeight = highlightHeight - LessonCardVerticalInset * 2
                             if (overlayHeight > 0.dp) {
                                 LessonCardOverlay(
                                     lesson = stateLesson,
@@ -1009,9 +1022,10 @@ private fun DayTimeline(
                             now = currentDateTime,
                             onLessonClick = onLessonClick,
                             onDragStart = {
+                                val measuredTopPx = lessonTopCache[lesson.id] ?: baseTopPx
                                 dragState = LessonDragState(
                                     lesson = lesson,
-                                    baseTopPx = baseTopPx,
+                                    baseTopPx = measuredTopPx,
                                     baseHeightPx = baseHeightPx,
                                     startScroll = scroll.value
                                 )
@@ -1056,7 +1070,14 @@ private fun DayTimeline(
                                 dragState = null
                             },
                             onDragCancel = { dragState = null },
-                            isDragging = isDragging
+                            isDragging = isDragging,
+                            onPositionMeasured = { positionedLesson, parentTopPx ->
+                                val adjustedTopPx = parentTopPx - cardVerticalInsetPx
+                                val previous = lessonTopCache[positionedLesson.id]
+                                if (previous == null || abs(previous - adjustedTopPx) > 0.5f) {
+                                    lessonTopCache[positionedLesson.id] = adjustedTopPx
+                                }
+                            }
                         )
                     }
 
@@ -1151,7 +1172,8 @@ private fun LessonBlock(
     onDrag: (CalendarLesson, Float) -> Unit,
     onDragEnd: (CalendarLesson) -> Unit,
     onDragCancel: () -> Unit,
-    isDragging: Boolean
+    isDragging: Boolean,
+    onPositionMeasured: (CalendarLesson, Float) -> Unit
 ) {
     val startTime = lesson.start.toLocalTime()
     val startMin = startTime.hour * MinutesPerHour + startTime.minute
@@ -1166,11 +1188,14 @@ private fun LessonBlock(
     Box(
         Modifier
             .fillMaxWidth()
-            .offset(y = top+4.dp)
-            .height(height-8.dp)
+            .offset(y = top + LessonCardVerticalInset)
+            .height(height - LessonCardVerticalInset * 2)
             .padding(start = LabelWidth + 16.dp, end = 20.dp)
             .alpha(if (isDragging) 0.4f else 1f)
             .zIndex(if (isDragging) 0.25f else 0f)
+            .onGloballyPositioned { coordinates ->
+                onPositionMeasured(lesson, coordinates.positionInParent().y)
+            }
             .pointerInput(lesson.id) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { onDragStart(lesson) },
