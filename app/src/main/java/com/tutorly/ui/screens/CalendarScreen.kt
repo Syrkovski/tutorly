@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
@@ -44,11 +46,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 //import androidx.compose.ui.layout.wrapContentSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
 import com.tutorly.R
@@ -77,6 +81,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 enum class CalendarMode { DAY, WEEK }
@@ -258,6 +263,31 @@ fun CalendarScreen(
 //            containerColor = Color.Transparent
         }
     ) { padding ->
+        val dayProgressMessage = if (mode == CalendarMode.DAY) {
+            val lessonsForDay = uiState.lessonsWithinBoundsByDate[anchor].orEmpty()
+            val completedCount = lessonsForDay.count { lesson ->
+                !lesson.end.isAfter(uiState.currentDateTime)
+            }
+            val remainingCount = (lessonsForDay.size - completedCount).coerceAtLeast(0)
+            val completedText = pluralStringResource(
+                id = R.plurals.calendar_day_completed_lessons,
+                count = completedCount,
+                completedCount
+            )
+            val remainingText = pluralStringResource(
+                id = R.plurals.calendar_day_remaining_lessons,
+                count = remainingCount,
+                remainingCount
+            )
+            stringResource(
+                id = R.string.calendar_day_progress_summary,
+                completedText,
+                remainingText
+            )
+        } else {
+            null
+        }
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -273,7 +303,8 @@ fun CalendarScreen(
                     viewModel.setMode(newMode)
                 },
                 onSwipeLeft = nextPeriod,
-                onSwipeRight = prevPeriod
+                onSwipeRight = prevPeriod,
+                progressMessage = dayProgressMessage
             )
 
             // Контент занимает остаток экрана и скроллится внутри
@@ -344,7 +375,8 @@ fun CalendarScreen(
                                         startTime,
                                         DefaultSlotDuration
                                     )
-                                }
+                                },
+                                onLessonMoved = viewModel::onLessonMoved
                             )
                         }
 
@@ -471,6 +503,7 @@ private fun CalendarTimelineHeader(
     onSelectMode: (CalendarMode) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
+    progressMessage: String?,
     modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru") }
@@ -541,6 +574,18 @@ private fun CalendarTimelineHeader(
                     )
                 }
         )
+
+        progressMessage?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp)
+            )
+        }
     }
 }
 
@@ -680,7 +725,7 @@ private val LabelWidth = 64.dp
 private val HourHeight = 80.dp
 private val DefaultSlotDuration: Duration = Duration.ofMinutes(60)
 private const val MinutesPerHour: Int = 60
-private const val SlotIncrementMinutes: Int = 30
+private const val SlotIncrementMinutes: Int = 15
 private const val MINUTES_IN_DAY: Int = MinutesPerHour * 24
 private const val MAX_END_MINUTE: Int = MINUTES_IN_DAY
 private const val MAX_START_MINUTE: Int = MAX_END_MINUTE - SlotIncrementMinutes
@@ -693,7 +738,8 @@ private fun DayTimeline(
     workDayStartMinutes: Int,
     workDayEndMinutes: Int,
     onLessonClick: (CalendarLesson) -> Unit,
-    onEmptySlot: (LocalTime) -> Unit
+    onEmptySlot: (LocalTime) -> Unit,
+    onLessonMoved: (CalendarLesson, ZonedDateTime) -> Unit
 ) {
     val dayLessons = remember(date, lessons) { lessons }
     val isToday = remember(date, currentDateTime) { currentDateTime.toLocalDate() == date }
@@ -745,6 +791,15 @@ private fun DayTimeline(
             }
         }
     }
+    var dragState by remember { mutableStateOf<LessonDragState?>(null) }
+    LaunchedEffect(dayLessons) {
+        dragState?.let { state ->
+            if (dayLessons.none { it.id == state.lesson.id }) {
+                dragState = null
+            }
+        }
+    }
+
     val lessonRegions = remember(dayLessons, startMinutes, minuteHeightPx, labelWidthPx, cardInsetPx) {
         val baseMin = startMinutes
         dayLessons.map { lesson ->
@@ -879,13 +934,129 @@ private fun DayTimeline(
                         }
                     }
 
+                    dragState?.let { state ->
+                        val accent = MaterialTheme.extendedColors.accent
+                        val stateLesson = state.lesson
+                        val translationPx = calculateEffectiveTranslationPx(
+                            state = state,
+                            currentScroll = scroll.value,
+                            totalHeightPx = totalHeightPx
+                        )
+                        val lessonDurationMinutes = stateLesson.duration
+                            .toMinutes()
+                            .toInt()
+                            .coerceAtLeast(SlotIncrementMinutes)
+                        val snappedMinutes = resolveDragTargetMinutes(
+                            baseTopPx = state.baseTopPx,
+                            translationPx = translationPx,
+                            minuteHeightPx = minuteHeightPx,
+                            startMinutes = startMinutes,
+                            endMinutes = endMinutes,
+                            lessonDurationMinutes = lessonDurationMinutes
+                        )
+                        val highlightTopMinutes = snappedMinutes.coerceAtLeast(startMinutes)
+                        val highlightBottomMinutes = (snappedMinutes + lessonDurationMinutes)
+                            .coerceAtMost(endMinutes)
+                        val highlightVisibleMinutes = (highlightBottomMinutes - highlightTopMinutes)
+                            .coerceAtLeast(0)
+                        if (highlightVisibleMinutes > 0) {
+                            val highlightTop = minuteHeight * (highlightTopMinutes - startMinutes).toFloat()
+                            val highlightHeight = minuteHeight * highlightVisibleMinutes.toFloat()
+
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .offset(y = highlightTop)
+                                    .height(highlightHeight)
+                                    .padding(start = LabelWidth + 16.dp, end = 20.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(accent.copy(alpha = 0.15f))
+                                    .zIndex(0.5f)
+                            )
+
+                            val overlayTop = highlightTop + 4.dp
+                            val overlayHeight = highlightHeight - 8.dp
+                            if (overlayHeight > 0.dp) {
+                                LessonCardOverlay(
+                                    lesson = stateLesson,
+                                    now = currentDateTime,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset(y = overlayTop)
+                                        .height(overlayHeight)
+                                        .padding(start = LabelWidth + 16.dp, end = 20.dp)
+                                        .zIndex(0.75f)
+                                )
+                            }
+                        }
+                    }
+
                     dayLessons.forEach { lesson ->
+                        val lessonStartTime = lesson.start.toLocalTime()
+                        val lessonStartMinutes = lessonStartTime.hour * MinutesPerHour + lessonStartTime.minute
+                        val offsetMinutes = (lessonStartMinutes - startMinutes).coerceAtLeast(0)
+                        val durationMinutes = lesson.duration
+                            .toMinutes()
+                            .toInt()
+                            .coerceAtLeast(SlotIncrementMinutes)
+                        val baseTopPx = offsetMinutes * minuteHeightPx
+                        val baseHeightPx = durationMinutes * minuteHeightPx
+                        val isDragging = dragState?.lesson?.id == lesson.id
                         LessonBlock(
                             lesson = lesson,
                             baseMinutes = startMinutes,
                             minuteHeight = minuteHeight,
                             now = currentDateTime,
-                            onLessonClick = onLessonClick
+                            onLessonClick = onLessonClick,
+                            onDragStart = {
+                                dragState = LessonDragState(
+                                    lesson = lesson,
+                                    baseTopPx = baseTopPx,
+                                    baseHeightPx = baseHeightPx,
+                                    startScroll = scroll.value
+                                )
+                            },
+                            onDrag = { _, delta ->
+                                dragState?.takeIf { it.lesson.id == lesson.id }?.let { state ->
+                                    dragState = state.copy(rawDragDeltaPx = state.rawDragDeltaPx + delta)
+                                }
+                            },
+                            onDragEnd = {
+                                val state = dragState?.takeIf { it.lesson.id == lesson.id } ?: run {
+                                    dragState = null
+                                    return@LessonBlock
+                                }
+                                val stateLesson = state.lesson
+                                val lessonDurationMinutes = stateLesson.duration
+                                    .toMinutes()
+                                    .toInt()
+                                    .coerceAtLeast(SlotIncrementMinutes)
+                                val translationPx = calculateEffectiveTranslationPx(
+                                    state = state,
+                                    currentScroll = scroll.value,
+                                    totalHeightPx = totalHeightPx
+                                )
+                                val snappedMinutes = resolveDragTargetMinutes(
+                                    baseTopPx = state.baseTopPx,
+                                    translationPx = translationPx,
+                                    minuteHeightPx = minuteHeightPx,
+                                    startMinutes = startMinutes,
+                                    endMinutes = endMinutes,
+                                    lessonDurationMinutes = lessonDurationMinutes
+                                )
+                                val hour = snappedMinutes / MinutesPerHour
+                                val minute = snappedMinutes % MinutesPerHour
+                                val zone = stateLesson.start.zone
+                                val baseLocal = date.atTime(hour, minute)
+                                val adjustedLocal = baseLocal
+                                    .withSecond(stateLesson.start.second)
+                                    .withNano(stateLesson.start.nano)
+                                val newStart = adjustedLocal.atZone(zone)
+                                onLessonMoved(stateLesson, newStart)
+                                dragState = null
+                            },
+                            onDragCancel = { dragState = null },
+                            isDragging = isDragging
                         )
                     }
 
@@ -920,13 +1091,67 @@ private data class TimelineLessonRegion(
     val leftPx: Float
 )
 
+private data class LessonDragState(
+    val lesson: CalendarLesson,
+    val baseTopPx: Float,
+    val baseHeightPx: Float,
+    val startScroll: Int,
+    val rawDragDeltaPx: Float = 0f
+)
+
+private fun calculateEffectiveTranslationPx(
+    state: LessonDragState,
+    currentScroll: Int,
+    totalHeightPx: Float
+): Float {
+    val rawTranslation = state.rawDragDeltaPx + (currentScroll - state.startScroll)
+    val minTranslation = -state.baseTopPx
+    val maxTranslation = totalHeightPx - state.baseTopPx - state.baseHeightPx
+    return rawTranslation.coerceIn(minTranslation, maxTranslation)
+}
+
+private fun resolveDragTargetMinutes(
+    baseTopPx: Float,
+    translationPx: Float,
+    minuteHeightPx: Float,
+    startMinutes: Int,
+    endMinutes: Int,
+    lessonDurationMinutes: Int
+): Int {
+    val minStart = startMinutes
+    val maxStart = (endMinutes - lessonDurationMinutes).coerceAtLeast(minStart)
+    if (minuteHeightPx == 0f) {
+        return minStart
+    }
+
+    val newTopMinutesFromStart = (baseTopPx + translationPx) / minuteHeightPx
+    val rawStartMinutes = startMinutes + newTopMinutesFromStart
+    val clampedStartMinutes = rawStartMinutes
+        .coerceIn(minStart.toFloat(), maxStart.toFloat())
+
+    val maxSlots = (maxStart - minStart) / SlotIncrementMinutes
+    val slotsFloat = (clampedStartMinutes - minStart.toFloat()) / SlotIncrementMinutes.toFloat()
+    val snappedSlots = floor(slotsFloat.toDouble())
+        .toInt()
+        .coerceIn(0, maxSlots)
+    val snappedMinutes = (minStart + snappedSlots * SlotIncrementMinutes)
+        .coerceIn(minStart, maxStart)
+
+    return snappedMinutes
+}
+
 @Composable
 private fun LessonBlock(
     lesson: CalendarLesson,
     baseMinutes: Int,
     minuteHeight: Dp,
     now: ZonedDateTime,
-    onLessonClick: (CalendarLesson) -> Unit
+    onLessonClick: (CalendarLesson) -> Unit,
+    onDragStart: (CalendarLesson) -> Unit,
+    onDrag: (CalendarLesson, Float) -> Unit,
+    onDragEnd: (CalendarLesson) -> Unit,
+    onDragCancel: () -> Unit,
+    isDragging: Boolean
 ) {
     val startTime = lesson.start.toLocalTime()
     val startMin = startTime.hour * MinutesPerHour + startTime.minute
@@ -944,110 +1169,163 @@ private fun LessonBlock(
             .offset(y = top+4.dp)
             .height(height-8.dp)
             .padding(start = LabelWidth + 16.dp, end = 20.dp)
+            .alpha(if (isDragging) 0.4f else 1f)
+            .zIndex(if (isDragging) 0.25f else 0f)
+            .pointerInput(lesson.id) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onDragStart(lesson) },
+                    onDragEnd = { onDragEnd(lesson) },
+                    onDragCancel = onDragCancel,
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(lesson, dragAmount.y)
+                    }
+                )
+            }
             .clip(RoundedCornerShape(12.dp))
     ) {
-        val cardShape = RoundedCornerShape(12.dp)
-        val innerStrokeWidth = 1.dp
-        Card(
+        LessonCardVisual(
+            lessonUi = lessonUi,
             modifier = Modifier.fillMaxSize(),
             onClick = { onLessonClick(lesson) },
-            shape = cardShape,
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        val strokeWidth = innerStrokeWidth.toPx()
-                        val radius = 12.dp.toPx().coerceAtLeast(0f)
-                        val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
-                        drawRoundRect(
-                            color = Color(0x14000000),
-                            topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                            size = Size(size.width - strokeWidth+20, size.height - strokeWidth),
-                            cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
-                            style = Stroke(width = strokeWidth)
-                        )
-                    }
+            enabled = !isDragging
+        )
+    }
+}
+
+@Composable
+private fun LessonCardOverlay(
+    lesson: CalendarLesson,
+    now: ZonedDateTime,
+    modifier: Modifier = Modifier
+) {
+    val lessonUi = lesson.toLessonUi(now)
+    LessonCardVisual(
+        lessonUi = lessonUi,
+        modifier = modifier,
+        onClick = null,
+        enabled = false
+    )
+}
+
+@Composable
+private fun LessonCardVisual(
+    lessonUi: LessonUi,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)?,
+    enabled: Boolean
+) {
+    val cardShape = RoundedCornerShape(12.dp)
+    val innerStrokeWidth = 1.dp
+    Box(modifier = modifier) {
+        if (onClick != null) {
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                onClick = onClick,
+                shape = cardShape,
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                enabled = enabled
             ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-//                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = lessonUi.studentName,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (lessonUi.isRecurring) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CalendarMonth,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = lessonUi.recurrenceLabel ?: stringResource(id = R.string.lesson_recurring_short),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .padding(start = 4.dp)
-                                    .weight(1f, fill = false),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    lessonUi.secondaryLine?.let { secondaryLine ->
+                LessonCardInner(
+                    lessonUi = lessonUi,
+                    innerStrokeWidth = innerStrokeWidth
+                )
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = cardShape,
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                LessonCardInner(
+                    lessonUi = lessonUi,
+                    innerStrokeWidth = innerStrokeWidth
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .width(12.dp)
+                .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
+                .background(lessonUi.statusColor)
+        )
+    }
+}
+
+@Composable
+private fun LessonCardInner(
+    lessonUi: LessonUi,
+    innerStrokeWidth: Dp
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawBehind {
+                val strokeWidth = innerStrokeWidth.toPx()
+                val radius = 12.dp.toPx().coerceAtLeast(0f)
+                val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
+                drawRoundRect(
+                    color = Color(0x14000000),
+                    topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                    size = Size(size.width - strokeWidth + 20, size.height - strokeWidth),
+                    cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
+                    style = Stroke(width = strokeWidth)
+                )
+            }
+    ) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = lessonUi.studentName,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (lessonUi.isRecurring) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarMonth,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Text(
-                            text = secondaryLine,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = lessonUi.recurrenceLabel ?: stringResource(id = R.string.lesson_recurring_short),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .weight(1f, fill = false),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-//                    lessonUi.note?.let { note ->
-//                        Text(
-//                            text = note,
-//                            style = MaterialTheme.typography.bodySmall,
-//                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-//                            maxLines = 1,
-//                            overflow = TextOverflow.Ellipsis
-//                        )
-//                    }
-//                    Text(
-//                        text = lessonUi.statusDescription,
-//                        style = MaterialTheme.typography.bodySmall,
-//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-//                        maxLines = 1,
-//                        overflow = TextOverflow.Ellipsis
-//                    )
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                lessonUi.secondaryLine?.let { secondaryLine ->
+                    Text(
+                        text = secondaryLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-            }
+            Spacer(modifier = Modifier.width(10.dp))
         }
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-//                .offset(x = 12.dp)
-                .fillMaxHeight()
-                .width(12.dp)
-                .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
-                .background(lessonUi.statusColor),
-
-        )
     }
 }
 
