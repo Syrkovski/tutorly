@@ -2,7 +2,6 @@ package com.tutorly.ui.lessoncard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.UserSettingsRepository
@@ -124,8 +123,6 @@ class LessonCardViewModel @Inject constructor(
                 isLoading = false,
                 isPaymentActionRunning = false,
                 isDeleting = false,
-                isRecurring = false,
-                recurrenceLabel = null,
             )
         }
     }
@@ -212,21 +209,12 @@ class LessonCardViewModel @Inject constructor(
 
     fun onRecurrenceSelected(recurrence: LessonRecurrence?) {
         val lesson = currentLesson ?: return
-        val label = recurrence?.let { rule ->
-            val start = rule.startDateTime.atZone(rule.timezone)
-            RecurrenceLabelFormatter.format(rule.frequency, rule.interval, rule.daysOfWeek, start)
-        }
         val updated = if (recurrence != null) {
             lesson.copy(recurrence = recurrence, updatedAt = Instant.now())
         } else {
             lesson.copy(seriesId = null, recurrence = null, updatedAt = Instant.now())
         }
-        submitUpdate(updated) { state ->
-            state.copy(
-                isRecurring = recurrence != null,
-                recurrenceLabel = label
-            )
-        }
+        submitUpdate(updated) { it }
     }
 
     fun onPaymentStatusSelected(status: PaymentStatus) {
