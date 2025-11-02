@@ -229,10 +229,16 @@ class RoomLessonsRepository(
                     )
                     lessonDao.upsert(refreshed)
                 }
+                val anchor = lessonDao.findById(baseLessonId)
+                val rule = recurrenceRuleDao.findById(ruleId)
+                if (anchor != null && rule != null) {
+                    generateFutureOccurrences(anchor, rule)
+                }
             }
 
             existing?.seriesId != null && lesson.seriesId == null -> {
                 recurrenceRuleDao.deleteById(existing.seriesId)
+                lessonDao.deleteInstancesForSeries(existing.seriesId)
             }
         }
         prepaymentAllocator.sync(lesson.studentId)
@@ -272,6 +278,10 @@ class RoomLessonsRepository(
             )
             lesson = lesson.copy(id = id, seriesId = ruleId, updatedAt = Instant.now())
             lessonDao.upsert(lesson)
+            val rule = recurrenceRuleDao.findById(ruleId)
+            if (rule != null) {
+                generateFutureOccurrences(lesson, rule)
+            }
         }
         prepaymentAllocator.sync(lesson.studentId)
         return id
@@ -414,6 +424,10 @@ class RoomLessonsRepository(
         rangeStart: Instant,
         rangeEnd: Instant
     ): List<LessonBundle> {
+        val storedStartsBySeries = baseLessons
+            .filter { it.lesson.seriesId != null && it.lesson.isInstance }
+            .groupBy { it.lesson.seriesId!! }
+            .mapValues { entry -> entry.value.map { it.lesson.startAt }.toSet() }
         val baseBundles = baseLessons.map { lesson ->
             LessonBundle(
                 details = lesson.toLessonDetails(),
@@ -433,12 +447,14 @@ class RoomLessonsRepository(
         }
 
         val labelBySeries = activeRules.associate { it.id to RecurrenceLabelFormatter.format(it) }
+        val baseIdBySeries = activeRules.associate { it.id to it.baseLessonId }
         val normalizedBase = baseBundles.map { bundle ->
             val detail = bundle.details
             val seriesId = detail.seriesId
             if (seriesId != null) {
                 bundle.copy(
                     details = detail.copy(
+                        baseLessonId = baseIdBySeries[seriesId] ?: detail.baseLessonId,
                         isRecurring = true,
                         recurrenceLabel = labelBySeries[seriesId],
                         originalStartAt = detail.originalStartAt ?: detail.startAt
@@ -471,12 +487,14 @@ class RoomLessonsRepository(
                 ?: continue
 
             val occurrences = expandSeries(rule, rangeStart, rangeEnd)
-            if (occurrences.isEmpty()) continue
+            val storedStarts = storedStartsBySeries[rule.id].orEmpty()
+            val filteredOccurrences = occurrences.filter { it !in storedStarts }
+            if (filteredOccurrences.isEmpty()) continue
 
             val applied = applyExceptions(
                 template = templateBundle.details,
                 rule = rule,
-                occurrences = occurrences,
+                occurrences = filteredOccurrences,
                 exceptions = exceptionsBySeries[rule.id].orEmpty(),
                 rangeStart = rangeStart,
                 rangeEnd = rangeEnd
@@ -629,6 +647,90 @@ class RoomLessonsRepository(
         }
     }
 
+    private suspend fun generateFutureOccurrences(
+        baseLesson: Lesson,
+        rule: RecurrenceRule
+    ) {
+        val existingInstances = lessonDao.listInstancesForSeries(rule.id)
+        val now = Instant.now()
+        val horizon = determineGenerationHorizon(baseLesson.startAt, rule, now)
+        if (horizon <= now) {
+            existingInstances
+                .filter { it.startAt >= now }
+                .forEach { lessonDao.deleteById(it.id) }
+            return
+        }
+
+        val occurrences = expandSeries(rule, baseLesson.startAt, horizon)
+            .filter { it >= now }
+        if (occurrences.isEmpty()) {
+            existingInstances
+                .filter { it.startAt >= now }
+                .forEach { lessonDao.deleteById(it.id) }
+            return
+        }
+
+        val limited = occurrences.take(DEFAULT_GENERATED_OCCURRENCES)
+        val desiredStarts = limited.toSet()
+        existingInstances
+            .filter { it.startAt >= now && it.startAt !in desiredStarts }
+            .forEach { lessonDao.deleteById(it.id) }
+
+        val existingByStart = existingInstances.associateBy { it.startAt }
+        val duration = resolveBaseDuration(baseLesson)
+        val timestamp = Instant.now()
+        for (start in limited) {
+            val desiredEnd = start.plus(duration)
+            val existing = existingByStart[start]
+            if (existing != null) {
+                val updated = existing.copy(
+                    studentId = baseLesson.studentId,
+                    subjectId = baseLesson.subjectId,
+                    title = baseLesson.title,
+                    endAt = desiredEnd,
+                    priceCents = baseLesson.priceCents,
+                    note = baseLesson.note,
+                    updatedAt = timestamp
+                )
+                lessonDao.upsert(updated)
+                continue
+            }
+            val instance = Lesson(
+                studentId = baseLesson.studentId,
+                subjectId = baseLesson.subjectId,
+                title = baseLesson.title,
+                startAt = start,
+                endAt = desiredEnd,
+                priceCents = baseLesson.priceCents,
+                paidCents = 0,
+                paymentStatus = PaymentStatus.UNPAID,
+                markedAt = null,
+                status = LessonStatus.PLANNED,
+                note = baseLesson.note,
+                createdAt = timestamp,
+                updatedAt = timestamp,
+                canceledAt = null,
+                seriesId = rule.id,
+                isInstance = true,
+                recurrence = null
+            )
+            lessonDao.upsert(instance)
+        }
+    }
+
+    private fun determineGenerationHorizon(baseStart: Instant, rule: RecurrenceRule, now: Instant): Instant {
+        val baseline = if (baseStart.isAfter(now)) baseStart else now
+        val defaultHorizon = baseline.plus(Duration.ofDays(DEFAULT_GENERATION_WEEKS * 7))
+        val until = rule.untilDateTime ?: return defaultHorizon
+        return if (until.isBefore(defaultHorizon)) until else defaultHorizon
+    }
+
+    private fun resolveBaseDuration(lesson: Lesson): Duration {
+        val duration = Duration.between(lesson.startAt, lesson.endAt)
+        if (!duration.isNegative && !duration.isZero) return duration
+        return Duration.ofMinutes(DEFAULT_LESSON_DURATION_MINUTES)
+    }
+
     private fun RecurrenceRule.toLessonRecurrence(): LessonRecurrence {
         val zone = runCatching { ZoneId.of(timezone) }.getOrDefault(ZoneId.systemDefault())
         return LessonRecurrence(
@@ -652,4 +754,10 @@ class RoomLessonsRepository(
         val studentRateCents: Int?,
         val markedAt: Instant?
     )
+
+    private companion object {
+        private const val DEFAULT_GENERATION_WEEKS = 12L
+        private const val DEFAULT_GENERATED_OCCURRENCES = 12
+        private const val DEFAULT_LESSON_DURATION_MINUTES = 60L
+    }
 }

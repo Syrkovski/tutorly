@@ -32,7 +32,7 @@ import org.junit.Test
 
 class RoomLessonsRepositoryTest {
     @Test
-    fun `weekly recurrence generates future lessons`() = runBlocking {
+    fun `weekly recurrence generates stored future lessons`() = runBlocking {
         val lessonDao = FakeLessonDao()
         val paymentDao = FakePaymentDao()
         val recurrenceRuleDao = FakeRecurrenceRuleDao()
@@ -73,18 +73,21 @@ class RoomLessonsRepositoryTest {
 
         repository.create(request)
 
+        val ruleId = recurrenceRuleDao.observeAll().first().single().id
+        val storedInstances = lessonDao.listInstancesForSeries(ruleId)
+        assertTrue(storedInstances.isNotEmpty())
+        val orderedStarts = storedInstances.map { it.startAt }.sorted()
+        assertEquals(start.plusWeeks(1).toInstant(), orderedStarts.first())
+
         val rangeStart = start.toInstant()
         val rangeEnd = start.plusWeeks(4).toInstant()
 
         val lessons = repository.observeLessons(rangeStart, rangeEnd)
-            .first { lessons -> lessons.size >= 2 }
+            .first { list -> list.any { it.seriesId == ruleId && it.id != it.baseLessonId } }
 
-        assertTrue(lessons.size >= 2)
-        val generatedStarts = lessons
-            .filter { it.id != it.baseLessonId }
-            .map { it.startAt }
-        assertTrue(generatedStarts.isNotEmpty())
-        assertEquals(start.plusWeeks(1).toInstant(), generatedStarts.minOrNull())
+        val generated = lessons.filter { it.seriesId == ruleId && it.id != it.baseLessonId }
+        assertTrue(generated.isNotEmpty())
+        assertEquals(start.plusWeeks(1).toInstant(), generated.minOf { it.startAt })
     }
 
     @Test
@@ -140,8 +143,8 @@ class RoomLessonsRepositoryTest {
         assertTrue(occurrence.isRecurring)
         assertEquals(seriesId, occurrence.seriesId)
         assertEquals(targetStart.toInstant(), occurrence.startAt)
-        assertTrue(occurrence.id < 0)
-        assertTrue(occurrence.baseLessonId > 0)
+        assertTrue(occurrence.id > 0)
+        assertTrue(occurrence.baseLessonId != occurrence.id)
     }
 
     @Test
@@ -321,12 +324,14 @@ class RoomLessonsRepositoryTest {
 
         val rule = recurrenceRuleDao.observeAll().first().single()
         val baseLesson = lessonDao.findById(rule.baseLessonId)!!
+        assertTrue(lessonDao.listInstancesForSeries(rule.id).isNotEmpty())
 
         repository.upsert(baseLesson.copy(seriesId = null, recurrence = null))
 
         assertTrue(recurrenceRuleDao.observeAll().first().isEmpty())
         val cleared = lessonDao.findById(baseLesson.id)
         assertTrue(cleared?.seriesId == null)
+        assertTrue(lessonDao.listInstancesForSeries(rule.id).isEmpty())
     }
 }
 
@@ -398,6 +403,17 @@ private class FakeLessonDao : LessonDao {
         lessons.values
             .filter { it.studentId == studentId }
             .sortedBy { it.startAt }
+
+    override suspend fun listInstancesForSeries(seriesId: Long): List<Lesson> =
+        lessons.values
+            .filter { it.seriesId == seriesId && it.isInstance }
+            .sortedBy { it.startAt }
+
+    override suspend fun deleteInstancesForSeries(seriesId: Long) {
+        val ids = lessons.filter { it.value.seriesId == seriesId && it.value.isInstance }.keys
+        ids.forEach { lessons.remove(it) }
+        emit()
+    }
 
     override suspend fun upsert(lesson: Lesson): Long {
         val id = if (lesson.id == 0L) idSeq.getAndIncrement() else lesson.id

@@ -21,6 +21,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Month
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -567,12 +568,15 @@ class LessonCreationViewModel @Inject constructor(
                 state.copy(
                     isRecurring = true,
                     recurrenceMode = targetMode,
-                    recurrenceDays = days
+                    recurrenceDays = days,
+                    recurrenceEndEnabled = true,
+                    recurrenceEndDate = state.recurrenceEndDate ?: defaultRecurrenceEnd(state.date)
                 )
             } else {
                 state.copy(
                     isRecurring = false,
-                    recurrenceEndEnabled = false
+                    recurrenceEndEnabled = false,
+                    recurrenceEndDate = null
                 )
             }
         }
@@ -621,7 +625,7 @@ class LessonCreationViewModel @Inject constructor(
     fun onRecurrenceEndEnabledChanged(enabled: Boolean) {
         updateUiState(recalculateRecurrence = true) { state ->
             val effective = enabled && state.isRecurring && state.recurrenceMode != RecurrenceMode.NONE
-            val endDate = if (effective) state.recurrenceEndDate ?: state.date else null
+            val endDate = if (effective) state.recurrenceEndDate ?: defaultRecurrenceEnd(state.date) else null
             state.copy(
                 recurrenceEndEnabled = effective,
                 recurrenceEndDate = endDate
@@ -823,7 +827,7 @@ class LessonCreationViewModel @Inject constructor(
         }
         val endEnabled = state.recurrenceEndEnabled && isRecurring
         val untilDate = if (endEnabled) {
-            val candidate = state.recurrenceEndDate ?: state.date
+            val candidate = state.recurrenceEndDate ?: defaultRecurrenceEnd(state.date)
             if (candidate.isBefore(state.date)) state.date else candidate
         } else {
             null
@@ -895,6 +899,16 @@ class LessonCreationViewModel @Inject constructor(
             until = until,
             timezone = currentZone
         )
+    }
+
+    private fun defaultRecurrenceEnd(startDate: LocalDate): LocalDate {
+        val currentYear = startDate.year
+        val thisYearEnd = LocalDate.of(currentYear, Month.JUNE, 30)
+        return if (startDate.isAfter(thisYearEnd)) {
+            LocalDate.of(currentYear + 1, Month.JUNE, 30)
+        } else {
+            thisYearEnd
+        }
     }
 
     private suspend fun loadStudents(query: String): List<StudentOption> {
