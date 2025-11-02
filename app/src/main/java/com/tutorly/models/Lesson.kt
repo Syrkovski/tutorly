@@ -1,7 +1,9 @@
 package com.tutorly.models
 
 import androidx.room.*
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.ZoneId
 
 @Entity(
     tableName = "lessons",
@@ -38,5 +40,15 @@ data class Lesson(
     val updatedAt: Instant = Instant.now(),
     val canceledAt: Instant? = null,
     val seriesId: Long? = null,          // ссылка на правило повторения, если есть
-    val isInstance: Boolean = false      // true только для материализованных экземпляров
+    val isInstance: Boolean = false,     // true только для материализованных экземпляров
+    @Ignore val recurrence: LessonRecurrence? = null
+)
+
+data class LessonRecurrence(
+    val frequency: RecurrenceFrequency,
+    val interval: Int,
+    val daysOfWeek: List<DayOfWeek>,
+    val startDateTime: Instant,
+    val untilDateTime: Instant?,
+    val timezone: ZoneId
 )

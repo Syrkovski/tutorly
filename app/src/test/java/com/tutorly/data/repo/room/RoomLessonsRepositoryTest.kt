@@ -8,6 +8,7 @@ import com.tutorly.data.db.projections.LessonWithStudent
 import com.tutorly.domain.model.LessonCreateRequest
 import com.tutorly.domain.model.RecurrenceCreateRequest
 import com.tutorly.models.Lesson
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.RecurrenceException
@@ -141,6 +142,121 @@ class RoomLessonsRepositoryTest {
         assertEquals(targetStart.toInstant(), occurrence.startAt)
         assertTrue(occurrence.id < 0)
         assertTrue(occurrence.baseLessonId > 0)
+    }
+
+    @Test
+    fun `upsert stores recurrence rule for existing lesson`() = runBlocking {
+        val lessonDao = FakeLessonDao()
+        val paymentDao = FakePaymentDao()
+        val recurrenceRuleDao = FakeRecurrenceRuleDao()
+        val recurrenceExceptionDao = FakeRecurrenceExceptionDao()
+        val prepaymentAllocator = StudentPrepaymentAllocator(lessonDao, paymentDao)
+
+        val student = Student(id = 1L, name = "Alice")
+        lessonDao.registerStudent(student)
+
+        val repository = RoomLessonsRepository(
+            lessonDao = lessonDao,
+            paymentDao = paymentDao,
+            recurrenceRuleDao = recurrenceRuleDao,
+            recurrenceExceptionDao = recurrenceExceptionDao,
+            prepaymentAllocator = prepaymentAllocator
+        )
+
+        val zone = ZoneId.of("Europe/Moscow")
+        val baseStart = LocalDate.of(2024, 6, 3).atTime(LocalTime.of(9, 0)).atZone(zone)
+        val baseLesson = Lesson(
+            id = 10L,
+            studentId = student.id,
+            subjectId = null,
+            title = "Physics",
+            startAt = baseStart.toInstant(),
+            endAt = baseStart.plusHours(1).toInstant(),
+            priceCents = 1800,
+            paidCents = 0,
+            paymentStatus = PaymentStatus.UNPAID,
+            markedAt = null,
+            status = com.tutorly.models.LessonStatus.PLANNED,
+            note = null,
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        lessonDao.upsert(baseLesson)
+
+        val recurrence = LessonRecurrence(
+            frequency = com.tutorly.models.RecurrenceFrequency.WEEKLY,
+            interval = 1,
+            daysOfWeek = listOf(DayOfWeek.MONDAY),
+            startDateTime = baseStart.toInstant(),
+            untilDateTime = null,
+            timezone = zone
+        )
+
+        repository.upsert(baseLesson.copy(recurrence = recurrence))
+
+        val stored = lessonDao.findById(baseLesson.id)!!
+        val rules = recurrenceRuleDao.observeAll().first()
+        assertEquals(1, rules.size)
+        val rule = rules.single()
+        assertEquals(stored.seriesId, rule.id)
+        assertEquals(stored.id, rule.baseLessonId)
+        assertEquals(recurrence.frequency, rule.frequency)
+        assertEquals(recurrence.interval, rule.interval)
+        assertEquals(recurrence.daysOfWeek, rule.daysOfWeek)
+        assertEquals(recurrence.startDateTime, rule.startDateTime)
+        assertEquals(recurrence.untilDateTime, rule.untilDateTime)
+        assertEquals(recurrence.timezone.id, rule.timezone)
+    }
+
+    @Test
+    fun `upsert clears recurrence rule when removed`() = runBlocking {
+        val lessonDao = FakeLessonDao()
+        val paymentDao = FakePaymentDao()
+        val recurrenceRuleDao = FakeRecurrenceRuleDao()
+        val recurrenceExceptionDao = FakeRecurrenceExceptionDao()
+        val prepaymentAllocator = StudentPrepaymentAllocator(lessonDao, paymentDao)
+
+        val student = Student(id = 1L, name = "Alice")
+        lessonDao.registerStudent(student)
+
+        val repository = RoomLessonsRepository(
+            lessonDao = lessonDao,
+            paymentDao = paymentDao,
+            recurrenceRuleDao = recurrenceRuleDao,
+            recurrenceExceptionDao = recurrenceExceptionDao,
+            prepaymentAllocator = prepaymentAllocator
+        )
+
+        val zone = ZoneId.of("Europe/Moscow")
+        val start = LocalDate.of(2024, 6, 3).atTime(LocalTime.of(10, 0)).atZone(zone)
+
+        val request = LessonCreateRequest(
+            studentId = student.id,
+            subjectId = null,
+            title = "Math",
+            startAt = start.toInstant(),
+            endAt = start.plusHours(1).toInstant(),
+            priceCents = 2000,
+            note = null,
+            recurrence = RecurrenceCreateRequest(
+                frequency = com.tutorly.models.RecurrenceFrequency.WEEKLY,
+                interval = 1,
+                daysOfWeek = listOf(DayOfWeek.MONDAY),
+                until = null,
+                timezone = zone
+            )
+        )
+
+        repository.create(request)
+
+        val rule = recurrenceRuleDao.observeAll().first().single()
+        val baseLesson = lessonDao.findById(rule.baseLessonId)!!
+
+        repository.upsert(baseLesson.copy(seriesId = null, recurrence = null))
+
+        assertTrue(recurrenceRuleDao.observeAll().first().isEmpty())
+        val cleared = lessonDao.findById(baseLesson.id)
+        assertTrue(cleared?.seriesId == null)
     }
 }
 

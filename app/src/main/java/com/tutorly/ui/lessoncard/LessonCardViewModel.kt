@@ -2,10 +2,12 @@ package com.tutorly.ui.lessoncard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.UserSettingsRepository
 import com.tutorly.models.Lesson
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.ui.screens.normalizeGrade
@@ -208,6 +210,25 @@ class LessonCardViewModel @Inject constructor(
         ) { it.copy(priceCents = priceCents.coerceAtLeast(0)) }
     }
 
+    fun onRecurrenceSelected(recurrence: LessonRecurrence?) {
+        val lesson = currentLesson ?: return
+        val label = recurrence?.let { rule ->
+            val start = rule.startDateTime.atZone(rule.timezone)
+            RecurrenceLabelFormatter.format(rule.frequency, rule.interval, rule.daysOfWeek, start)
+        }
+        val updated = if (recurrence != null) {
+            lesson.copy(recurrence = recurrence, updatedAt = Instant.now())
+        } else {
+            lesson.copy(seriesId = null, recurrence = null, updatedAt = Instant.now())
+        }
+        submitUpdate(updated) { state ->
+            state.copy(
+                isRecurring = recurrence != null,
+                recurrenceLabel = label
+            )
+        }
+    }
+
     fun onPaymentStatusSelected(status: PaymentStatus) {
         val lessonId = _uiState.value.lessonId ?: return
         if (_uiState.value.paymentStatus == status && status != PaymentStatus.PAID) {
@@ -259,9 +280,13 @@ class LessonCardViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.update { reducer(it).copy(isSaving = true, snackbarMessage = null) }
-            runCatching { lessonsRepository.upsert(updatedLesson) }
-                .onSuccess {
-                    currentLesson = updatedLesson
+            runCatching {
+                val id = lessonsRepository.upsert(updatedLesson)
+                val persisted = lessonsRepository.getById(id)
+                persisted?.copy(recurrence = updatedLesson.recurrence) ?: updatedLesson.copy(id = id)
+            }
+                .onSuccess { persisted ->
+                    currentLesson = persisted
                     _uiState.update { it.copy(isSaving = false) }
                 }
                 .onFailure { error ->

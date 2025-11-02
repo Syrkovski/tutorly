@@ -167,7 +167,22 @@ class RoomLessonsRepository(
         }
 
     override fun observeLessonDetails(id: Long): Flow<LessonDetails?> =
-        lessonDao.observeById(id).map { it?.toLessonDetails() }
+        combine(
+            lessonDao.observeById(id),
+            recurrenceRuleDao.observeAll()
+        ) { lesson, rules ->
+            lesson?.let { projection ->
+                val details = projection.toLessonDetails()
+                val label = details.seriesId?.let { seriesId ->
+                    rules.firstOrNull { rule -> rule.id == seriesId }
+                        ?.let { rule -> RecurrenceLabelFormatter.format(rule) }
+                }
+                details.copy(
+                    isRecurring = details.seriesId != null,
+                    recurrenceLabel = label
+                )
+            }
+        }
 
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
         lessonDao.observeByStudent(studentId)
@@ -175,9 +190,41 @@ class RoomLessonsRepository(
     override suspend fun getById(id: Long): Lesson? = lessonDao.findById(id)
 
     override suspend fun upsert(lesson: Lesson): Long {
+        val existing = lesson.id.takeIf { it != 0L }?.let { lessonDao.findById(it) }
         val id = lessonDao.upsert(lesson)
+        val baseLessonId = if (lesson.id == 0L) id else lesson.id
+        val recurrence = lesson.recurrence
+        when {
+            recurrence != null -> {
+                val targetRuleId = lesson.seriesId ?: existing?.seriesId ?: 0L
+                val ruleId = recurrenceRuleDao.upsert(
+                    RecurrenceRule(
+                        id = targetRuleId,
+                        baseLessonId = baseLessonId,
+                        frequency = recurrence.frequency,
+                        interval = recurrence.interval,
+                        daysOfWeek = recurrence.daysOfWeek,
+                        startDateTime = recurrence.startDateTime,
+                        untilDateTime = recurrence.untilDateTime,
+                        timezone = recurrence.timezone.id
+                    )
+                )
+                if (lesson.seriesId == null || lesson.seriesId != ruleId) {
+                    val refreshed = lesson.copy(
+                        id = baseLessonId,
+                        seriesId = ruleId,
+                        updatedAt = Instant.now()
+                    )
+                    lessonDao.upsert(refreshed)
+                }
+            }
+
+            existing?.seriesId != null && lesson.seriesId == null -> {
+                recurrenceRuleDao.deleteById(existing.seriesId)
+            }
+        }
         prepaymentAllocator.sync(lesson.studentId)
-        return id
+        return baseLessonId
     }
 
     override suspend fun create(request: LessonCreateRequest): Long {

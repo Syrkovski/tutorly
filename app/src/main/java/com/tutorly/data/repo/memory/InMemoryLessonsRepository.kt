@@ -8,6 +8,7 @@ import com.tutorly.domain.model.asIcon
 import com.tutorly.domain.model.resolveDuration
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
+import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.LessonStatus
@@ -21,6 +22,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 class InMemoryLessonsRepository : LessonsRepository {
     private val seq = AtomicLong(1)
+    private val recurrenceSeq = AtomicLong(1)
     private val store = ConcurrentHashMap<Long, Lesson>()
     private val lessonsFlow = MutableStateFlow<List<Lesson>>(emptyList())
     private val payments = ConcurrentHashMap<Long, Payment>()
@@ -78,7 +80,23 @@ class InMemoryLessonsRepository : LessonsRepository {
 
     override suspend fun upsert(lesson: Lesson): Long {
         val id = if (lesson.id == 0L) seq.getAndIncrement() else lesson.id
-        store[id] = lesson.copy(id = id)
+        val existing = store[id]
+        val updated = when {
+            lesson.recurrence != null -> {
+                val seriesId = lesson.seriesId ?: existing?.seriesId ?: recurrenceSeq.getAndIncrement()
+                lesson.copy(id = id, seriesId = seriesId)
+            }
+
+            existing?.seriesId != null && lesson.seriesId == null -> {
+                lesson.copy(id = id, recurrence = null)
+            }
+
+            else -> {
+                val recurrence = existing?.recurrence
+                lesson.copy(id = id, recurrence = recurrence, seriesId = lesson.seriesId ?: existing?.seriesId)
+            }
+        }
+        store[id] = updated
         emit()
         return id
     }
@@ -231,6 +249,11 @@ class InMemoryLessonsRepository : LessonsRepository {
 private fun Lesson.toDetailsStub(): LessonDetails {
     val duration = resolveDuration(startAt, endAt, null)
     val normalizedEnd = startAt.plus(duration)
+    val recurrenceLabel = recurrence?.let { rule ->
+        val zone = rule.timezone
+        val start = rule.startDateTime.atZone(zone)
+        RecurrenceLabelFormatter.format(rule.frequency, rule.interval, rule.daysOfWeek, start)
+    }
 
     return LessonDetails(
         id = id,
@@ -251,16 +274,21 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         paidCents = paidCents,
         lessonTitle = title,
         lessonNote = note,
-        isRecurring = false,
-        seriesId = null,
+        isRecurring = seriesId != null,
+        seriesId = seriesId,
         originalStartAt = startAt,
-        recurrenceLabel = null
+        recurrenceLabel = recurrenceLabel
     )
 }
 
 private fun Lesson.toTodayStub(): LessonForToday {
     val duration = resolveDuration(startAt, endAt, null)
     val normalizedEnd = startAt.plus(duration)
+    val recurrenceLabel = recurrence?.let { rule ->
+        val zone = rule.timezone
+        val start = rule.startDateTime.atZone(zone)
+        RecurrenceLabelFormatter.format(rule.frequency, rule.interval, rule.daysOfWeek, start)
+    }
 
     return LessonForToday(
         id = id,
@@ -282,6 +310,6 @@ private fun Lesson.toTodayStub(): LessonForToday {
         isRecurring = seriesId != null,
         seriesId = seriesId,
         originalStartAt = startAt,
-        recurrenceLabel = null
+        recurrenceLabel = recurrenceLabel
     )
 }
