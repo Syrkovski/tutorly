@@ -12,6 +12,7 @@ import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
 import com.tutorly.data.db.migrations.MIGRATION_5_6
 import com.tutorly.data.db.migrations.MIGRATION_6_7
+import com.tutorly.data.db.migrations.MIGRATION_7_8
 import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.preferences.PreferencesDayClosureRepository
 import com.tutorly.data.repo.preferences.PreferencesUserProfileRepository
@@ -45,7 +46,7 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideDb(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "tutorly.db")
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .fallbackToDestructiveMigration() // на MVP ок
             .build()
 

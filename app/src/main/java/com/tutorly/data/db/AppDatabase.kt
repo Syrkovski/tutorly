@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.tutorly.data.db.converters.EnumConverters
 import com.tutorly.data.db.converters.InstantConverter
+import com.tutorly.data.db.converters.RecurrenceConverters
 import com.tutorly.data.db.dao.*
 import com.tutorly.models.*
 
@@ -17,10 +18,10 @@ import com.tutorly.models.*
         RecurrenceRule::class,
         RecurrenceException::class
     ],
-    version = 7, // ↑ увеличь версию
+    version = 8, // ↑ увеличь версию
     exportSchema = true
 )
-@TypeConverters(InstantConverter::class, EnumConverters::class)
+@TypeConverters(InstantConverter::class, EnumConverters::class, RecurrenceConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun studentDao(): StudentDao
     abstract fun lessonDao(): LessonDao
