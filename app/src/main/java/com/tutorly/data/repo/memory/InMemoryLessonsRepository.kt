@@ -4,10 +4,12 @@ import com.tutorly.domain.model.LessonCreateRequest
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.LessonsRangeStats
+import com.tutorly.domain.model.RecurrenceCreateRequest
 import com.tutorly.domain.model.asIcon
 import com.tutorly.domain.model.resolveDuration
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
@@ -104,6 +106,9 @@ class InMemoryLessonsRepository : LessonsRepository {
     override suspend fun create(request: LessonCreateRequest): Long {
         val id = seq.getAndIncrement()
         val now = Instant.now()
+        val recurrenceRequest = request.recurrence
+        val seriesId = recurrenceRequest?.let { recurrenceSeq.getAndIncrement() }
+        val recurrence = recurrenceRequest?.toLessonRecurrence(request.startAt)
         val newLesson = Lesson(
             id = id,
             studentId = request.studentId,
@@ -119,8 +124,9 @@ class InMemoryLessonsRepository : LessonsRepository {
             note = request.note,
             createdAt = now,
             updatedAt = now,
-            seriesId = null,
-            isInstance = false
+            seriesId = seriesId,
+            isInstance = false,
+            recurrence = recurrence
         )
         store[id] = newLesson
         emit()
@@ -244,6 +250,17 @@ class InMemoryLessonsRepository : LessonsRepository {
     private fun emit() {
         lessonsFlow.value = store.values.sortedByDescending { it.startAt }
     }
+}
+
+private fun RecurrenceCreateRequest.toLessonRecurrence(start: Instant): LessonRecurrence {
+    return LessonRecurrence(
+        frequency = frequency,
+        interval = interval,
+        daysOfWeek = daysOfWeek,
+        startDateTime = start,
+        untilDateTime = until,
+        timezone = timezone
+    )
 }
 
 private fun Lesson.toDetailsStub(): LessonDetails {
