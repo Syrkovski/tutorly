@@ -76,6 +76,12 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE studentId = :studentId ORDER BY startAt")
     suspend fun listByStudentAscending(studentId: Long): List<Lesson>
 
+    @Query("SELECT * FROM lessons WHERE seriesId = :seriesId AND isInstance = 1")
+    suspend fun listInstancesForSeries(seriesId: Long): List<Lesson>
+
+    @Query("DELETE FROM lessons WHERE seriesId = :seriesId AND isInstance = 1")
+    suspend fun deleteInstancesForSeries(seriesId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
 

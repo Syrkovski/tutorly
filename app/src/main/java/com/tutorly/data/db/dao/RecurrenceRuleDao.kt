@@ -26,6 +26,9 @@ interface RecurrenceRuleDao {
     @Query("SELECT * FROM recurrence_rules WHERE id = :id")
     suspend fun findById(id: Long): RecurrenceRule?
 
+    @Query("SELECT * FROM recurrence_rules WHERE baseLessonId = :baseLessonId LIMIT 1")
+    suspend fun findByBaseLessonId(baseLessonId: Long): RecurrenceRule?
+
     @Query("SELECT * FROM recurrence_rules")
     fun observeAll(): Flow<List<RecurrenceRule>>
 

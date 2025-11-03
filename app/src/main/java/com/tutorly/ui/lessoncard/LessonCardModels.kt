@@ -1,6 +1,8 @@
 package com.tutorly.ui.lessoncard
 
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.lessoncreation.RecurrenceMode
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -32,6 +34,7 @@ data class LessonCardUiState(
     val isDeleting: Boolean = false,
     val isRecurring: Boolean = false,
     val recurrenceLabel: String? = null,
+    val recurrenceEditor: LessonCardRecurrenceEditorState? = null,
 )
 
 data class LessonStudentOption(
@@ -46,3 +49,18 @@ sealed interface LessonCardMessage {
 }
 
 internal const val LESSON_CARD_NOTE_LIMIT = 500
+
+data class LessonCardRecurrenceEditorState(
+    val mode: RecurrenceMode,
+    val isRecurring: Boolean,
+    val interval: Int,
+    val days: Set<DayOfWeek>,
+    val endEnabled: Boolean,
+    val endDate: LocalDate?,
+    val label: String?,
+    val startDate: LocalDate,
+    val startTime: LocalTime,
+    val zoneId: ZoneId,
+    val locale: Locale,
+    val canClear: Boolean,
+)

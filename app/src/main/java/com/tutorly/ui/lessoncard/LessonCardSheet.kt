@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timelapse
@@ -28,6 +32,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -36,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -61,15 +68,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import com.tutorly.R
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.lessoncreation.RecurrenceMode
 import java.text.NumberFormat
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
@@ -87,6 +98,16 @@ internal fun LessonCardSheet(
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onDurationSelect: (Int) -> Unit,
+    onRecurrenceClick: () -> Unit,
+    onRecurrenceDismiss: () -> Unit,
+    onRecurrenceToggle: (Boolean) -> Unit,
+    onRecurrenceModeSelect: (RecurrenceMode) -> Unit,
+    onRecurrenceDayToggle: (DayOfWeek) -> Unit,
+    onRecurrenceIntervalChange: (Int) -> Unit,
+    onRecurrenceEndToggle: (Boolean) -> Unit,
+    onRecurrenceEndDateSelect: (LocalDate) -> Unit,
+    onRecurrenceConfirm: () -> Unit,
+    onRecurrenceClear: () -> Unit,
     onPriceChange: (Int) -> Unit,
     onStatusSelect: (PaymentStatus) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -244,7 +265,9 @@ internal fun LessonCardSheet(
                         RecurrenceRow(
                             isRecurring = state.isRecurring,
                             recurrenceText = state.recurrenceLabel
-                                ?: stringResource(id = R.string.lesson_recurrence_none)
+                                ?: stringResource(id = R.string.lesson_recurrence_none),
+                            onClick = onRecurrenceClick,
+                            enabled = !state.isSaving && !state.isLoading
                         )
 
                         PriceRow(
@@ -294,6 +317,22 @@ internal fun LessonCardSheet(
                 )
             }
         }
+    }
+
+    val recurrenceEditor = state.recurrenceEditor
+    if (recurrenceEditor != null) {
+        RecurrenceEditorDialog(
+            state = recurrenceEditor,
+            onDismiss = onRecurrenceDismiss,
+            onToggle = onRecurrenceToggle,
+            onModeSelect = onRecurrenceModeSelect,
+            onDayToggle = onRecurrenceDayToggle,
+            onIntervalChange = onRecurrenceIntervalChange,
+            onEndToggle = onRecurrenceEndToggle,
+            onEndDateSelect = onRecurrenceEndDateSelect,
+            onConfirm = onRecurrenceConfirm,
+            onClear = onRecurrenceClear,
+        )
     }
 
     if (showDurationDialog) {
@@ -487,9 +526,13 @@ private fun TimeDurationRow(
 private fun RecurrenceRow(
     isRecurring: Boolean,
     recurrenceText: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
 ) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
         shape = RoundedCornerShape(20.dp),
         colors = TutorlyCardDefaults.colors(),
         elevation = TutorlyCardDefaults.elevation(),
@@ -526,8 +569,233 @@ private fun RecurrenceRow(
                     }
                 )
             }
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RecurrenceEditorDialog(
+    state: LessonCardRecurrenceEditorState,
+    onDismiss: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+    onModeSelect: (RecurrenceMode) -> Unit,
+    onDayToggle: (DayOfWeek) -> Unit,
+    onIntervalChange: (Int) -> Unit,
+    onEndToggle: (Boolean) -> Unit,
+    onEndDateSelect: (LocalDate) -> Unit,
+    onConfirm: () -> Unit,
+    onClear: () -> Unit,
+) {
+    val context = LocalContext.current
+    val locale = state.locale
+    val preview = state.label ?: stringResource(id = R.string.lesson_recurrence_none)
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
+    val minDateMillis = remember(state.startDate, state.zoneId) {
+        state.startDate.atStartOfDay(state.zoneId).toInstant().toEpochMilli()
+    }
+    var intervalInput by remember(state.mode to state.interval) {
+        mutableStateOf(
+            if (state.mode == RecurrenceMode.CUSTOM_WEEKS) {
+                state.interval.takeIf { it > 0 }?.toString().orEmpty()
+            } else {
+                state.interval.toString()
+            }
+        )
+    }
+    val modeOptions = listOf(
+        RecurrenceMode.WEEKLY to R.string.lesson_recurrence_option_weekly,
+        RecurrenceMode.CUSTOM_WEEKS to R.string.lesson_recurrence_option_custom_weeks,
+        RecurrenceMode.MONTHLY_BY_DOW to R.string.lesson_recurrence_option_monthly_dow
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.lesson_card_recurrence_edit_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarMonth,
+                            contentDescription = null,
+                            tint = if (state.isRecurring) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                        Text(
+                            text = preview,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (state.isRecurring) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.lesson_recurrence_toggle_label),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(checked = state.isRecurring, onCheckedChange = onToggle)
+                }
+
+                if (state.isRecurring) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        modeOptions.forEach { (mode, labelRes) ->
+                            FilterChip(
+                                selected = state.mode == mode,
+                                onClick = { onModeSelect(mode) },
+                                label = { Text(text = stringResource(id = labelRes)) },
+                                leadingIcon = if (state.mode == mode) {
+                                    { Icon(imageVector = Icons.Filled.Repeat, contentDescription = null) }
+                                } else {
+                                    null
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+
+                    if (state.mode == RecurrenceMode.WEEKLY || state.mode == RecurrenceMode.CUSTOM_WEEKS) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = stringResource(id = R.string.lesson_recurrence_days_label),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                DayOfWeek.values().forEach { day ->
+                                    val selected = state.days.contains(day)
+                                    val label = day.getDisplayName(TextStyle.SHORT, locale).replaceFirstChar { ch ->
+                                        if (ch.isLowerCase()) ch.titlecase(locale) else ch.toString()
+                                    }
+                                    FilterChip(
+                                        selected = selected,
+                                        onClick = { onDayToggle(day) },
+                                        label = { Text(text = label) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.extendedColors.chipSelected,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (state.mode == RecurrenceMode.CUSTOM_WEEKS) {
+                        OutlinedTextField(
+                            value = intervalInput,
+                            onValueChange = { value ->
+                                val digits = value.filter { it.isDigit() }
+                                intervalInput = digits
+                                onIntervalChange(digits.toIntOrNull() ?: 0)
+                            },
+                            label = { Text(text = stringResource(id = R.string.lesson_recurrence_interval_label)) },
+                            leadingIcon = { Icon(imageVector = Icons.Filled.Repeat, contentDescription = null) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                disabledContainerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.lesson_recurrence_end_toggle),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Switch(checked = state.endEnabled, onCheckedChange = onEndToggle)
+                        }
+                        if (state.endEnabled) {
+                            val selectedDate = state.endDate ?: state.startDate
+                            OutlinedButton(
+                                onClick = {
+                                    DatePickerDialog(
+                                        context,
+                                        { _, year, month, day ->
+                                            onEndDateSelect(LocalDate.of(year, month + 1, day))
+                                        },
+                                        selectedDate.year,
+                                        selectedDate.monthValue - 1,
+                                        selectedDate.dayOfMonth
+                                    ).apply {
+                                        datePicker.minDate = minDateMillis
+                                    }.show()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = selectedDate.format(dateFormatter),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    if (state.canClear && state.isRecurring) {
+                        TextButton(onClick = onClear) {
+                            Text(text = stringResource(id = R.string.lesson_card_recurrence_clear))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(id = R.string.lesson_card_recurrence_apply))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.lesson_card_recurrence_cancel))
+            }
+        }
+    )
 }
 
 @Composable

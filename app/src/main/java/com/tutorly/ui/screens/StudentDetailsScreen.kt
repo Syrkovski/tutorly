@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -174,6 +175,16 @@ fun StudentDetailsScreen(
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onRecurrenceClick = lessonCardViewModel::onRecurrenceRowClick,
+        onRecurrenceDismiss = lessonCardViewModel::onRecurrenceEditorDismissed,
+        onRecurrenceToggle = lessonCardViewModel::onRecurrenceEditorToggle,
+        onRecurrenceModeSelect = lessonCardViewModel::onRecurrenceEditorModeSelected,
+        onRecurrenceDayToggle = lessonCardViewModel::onRecurrenceEditorDayToggled,
+        onRecurrenceIntervalChange = lessonCardViewModel::onRecurrenceEditorIntervalChanged,
+        onRecurrenceEndToggle = lessonCardViewModel::onRecurrenceEditorEndToggle,
+        onRecurrenceEndDateSelect = lessonCardViewModel::onRecurrenceEditorEndDateSelected,
+        onRecurrenceConfirm = lessonCardViewModel::onRecurrenceEditorConfirm,
+        onRecurrenceClear = lessonCardViewModel::onRecurrenceEditorClear,
         onPriceChange = lessonCardViewModel::onPriceChanged,
         onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
         onNoteChange = lessonCardViewModel::onNoteChanged,

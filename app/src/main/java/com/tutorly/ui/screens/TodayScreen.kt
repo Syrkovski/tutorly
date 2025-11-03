@@ -126,6 +126,16 @@ fun TodayScreen(
         onDateSelect = lessonCardViewModel::onDateSelected,
         onTimeSelect = lessonCardViewModel::onTimeSelected,
         onDurationSelect = lessonCardViewModel::onDurationSelected,
+        onRecurrenceClick = lessonCardViewModel::onRecurrenceRowClick,
+        onRecurrenceDismiss = lessonCardViewModel::onRecurrenceEditorDismissed,
+        onRecurrenceToggle = lessonCardViewModel::onRecurrenceEditorToggle,
+        onRecurrenceModeSelect = lessonCardViewModel::onRecurrenceEditorModeSelected,
+        onRecurrenceDayToggle = lessonCardViewModel::onRecurrenceEditorDayToggled,
+        onRecurrenceIntervalChange = lessonCardViewModel::onRecurrenceEditorIntervalChanged,
+        onRecurrenceEndToggle = lessonCardViewModel::onRecurrenceEditorEndToggle,
+        onRecurrenceEndDateSelect = lessonCardViewModel::onRecurrenceEditorEndDateSelected,
+        onRecurrenceConfirm = lessonCardViewModel::onRecurrenceEditorConfirm,
+        onRecurrenceClear = lessonCardViewModel::onRecurrenceEditorClear,
         onPriceChange = lessonCardViewModel::onPriceChanged,
         onStatusSelect = lessonCardViewModel::onPaymentStatusSelected,
         onNoteChange = lessonCardViewModel::onNoteChanged,
@@ -350,7 +360,7 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
+                    onLessonLongPress = { lesson -> onLessonOpen(lesson.baseLessonId) }
                 )
             }
         }
@@ -365,7 +375,7 @@ private fun DayInProgressContent(
                     onSwipeLeft = onSwipeLeft,
                     onLessonOpen = onLessonOpen,
                     onOpenStudentProfile = onOpenStudentProfile,
-                    onLessonLongPress = { lesson -> onLessonOpen(lesson.id) }
+                    onLessonLongPress = { lesson -> onLessonOpen(lesson.baseLessonId) }
                 )
             }
         }
@@ -890,7 +900,7 @@ private fun ClosedDayLessonsSection(
                 lesson = lesson,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onLessonOpen(lesson.id) },
+                    .clickable { onLessonOpen(lesson.baseLessonId) },
                 cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             )
         }
@@ -1071,7 +1081,7 @@ private fun LessonsList(
                 lesson = lesson,
                 onSwipeRight = onSwipeRight,
                 onSwipeLeft = onSwipeLeft,
-                onClick = { onLessonOpen(lesson.id) },
+                onClick = { onLessonOpen(lesson.baseLessonId) },
                 onLongPress = { onLessonLongPress(lesson) },
                 cardElevation = cardElevation,
                 showLessonDate = showLessonDate,
@@ -1096,11 +1106,11 @@ private fun TodayLessonRow(
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
             SwipeToDismissBoxValue.StartToEnd -> {
-                onSwipeRight(lesson.id)
+                onSwipeRight(lesson.baseLessonId)
                 false
             }
             SwipeToDismissBoxValue.EndToStart -> {
-                onSwipeLeft(lesson.id)
+                onSwipeLeft(lesson.baseLessonId)
                 false
             }
             else -> false
