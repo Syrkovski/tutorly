@@ -8,6 +8,7 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
@@ -17,8 +18,46 @@ class InMemoryLessonsRepositoryTest {
 
     @Test
     fun `create preserves recurrence metadata`() = runBlocking {
+        val request = recurringLessonRequest()
+
+        val id = repository.create(request)
+        val stored = repository.getById(id)
+        val recurrence = stored?.recurrence
+
+        assertNotNull(stored?.seriesId, "Series identifier should be assigned")
+        assertNotNull(recurrence, "Recurrence metadata should be preserved")
+        assertEquals(RecurrenceFrequency.WEEKLY, recurrence.frequency)
+        assertEquals(listOf(DayOfWeek.MONDAY), recurrence.daysOfWeek)
+        assertEquals(ZoneId.of("Europe/Moscow"), recurrence.timezone)
+    }
+
+    @Test
+    fun `lesson details stream exposes recurrence info`() = runBlocking {
+        val request = recurringLessonRequest()
+        val id = repository.create(request)
+
+        val details = repository.observeLessonDetails(id).first { it != null }!!
+
+        assertNotNull(details.seriesId, "Series identifier should surface in lesson details")
+        assertEquals(true, details.isRecurring, "Lesson details should mark the lesson as recurring")
+        assertNotNull(details.recurrenceLabel, "Recurrence label should be available for UI rendering")
+    }
+
+    @Test
+    fun `student lessons stream keeps recurrence metadata`() = runBlocking {
+        val request = recurringLessonRequest()
+        repository.create(request)
+
+        val lessons = repository.observeByStudent(request.studentId).first { it.isNotEmpty() }
+        val lesson = lessons.single()
+
+        assertNotNull(lesson.seriesId, "Series identifier should be populated in student stream")
+        assertNotNull(lesson.recurrence, "Recurrence metadata should be available in student stream")
+    }
+
+    private fun recurringLessonRequest(): LessonCreateRequest {
         val start = Instant.parse("2024-04-01T10:00:00Z")
-        val request = LessonCreateRequest(
+        return LessonCreateRequest(
             studentId = 1L,
             subjectId = 2L,
             title = "Алгебра",
@@ -34,15 +73,5 @@ class InMemoryLessonsRepositoryTest {
                 timezone = ZoneId.of("Europe/Moscow")
             )
         )
-
-        val id = repository.create(request)
-        val stored = repository.getById(id)
-        val recurrence = stored?.recurrence
-
-        assertNotNull(stored?.seriesId, "Series identifier should be assigned")
-        assertNotNull(recurrence, "Recurrence metadata should be preserved")
-        assertEquals(RecurrenceFrequency.WEEKLY, recurrence.frequency)
-        assertEquals(listOf(DayOfWeek.MONDAY), recurrence.daysOfWeek)
-        assertEquals(ZoneId.of("Europe/Moscow"), recurrence.timezone)
     }
 }

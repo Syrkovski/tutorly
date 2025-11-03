@@ -110,36 +110,18 @@ class InMemoryLessonsRepository : LessonsRepository {
     }
 
     override suspend fun create(request: LessonCreateRequest): Long {
-        val id = seq.getAndIncrement()
-        val now = Instant.now()
-        val recurrenceRequest = request.recurrence
-        val seriesId = recurrenceRequest?.let { recurrenceSeq.getAndIncrement() }
-        val recurrence = recurrenceRequest?.toLessonRecurrence(request.startAt)
-        if (seriesId != null && recurrence != null) {
-            recurrenceRules[seriesId] = recurrence
-        }
-        val newLesson = Lesson(
-            id = id,
+        val recurrence = request.recurrence?.toLessonRecurrence(request.startAt)
+        val lesson = Lesson(
             studentId = request.studentId,
             subjectId = request.subjectId,
             title = request.title,
             startAt = request.startAt,
             endAt = request.endAt,
             priceCents = request.priceCents,
-            paidCents = 0,
-            paymentStatus = PaymentStatus.UNPAID,
-            markedAt = null,
-            status = LessonStatus.PLANNED,
             note = request.note,
-            createdAt = now,
-            updatedAt = now,
-            seriesId = seriesId,
-            isInstance = false,
             recurrence = recurrence
-        ).withResolvedRecurrence()
-        store[id] = newLesson
-        emit()
-        return id
+        )
+        return upsert(lesson)
     }
 
     override suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant) {
