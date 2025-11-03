@@ -36,7 +36,8 @@ class RoomLessonsRepository(
     private val paymentDao: PaymentDao,
     private val recurrenceRuleDao: RecurrenceRuleDao,
     private val recurrenceExceptionDao: RecurrenceExceptionDao,
-    private val prepaymentAllocator: StudentPrepaymentAllocator
+    private val prepaymentAllocator: StudentPrepaymentAllocator,
+    private val transactionRunner: TransactionRunner
 ) : LessonsRepository {
     override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         combine(
@@ -202,7 +203,11 @@ class RoomLessonsRepository(
         return normalized.copy(recurrence = rule?.toLessonRecurrence())
     }
 
-    override suspend fun upsert(lesson: Lesson): Long {
+    override suspend fun upsert(lesson: Lesson): Long = transactionRunner {
+        performUpsert(lesson)
+    }
+
+    private suspend fun performUpsert(lesson: Lesson): Long {
         val existing = lesson.id.takeIf { it != 0L }?.let { lessonDao.findById(it) }
         val id = lessonDao.upsert(lesson)
         val baseLessonId = if (lesson.id == 0L) id else lesson.id
@@ -774,4 +779,8 @@ class RoomLessonsRepository(
         private const val DEFAULT_GENERATED_OCCURRENCES = 12
         private const val DEFAULT_LESSON_DURATION_MINUTES = 60L
     }
+}
+
+fun interface TransactionRunner {
+    suspend operator fun <T> invoke(block: suspend () -> T): T
 }

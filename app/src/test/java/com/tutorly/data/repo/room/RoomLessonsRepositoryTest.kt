@@ -47,7 +47,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = TransactionRunner { block -> block() }
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -106,7 +107,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = TransactionRunner { block -> block() }
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -163,7 +165,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = TransactionRunner { block -> block() }
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -227,7 +230,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = TransactionRunner { block -> block() }
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -297,7 +301,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = TransactionRunner { block -> block() }
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -363,7 +368,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = TransactionRunner { block -> block() }
         )
 
         val zone = ZoneId.of("Europe/Moscow")

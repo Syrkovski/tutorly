@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
+import androidx.room.withTransaction
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
 import com.tutorly.data.db.migrations.MIGRATION_5_6
@@ -15,6 +16,7 @@ import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.preferences.PreferencesDayClosureRepository
 import com.tutorly.data.repo.preferences.PreferencesUserProfileRepository
 import com.tutorly.data.repo.room.RoomLessonsRepository
+import com.tutorly.data.repo.room.TransactionRunner
 import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
 import com.tutorly.data.repo.room.RoomSubjectPresetsRepository
@@ -78,6 +80,7 @@ object DatabaseModule {
 
     @Provides @Singleton
     fun provideLessonsRepo(
+        db: AppDatabase,
         lessonDao: LessonDao,
         paymentDao: PaymentDao,
         recurrenceRuleDao: RecurrenceRuleDao,
@@ -88,7 +91,8 @@ object DatabaseModule {
         paymentDao,
         recurrenceRuleDao,
         recurrenceExceptionDao,
-        prepaymentAllocator
+        prepaymentAllocator,
+        transactionRunner = TransactionRunner { block -> db.withTransaction { block() } }
     )
 
     @Provides @Singleton
