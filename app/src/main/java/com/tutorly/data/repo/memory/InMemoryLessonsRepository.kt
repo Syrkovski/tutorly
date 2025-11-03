@@ -28,6 +28,7 @@ class InMemoryLessonsRepository : LessonsRepository {
     private val store = ConcurrentHashMap<Long, Lesson>()
     private val lessonsFlow = MutableStateFlow<List<Lesson>>(emptyList())
     private val payments = ConcurrentHashMap<Long, Payment>()
+    private val recurrenceRules = ConcurrentHashMap<Long, LessonRecurrence>()
 
     override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         lessonsFlow.map { lessons ->
@@ -78,26 +79,31 @@ class InMemoryLessonsRepository : LessonsRepository {
     override fun observeByStudent(studentId: Long): Flow<List<Lesson>> =
         lessonsFlow.map { lessons -> lessons.filter { it.studentId == studentId } }
 
-    override suspend fun getById(id: Long): Lesson? = store[id]
+    override suspend fun getById(id: Long): Lesson? = store[id]?.withResolvedRecurrence()
 
     override suspend fun upsert(lesson: Lesson): Long {
         val id = if (lesson.id == 0L) seq.getAndIncrement() else lesson.id
-        val existing = store[id]
+        val existing = store[id]?.withResolvedRecurrence()
         val updated = when {
             lesson.recurrence != null -> {
                 val seriesId = lesson.seriesId ?: existing?.seriesId ?: recurrenceSeq.getAndIncrement()
+                recurrenceRules[seriesId] = lesson.recurrence
                 lesson.copy(id = id, seriesId = seriesId)
             }
 
             existing?.seriesId != null && lesson.seriesId == null -> {
-                lesson.copy(id = id, recurrence = null)
+                existing.seriesId?.let(recurrenceRules::remove)
+                lesson.copy(id = id, recurrence = null, seriesId = null)
             }
 
             else -> {
-                val recurrence = existing?.recurrence
-                lesson.copy(id = id, recurrence = recurrence, seriesId = lesson.seriesId ?: existing?.seriesId)
+                val seriesId = lesson.seriesId ?: existing?.seriesId
+                val recurrence = lesson.recurrence
+                    ?: seriesId?.let(recurrenceRules::get)
+                    ?: existing?.recurrence
+                lesson.copy(id = id, recurrence = recurrence, seriesId = seriesId)
             }
-        }
+        }.withResolvedRecurrence()
         store[id] = updated
         emit()
         return id
@@ -109,6 +115,9 @@ class InMemoryLessonsRepository : LessonsRepository {
         val recurrenceRequest = request.recurrence
         val seriesId = recurrenceRequest?.let { recurrenceSeq.getAndIncrement() }
         val recurrence = recurrenceRequest?.toLessonRecurrence(request.startAt)
+        if (seriesId != null && recurrence != null) {
+            recurrenceRules[seriesId] = recurrence
+        }
         val newLesson = Lesson(
             id = id,
             studentId = request.studentId,
@@ -127,7 +136,7 @@ class InMemoryLessonsRepository : LessonsRepository {
             seriesId = seriesId,
             isInstance = false,
             recurrence = recurrence
-        )
+        ).withResolvedRecurrence()
         store[id] = newLesson
         emit()
         return id
@@ -139,7 +148,7 @@ class InMemoryLessonsRepository : LessonsRepository {
                 startAt = newStart,
                 endAt = newEnd,
                 updatedAt = Instant.now()
-            )
+            ).withResolvedRecurrence()
             emit()
         }
     }
@@ -171,7 +180,12 @@ class InMemoryLessonsRepository : LessonsRepository {
     }
 
     override suspend fun delete(id: Long) {
-        store.remove(id)
+        val removed = store.remove(id)
+        removed?.seriesId?.let { seriesId ->
+            if (removed.isInstance.not()) {
+                recurrenceRules.remove(seriesId)
+            }
+        }
         payments.remove(id)
         emit()
     }
@@ -183,7 +197,7 @@ class InMemoryLessonsRepository : LessonsRepository {
                 paymentStatus = PaymentStatus.PAID,
                 paidCents = lesson.priceCents,
                 markedAt = now
-            )
+            ).withResolvedRecurrence()
             store[id] = updatedLesson
             val payment = payments[id]
             payments[id] = (payment ?: Payment(
@@ -209,7 +223,7 @@ class InMemoryLessonsRepository : LessonsRepository {
                 paymentStatus = PaymentStatus.DUE,
                 paidCents = 0,
                 markedAt = now
-            )
+            ).withResolvedRecurrence()
             store[id] = updatedLesson
             val payment = payments[id]
             payments[id] = (payment ?: Payment(
@@ -230,7 +244,7 @@ class InMemoryLessonsRepository : LessonsRepository {
 
     override suspend fun saveNote(id: Long, note: String?) {
         store[id]?.let {
-            store[id] = it.copy(note = note)
+            store[id] = it.copy(note = note).withResolvedRecurrence()
             emit()
         }
     }
@@ -241,14 +255,21 @@ class InMemoryLessonsRepository : LessonsRepository {
                 paymentStatus = PaymentStatus.UNPAID,
                 paidCents = 0,
                 markedAt = null
-            )
+            ).withResolvedRecurrence()
             payments.remove(id)
             emit()
         }
     }
 
+    private fun Lesson.withResolvedRecurrence(): Lesson {
+        val resolved = recurrence ?: seriesId?.let(recurrenceRules::get)
+        return if (resolved === recurrence || resolved == recurrence) this else copy(recurrence = resolved)
+    }
+
     private fun emit() {
-        lessonsFlow.value = store.values.sortedByDescending { it.startAt }
+        lessonsFlow.value = store.values
+            .map { it.withResolvedRecurrence() }
+            .sortedByDescending { it.startAt }
     }
 }
 
