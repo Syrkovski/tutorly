@@ -227,31 +227,25 @@ class RoomLessonsRepository(
                         timezone = recurrence.timezone.id
                     )
                 )
-                if (lesson.seriesId == null || lesson.seriesId != ruleId) {
-                    val refreshed = lesson.copy(
-                        id = baseLessonId,
-                        seriesId = ruleId,
-                        updatedAt = Instant.now()
-                    )
-                    lessonDao.upsert(refreshed)
-                }
-                val anchor = lessonDao.findById(baseLessonId)
-                val rule = recurrenceRuleDao.findById(ruleId)
-                if (anchor != null && rule != null) {
-                    val normalizedAnchor = ensureSeriesLink(anchor, rule)
-                    val recurrenceModel = rule.toLessonRecurrence()
-                    val anchorWithRecurrence = if (normalizedAnchor.recurrence != recurrenceModel) {
-                        val refreshed = normalizedAnchor.copy(
-                            recurrence = recurrenceModel,
-                            updatedAt = Instant.now()
-                        )
-                        lessonDao.upsert(refreshed)
-                        refreshed
-                    } else {
-                        normalizedAnchor
-                    }
-                    generateFutureOccurrences(anchorWithRecurrence, rule)
-                }
+                val timestamp = Instant.now()
+                val ruleRecord = RecurrenceRule(
+                    id = ruleId,
+                    baseLessonId = baseLessonId,
+                    frequency = recurrence.frequency,
+                    interval = recurrence.interval,
+                    daysOfWeek = recurrence.daysOfWeek,
+                    startDateTime = recurrence.startDateTime,
+                    untilDateTime = recurrence.untilDateTime,
+                    timezone = recurrence.timezone.id
+                )
+                val anchor = lessonDao.findById(baseLessonId) ?: lesson.copy(id = baseLessonId)
+                val anchorWithRule = anchor.copy(
+                    seriesId = ruleRecord.id,
+                    recurrence = ruleRecord.toLessonRecurrence(),
+                    updatedAt = timestamp
+                )
+                lessonDao.upsert(anchorWithRule)
+                generateFutureOccurrences(anchorWithRule, ruleRecord)
             }
 
             existing?.seriesId != null && lesson.seriesId == null -> {
