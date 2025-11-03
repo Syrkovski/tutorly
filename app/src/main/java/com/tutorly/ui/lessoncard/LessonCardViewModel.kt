@@ -2,20 +2,25 @@ package com.tutorly.ui.lessoncard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.UserSettingsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.models.LessonRecurrence
+import com.tutorly.models.RecurrenceFrequency
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.Student
 import com.tutorly.ui.screens.normalizeGrade
 import com.tutorly.ui.screens.normalizeSubject
 import com.tutorly.ui.screens.titleCaseWords
+import com.tutorly.ui.lessoncreation.RecurrenceMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Month
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Currency
@@ -72,6 +77,7 @@ class LessonCardViewModel @Inject constructor(
                 isDeleting = false,
                 lessonId = lessonId,
                 snackbarMessage = null,
+                recurrenceEditor = null,
             )
         }
 
@@ -123,6 +129,7 @@ class LessonCardViewModel @Inject constructor(
                 isLoading = false,
                 isPaymentActionRunning = false,
                 isDeleting = false,
+                recurrenceEditor = null,
             )
         }
     }
@@ -175,6 +182,7 @@ class LessonCardViewModel @Inject constructor(
         submitUpdate(
             lesson.copy(startAt = start.toInstant(), endAt = end.toInstant(), updatedAt = Instant.now())
         ) { it.copy(date = date) }
+        updateRecurrenceEditorBase(date = date, time = state.time)
     }
 
     fun onTimeSelected(time: LocalTime) {
@@ -186,6 +194,7 @@ class LessonCardViewModel @Inject constructor(
         submitUpdate(
             lesson.copy(startAt = start.toInstant(), endAt = end.toInstant(), updatedAt = Instant.now())
         ) { it.copy(time = time) }
+        updateRecurrenceEditorBase(date = state.date, time = time)
     }
 
     fun onDurationSelected(minutes: Int) {
@@ -215,6 +224,69 @@ class LessonCardViewModel @Inject constructor(
             lesson.copy(seriesId = null, recurrence = null, updatedAt = Instant.now())
         }
         submitUpdate(updated) { it }
+    }
+
+    fun onRecurrenceRowClick() {
+        val lesson = currentLesson ?: return
+        val editor = buildRecurrenceEditorState(lesson, _uiState.value)
+        _uiState.update { it.copy(recurrenceEditor = editor) }
+    }
+
+    fun onRecurrenceEditorDismissed() {
+        _uiState.update { it.copy(recurrenceEditor = null) }
+    }
+
+    fun onRecurrenceEditorToggle(enabled: Boolean) {
+        updateRecurrenceEditor { state ->
+            if (enabled) {
+                val targetMode = if (state.mode == RecurrenceMode.NONE) {
+                    RecurrenceMode.WEEKLY
+                } else {
+                    state.mode
+                }
+                state.copy(isRecurring = true, mode = targetMode)
+            } else {
+                state.copy(isRecurring = false, mode = RecurrenceMode.NONE, endEnabled = false)
+            }
+        }
+    }
+
+    fun onRecurrenceEditorModeSelected(mode: RecurrenceMode) {
+        updateRecurrenceEditor { state ->
+            state.copy(mode = mode, isRecurring = mode != RecurrenceMode.NONE || state.isRecurring)
+        }
+    }
+
+    fun onRecurrenceEditorDayToggled(day: DayOfWeek) {
+        updateRecurrenceEditor { state ->
+            val updated = if (state.days.contains(day)) state.days - day else state.days + day
+            state.copy(days = updated)
+        }
+    }
+
+    fun onRecurrenceEditorIntervalChanged(value: Int) {
+        updateRecurrenceEditor { state -> state.copy(interval = value.coerceAtLeast(0)) }
+    }
+
+    fun onRecurrenceEditorEndToggle(enabled: Boolean) {
+        updateRecurrenceEditor { state -> state.copy(endEnabled = enabled) }
+    }
+
+    fun onRecurrenceEditorEndDateSelected(date: LocalDate) {
+        updateRecurrenceEditor { state -> state.copy(endEnabled = true, endDate = date) }
+    }
+
+    fun onRecurrenceEditorConfirm() {
+        val editor = _uiState.value.recurrenceEditor ?: return
+        val recurrence = buildRecurrenceFromEditor(editor)
+        _uiState.update { it.copy(recurrenceEditor = null) }
+        onRecurrenceSelected(recurrence)
+    }
+
+    fun onRecurrenceEditorClear() {
+        if (_uiState.value.recurrenceEditor == null) return
+        _uiState.update { it.copy(recurrenceEditor = null) }
+        onRecurrenceSelected(null)
     }
 
     fun onPaymentStatusSelected(status: PaymentStatus) {
@@ -259,6 +331,175 @@ class LessonCardViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    private fun updateRecurrenceEditor(
+        transform: (LessonCardRecurrenceEditorState) -> LessonCardRecurrenceEditorState,
+    ) {
+        val current = _uiState.value.recurrenceEditor ?: return
+        val updated = transform(current)
+        val normalized = refreshRecurrenceEditor(updated)
+        _uiState.update { it.copy(recurrenceEditor = normalized) }
+    }
+
+    private fun updateRecurrenceEditorBase(date: LocalDate, time: LocalTime) {
+        updateRecurrenceEditor { it.copy(startDate = date, startTime = time) }
+    }
+
+    private fun buildRecurrenceEditorState(
+        lesson: Lesson,
+        state: LessonCardUiState,
+    ): LessonCardRecurrenceEditorState {
+        val recurrence = lesson.recurrence
+        val zone = state.zoneId
+        val mode = recurrence?.let { determineMode(it) } ?: RecurrenceMode.WEEKLY
+        val interval = recurrence?.let { determineInterval(it, mode) } ?: 1
+        val endDate = recurrence?.untilDateTime?.atZone(zone)?.toLocalDate()
+        val base = LessonCardRecurrenceEditorState(
+            mode = if (recurrence != null) mode else RecurrenceMode.WEEKLY,
+            isRecurring = recurrence != null,
+            interval = interval,
+            days = recurrence?.daysOfWeek?.toSet() ?: emptySet(),
+            endEnabled = endDate != null,
+            endDate = endDate,
+            label = null,
+            startDate = state.date,
+            startTime = state.time,
+            zoneId = zone,
+            locale = state.locale,
+            canClear = lesson.seriesId != null || recurrence != null,
+        )
+        return refreshRecurrenceEditor(base)
+    }
+
+    private fun refreshRecurrenceEditor(state: LessonCardRecurrenceEditorState): LessonCardRecurrenceEditorState {
+        val targetMode = if (state.isRecurring) state.mode else RecurrenceMode.NONE
+        val baseDay = state.startDate.dayOfWeek
+        val sanitizedInterval = state.interval.coerceAtLeast(1)
+        val normalizedDays = when (targetMode) {
+            RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS ->
+                if (state.days.isEmpty()) setOf(baseDay) else state.days
+            else -> emptySet()
+        }
+        val normalizedInterval = when (targetMode) {
+            RecurrenceMode.CUSTOM_WEEKS -> maxOf(2, sanitizedInterval)
+            RecurrenceMode.MONTHLY_BY_DOW -> sanitizedInterval
+            RecurrenceMode.WEEKLY -> 1
+            RecurrenceMode.NONE -> sanitizedInterval
+        }
+        val endEnabled = state.endEnabled && targetMode != RecurrenceMode.NONE && state.isRecurring
+        val endDate = if (endEnabled) {
+            val candidate = state.endDate ?: defaultRecurrenceEnd(state.startDate)
+            if (candidate.isBefore(state.startDate)) state.startDate else candidate
+        } else {
+            null
+        }
+        val isRecurring = state.isRecurring && targetMode != RecurrenceMode.NONE
+        val label = if (isRecurring) {
+            val start = ZonedDateTime.of(state.startDate, state.startTime, state.zoneId)
+            val frequency = when (targetMode) {
+                RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
+                RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY
+                RecurrenceMode.NONE -> RecurrenceFrequency.WEEKLY
+            }
+            val days = if (targetMode == RecurrenceMode.MONTHLY_BY_DOW) {
+                emptyList()
+            } else {
+                normalizedDays.toList().sortedBy { it.value }
+            }
+            RecurrenceLabelFormatter.format(frequency, normalizedInterval, days, start)
+        } else {
+            null
+        }
+        val adjustedMode = if (state.isRecurring) targetMode else RecurrenceMode.NONE
+        val adjustedInterval = when (adjustedMode) {
+            RecurrenceMode.CUSTOM_WEEKS -> normalizedInterval
+            RecurrenceMode.MONTHLY_BY_DOW -> normalizedInterval
+            RecurrenceMode.WEEKLY -> 1
+            RecurrenceMode.NONE -> normalizedInterval
+        }
+        return state.copy(
+            mode = adjustedMode,
+            isRecurring = isRecurring,
+            interval = adjustedInterval,
+            days = normalizedDays,
+            endEnabled = endEnabled,
+            endDate = endDate,
+            label = label,
+        )
+    }
+
+    private fun buildRecurrenceFromEditor(state: LessonCardRecurrenceEditorState): LessonRecurrence? {
+        if (!state.isRecurring || state.mode == RecurrenceMode.NONE) return null
+        val frequency = when (state.mode) {
+            RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
+            RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY
+            RecurrenceMode.NONE -> RecurrenceFrequency.WEEKLY
+        }
+        val interval = when (state.mode) {
+            RecurrenceMode.CUSTOM_WEEKS -> state.interval.coerceAtLeast(1)
+            RecurrenceMode.MONTHLY_BY_DOW -> state.interval.coerceAtLeast(1)
+            RecurrenceMode.WEEKLY -> 1
+            RecurrenceMode.NONE -> 1
+        }
+        val days = if (state.mode == RecurrenceMode.MONTHLY_BY_DOW) {
+            emptyList()
+        } else {
+            state.days.toList().sortedBy { it.value }
+        }
+        val start = ZonedDateTime.of(state.startDate, state.startTime, state.zoneId).toInstant()
+        val until = if (state.endEnabled) {
+            val candidate = state.endDate ?: state.startDate
+            val normalized = if (candidate.isBefore(state.startDate)) state.startDate else candidate
+            ZonedDateTime.of(normalized, state.startTime, state.zoneId).toInstant()
+        } else {
+            null
+        }
+        return LessonRecurrence(
+            frequency = frequency,
+            interval = interval,
+            daysOfWeek = days,
+            startDateTime = start,
+            untilDateTime = until,
+            timezone = state.zoneId,
+        )
+    }
+
+    private fun determineMode(recurrence: LessonRecurrence): RecurrenceMode {
+        return when (recurrence.frequency) {
+            RecurrenceFrequency.MONTHLY_BY_DOW -> RecurrenceMode.MONTHLY_BY_DOW
+            RecurrenceFrequency.BIWEEKLY -> RecurrenceMode.CUSTOM_WEEKS
+            RecurrenceFrequency.WEEKLY -> if (recurrence.interval <= 1) {
+                RecurrenceMode.WEEKLY
+            } else {
+                RecurrenceMode.CUSTOM_WEEKS
+            }
+        }
+    }
+
+    private fun determineInterval(
+        recurrence: LessonRecurrence,
+        mode: RecurrenceMode,
+    ): Int {
+        return when (recurrence.frequency) {
+            RecurrenceFrequency.BIWEEKLY -> maxOf(1, recurrence.interval) * 2
+            RecurrenceFrequency.MONTHLY_BY_DOW -> maxOf(1, recurrence.interval)
+            RecurrenceFrequency.WEEKLY -> when (mode) {
+                RecurrenceMode.CUSTOM_WEEKS -> maxOf(1, recurrence.interval)
+                RecurrenceMode.WEEKLY -> 1
+                RecurrenceMode.MONTHLY_BY_DOW, RecurrenceMode.NONE -> maxOf(1, recurrence.interval)
+            }
+        }
+    }
+
+    private fun defaultRecurrenceEnd(startDate: LocalDate): LocalDate {
+        val currentYear = startDate.year
+        val thisYearEnd = LocalDate.of(currentYear, Month.JUNE, 30)
+        return if (startDate.isAfter(thisYearEnd)) {
+            LocalDate.of(currentYear + 1, Month.JUNE, 30)
+        } else {
+            thisYearEnd
         }
     }
 
