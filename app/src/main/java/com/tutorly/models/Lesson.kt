@@ -43,6 +43,7 @@ data class Lesson(
     val isInstance: Boolean = false,     // true только для материализованных экземпляров
     @Ignore val recurrence: LessonRecurrence? = null
 ) {
+    @Ignore
     constructor(
         id: Long = 0L,
         studentId: Long,
