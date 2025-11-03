@@ -78,7 +78,12 @@ class RoomLessonsRepositoryTest {
 
         repository.create(request)
 
-        val ruleId = recurrenceRuleDao.observeAll().first().single().id
+        val rule = recurrenceRuleDao.observeAll().first().single()
+        val baseLesson = lessonDao.findById(rule.baseLessonId) ?: error("Base lesson missing")
+        assertEquals(rule.id, baseLesson.seriesId)
+        assertTrue(baseLesson.recurrence != null)
+
+        val ruleId = rule.id
         val storedInstances = lessonDao.listInstancesForSeries(ruleId)
         assertTrue(storedInstances.isNotEmpty())
         val orderedStarts = storedInstances.map { it.startAt }.sorted()

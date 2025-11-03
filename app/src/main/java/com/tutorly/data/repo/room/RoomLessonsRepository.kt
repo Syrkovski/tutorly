@@ -239,7 +239,18 @@ class RoomLessonsRepository(
                 val rule = recurrenceRuleDao.findById(ruleId)
                 if (anchor != null && rule != null) {
                     val normalizedAnchor = ensureSeriesLink(anchor, rule)
-                    generateFutureOccurrences(normalizedAnchor, rule)
+                    val recurrenceModel = rule.toLessonRecurrence()
+                    val anchorWithRecurrence = if (normalizedAnchor.recurrence != recurrenceModel) {
+                        val refreshed = normalizedAnchor.copy(
+                            recurrence = recurrenceModel,
+                            updatedAt = Instant.now()
+                        )
+                        lessonDao.upsert(refreshed)
+                        refreshed
+                    } else {
+                        normalizedAnchor
+                    }
+                    generateFutureOccurrences(anchorWithRecurrence, rule)
                 }
             }
 
