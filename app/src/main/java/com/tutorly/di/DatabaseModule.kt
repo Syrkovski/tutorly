@@ -92,7 +92,9 @@ object DatabaseModule {
         recurrenceRuleDao,
         recurrenceExceptionDao,
         prepaymentAllocator,
-        transactionRunner = TransactionRunner { block -> db.withTransaction { block() } }
+        transactionRunner = object : TransactionRunner {
+            override suspend fun <T> invoke(block: suspend () -> T): T = db.withTransaction { block() }
+        }
     )
 
     @Provides @Singleton

@@ -781,6 +781,6 @@ class RoomLessonsRepository(
     }
 }
 
-fun interface TransactionRunner {
+interface TransactionRunner {
     suspend operator fun <T> invoke(block: suspend () -> T): T
 }
