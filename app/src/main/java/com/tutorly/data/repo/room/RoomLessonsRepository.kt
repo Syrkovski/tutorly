@@ -8,6 +8,7 @@ import com.tutorly.data.db.dao.RecurrenceRuleDao
 import com.tutorly.data.db.projections.LessonWithStudent
 import com.tutorly.data.db.projections.toLessonDetails
 import com.tutorly.domain.model.LessonCreateRequest
+import com.tutorly.domain.model.RecurrenceCreateRequest
 import com.tutorly.domain.model.LessonDetails
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.domain.model.LessonsRangeStats
@@ -248,7 +249,8 @@ class RoomLessonsRepository(
 
     override suspend fun create(request: LessonCreateRequest): Long {
         val now = Instant.now()
-        var lesson = Lesson(
+        val recurrence = request.recurrence?.toLessonRecurrence(request.startAt)
+        val lesson = Lesson(
             studentId = request.studentId,
             subjectId = request.subjectId,
             title = request.title,
@@ -261,31 +263,10 @@ class RoomLessonsRepository(
             status = LessonStatus.PLANNED,
             note = request.note,
             createdAt = now,
-            updatedAt = now
+            updatedAt = now,
+            recurrence = recurrence
         )
-        val id = lessonDao.upsert(lesson)
-        val recurrenceRequest = request.recurrence
-        if (recurrenceRequest != null) {
-            val ruleId = recurrenceRuleDao.upsert(
-                RecurrenceRule(
-                    baseLessonId = id,
-                    frequency = recurrenceRequest.frequency,
-                    interval = recurrenceRequest.interval,
-                    daysOfWeek = recurrenceRequest.daysOfWeek,
-                    startDateTime = request.startAt,
-                    untilDateTime = recurrenceRequest.until,
-                    timezone = recurrenceRequest.timezone.id
-                )
-            )
-            lesson = lesson.copy(id = id, seriesId = ruleId, updatedAt = Instant.now())
-            lessonDao.upsert(lesson)
-            val rule = recurrenceRuleDao.findById(ruleId)
-            if (rule != null) {
-                generateFutureOccurrences(lesson, rule)
-            }
-        }
-        prepaymentAllocator.sync(lesson.studentId)
-        return id
+        return upsert(lesson)
     }
 
     override suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant) {
@@ -762,6 +743,17 @@ class RoomLessonsRepository(
             startDateTime = startDateTime,
             untilDateTime = untilDateTime,
             timezone = zone
+        )
+    }
+
+    private fun RecurrenceCreateRequest.toLessonRecurrence(start: Instant): LessonRecurrence {
+        return LessonRecurrence(
+            frequency = frequency,
+            interval = interval,
+            daysOfWeek = daysOfWeek,
+            startDateTime = start,
+            untilDateTime = until,
+            timezone = timezone
         )
     }
 
