@@ -7,14 +7,17 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
+import androidx.room.withTransaction
 import com.tutorly.data.db.AppDatabase
 import com.tutorly.data.db.dao.*
 import com.tutorly.data.db.migrations.MIGRATION_5_6
 import com.tutorly.data.db.migrations.MIGRATION_6_7
+import com.tutorly.data.db.migrations.MIGRATION_7_8
 import com.tutorly.data.repo.memory.StaticUserSettingsRepository
 import com.tutorly.data.repo.preferences.PreferencesDayClosureRepository
 import com.tutorly.data.repo.preferences.PreferencesUserProfileRepository
 import com.tutorly.data.repo.room.RoomLessonsRepository
+import com.tutorly.data.repo.room.TransactionRunner
 import com.tutorly.data.repo.room.RoomPaymentsRepository
 import com.tutorly.data.repo.room.RoomStudentsRepository
 import com.tutorly.data.repo.room.RoomSubjectPresetsRepository
@@ -43,7 +46,7 @@ object DatabaseModule {
     @Provides @Singleton
     fun provideDb(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "tutorly.db")
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .fallbackToDestructiveMigration() // на MVP ок
             .build()
 
@@ -78,6 +81,7 @@ object DatabaseModule {
 
     @Provides @Singleton
     fun provideLessonsRepo(
+        db: AppDatabase,
         lessonDao: LessonDao,
         paymentDao: PaymentDao,
         recurrenceRuleDao: RecurrenceRuleDao,
@@ -88,7 +92,10 @@ object DatabaseModule {
         paymentDao,
         recurrenceRuleDao,
         recurrenceExceptionDao,
-        prepaymentAllocator
+        prepaymentAllocator,
+        transactionRunner = object : TransactionRunner {
+            override suspend fun <T> invoke(block: suspend () -> T): T = db.withTransaction { block() }
+        }
     )
 
     @Provides @Singleton

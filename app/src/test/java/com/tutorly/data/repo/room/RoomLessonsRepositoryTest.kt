@@ -31,6 +31,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoomLessonsRepositoryTest {
+    private val passthroughTransactionRunner = object : TransactionRunner {
+        override suspend fun <T> invoke(block: suspend () -> T): T = block()
+    }
+
     @Test
     fun `weekly recurrence generates stored future lessons`() = runBlocking {
         val lessonDao = FakeLessonDao()
@@ -47,7 +51,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = passthroughTransactionRunner
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -73,7 +78,12 @@ class RoomLessonsRepositoryTest {
 
         repository.create(request)
 
-        val ruleId = recurrenceRuleDao.observeAll().first().single().id
+        val rule = recurrenceRuleDao.observeAll().first().single()
+        val baseLesson = lessonDao.findById(rule.baseLessonId) ?: error("Base lesson missing")
+        assertEquals(rule.id, baseLesson.seriesId)
+        assertTrue(baseLesson.recurrence != null)
+
+        val ruleId = rule.id
         val storedInstances = lessonDao.listInstancesForSeries(ruleId)
         assertTrue(storedInstances.isNotEmpty())
         val orderedStarts = storedInstances.map { it.startAt }.sorted()
@@ -106,7 +116,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = passthroughTransactionRunner
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -163,7 +174,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = passthroughTransactionRunner
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -227,7 +239,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = passthroughTransactionRunner
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -297,7 +310,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = passthroughTransactionRunner
         )
 
         val zone = ZoneId.of("Europe/Moscow")
@@ -338,6 +352,7 @@ class RoomLessonsRepositoryTest {
 
         assertTrue(details.isRecurring)
         assertEquals(ruleId, details.seriesId)
+        assertNotNull(details.recurrence)
 
         val persisted = repository.getById(baseLesson.id) ?: error("Expected lesson")
         assertEquals(ruleId, persisted.seriesId)
@@ -363,7 +378,8 @@ class RoomLessonsRepositoryTest {
             paymentDao = paymentDao,
             recurrenceRuleDao = recurrenceRuleDao,
             recurrenceExceptionDao = recurrenceExceptionDao,
-            prepaymentAllocator = prepaymentAllocator
+            prepaymentAllocator = prepaymentAllocator,
+            transactionRunner = passthroughTransactionRunner
         )
 
         val zone = ZoneId.of("Europe/Moscow")

@@ -86,7 +86,15 @@ class LessonCardViewModel @Inject constructor(
                 if (details == null) {
                     _uiState.update { state -> state.copy(isLoading = false) }
                 } else {
-                    currentLesson = lessonsRepository.getById(details.id)
+                    currentLesson = lessonsRepository.getById(details.id)?.let { lesson ->
+                        val resolvedRecurrence = lesson.recurrence ?: details.recurrence
+                        val resolvedSeries = lesson.seriesId ?: details.seriesId
+                        if (resolvedRecurrence != lesson.recurrence || resolvedSeries != lesson.seriesId) {
+                            lesson.copy(seriesId = resolvedSeries, recurrence = resolvedRecurrence)
+                        } else {
+                            lesson
+                        }
+                    }
                     val zone = _uiState.value.zoneId
                     val start = details.startAt.atZone(zone)
                     _uiState.update { state ->
@@ -106,7 +114,7 @@ class LessonCardViewModel @Inject constructor(
                             paidCents = details.paidCents,
                             note = details.lessonNote,
                             studentOptions = reorderOptions(state.studentOptions, details.studentId),
-                            isRecurring = details.isRecurring,
+                            isRecurring = details.isRecurring || details.recurrence != null,
                             recurrenceLabel = details.recurrenceLabel,
                         )
                     }

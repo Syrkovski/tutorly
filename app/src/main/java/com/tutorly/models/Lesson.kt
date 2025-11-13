@@ -41,8 +41,9 @@ data class Lesson(
     val canceledAt: Instant? = null,
     val seriesId: Long? = null,          // ссылка на правило повторения, если есть
     val isInstance: Boolean = false,     // true только для материализованных экземпляров
-    @Ignore val recurrence: LessonRecurrence? = null
+    val recurrence: LessonRecurrence? = null
 ) {
+    @Ignore
     constructor(
         id: Long = 0L,
         studentId: Long,
@@ -60,7 +61,8 @@ data class Lesson(
         updatedAt: Instant = Instant.now(),
         canceledAt: Instant? = null,
         seriesId: Long? = null,
-        isInstance: Boolean = false
+        isInstance: Boolean = false,
+        recurrence: LessonRecurrence? = null
     ) : this(
         id = id,
         studentId = studentId,
@@ -79,7 +81,7 @@ data class Lesson(
         canceledAt = canceledAt,
         seriesId = seriesId,
         isInstance = isInstance,
-        recurrence = null
+        recurrence = recurrence
     )
 }
 

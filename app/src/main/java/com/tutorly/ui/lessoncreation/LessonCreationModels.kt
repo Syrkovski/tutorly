@@ -7,6 +7,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Locale
+import kotlinx.serialization.Serializable
 
 data class LessonCreationUiState(
     val isVisible: Boolean = false,
@@ -62,11 +63,13 @@ enum class LessonCreationField {
     PRICE
 }
 
+@Serializable
 enum class LessonCreationOrigin {
     CALENDAR,
     STUDENT
 }
 
+@Serializable
 enum class RecurrenceMode {
     NONE,
     WEEKLY,
