@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 import java.time.DayOfWeek
 import java.time.Instant
 
@@ -57,12 +58,14 @@ data class RecurrenceException(
     val overridePrice: Int?
 )
 
+@Serializable
 enum class RecurrenceFrequency {
     WEEKLY,
     BIWEEKLY,
     MONTHLY_BY_DOW
 }
 
+@Serializable
 enum class RecurrenceExceptionType {
     CANCELLED,
     OVERRIDDEN

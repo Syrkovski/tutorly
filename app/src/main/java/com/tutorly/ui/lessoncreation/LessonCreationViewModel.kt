@@ -1,5 +1,6 @@
 package com.tutorly.ui.lessoncreation
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.domain.model.LessonCreateRequest
@@ -10,9 +11,9 @@ import com.tutorly.domain.repo.StudentsRepository
 import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.domain.repo.UserSettingsRepository
 import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
+import com.tutorly.models.RecurrenceFrequency
 import com.tutorly.models.Student
 import com.tutorly.models.SubjectPreset
-import com.tutorly.models.RecurrenceFrequency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -28,6 +29,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.collections.buildSet
 import kotlin.math.max
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,9 +39,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @HiltViewModel
 class LessonCreationViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val lessonsRepository: LessonsRepository,
     private val studentsRepository: StudentsRepository,
     private val subjectPresetsRepository: SubjectPresetsRepository,
@@ -52,6 +58,14 @@ class LessonCreationViewModel @Inject constructor(
     private val _events = MutableSharedFlow<LessonCreationEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
+    private val json = Json { encodeDefaults = true }
+
+    private companion object {
+        private const val KEY_DRAFT = "lesson_creation:draft"
+        private const val KEY_DURATION_EDITED = "lesson_creation:duration_edited"
+        private const val KEY_PRICE_EDITED = "lesson_creation:price_edited"
+    }
+
     private var cachedSubjects: List<SubjectPreset> = emptyList()
     private var durationEdited: Boolean = false
     private var priceEdited: Boolean = false
@@ -63,10 +77,28 @@ class LessonCreationViewModel @Inject constructor(
     private var currentStudentBaseRateCents: Int? = null
     private var currentStudentBaseRateDuration: Int? = null
 
+    private fun loadDraft(): LessonDraft? {
+        val payload = savedStateHandle.get<String>(KEY_DRAFT) ?: return null
+        return runCatching { json.decodeFromString<LessonDraft>(payload) }.getOrNull()
+    }
+
+    private fun saveDraft(state: LessonCreationUiState) {
+        val draft = state.toLessonDraft()
+        savedStateHandle[KEY_DRAFT] = json.encodeToString(draft)
+        savedStateHandle[KEY_DURATION_EDITED] = durationEdited
+        savedStateHandle[KEY_PRICE_EDITED] = priceEdited
+    }
+
+    private fun clearDraft() {
+        savedStateHandle.remove<String>(KEY_DRAFT)
+        savedStateHandle.remove<Boolean>(KEY_DURATION_EDITED)
+        savedStateHandle.remove<Boolean>(KEY_PRICE_EDITED)
+    }
+
     init {
         viewModelScope.launch {
             cachedSubjects = subjectPresetsRepository.all()
-            _uiState.update { state ->
+            updateUiState(persist = true) { state ->
                 val options = cachedSubjects.map { it.toOption() }
                 val sanitizedChips = state.selectedSubjectChips
                     .mapNotNull { chip ->
@@ -106,7 +138,11 @@ class LessonCreationViewModel @Inject constructor(
             val locale = Locale(settings.locale)
             val currencySymbol = runCatching { Currency.getInstance(settings.currency).getSymbol(locale) }
                 .getOrDefault(settings.currency)
-            val zone = config.zoneId ?: config.start?.zone ?: ZoneId.systemDefault()
+            val savedDraft = loadDraft()
+            val zone = savedDraft?.zoneId?.let { runCatching(ZoneId::of).getOrNull() }
+                ?: config.zoneId
+                ?: config.start?.zone
+                ?: ZoneId.systemDefault()
             val start = config.start ?: ZonedDateTime.now(zone)
             currentZone = zone
             val slotStep = max(5, settings.slotStepMinutes)
@@ -115,52 +151,65 @@ class LessonCreationViewModel @Inject constructor(
                 ?: settings.defaultLessonDurationMinutes
             val basePrice = settings.defaultLessonPriceCents
 
-            durationEdited = config.duration != null
-            priceEdited = false
+            durationEdited = savedStateHandle.get<Boolean>(KEY_DURATION_EDITED) ?: (config.duration != null)
+            priceEdited = savedStateHandle.get<Boolean>(KEY_PRICE_EDITED) ?: false
             currentRateHistory = emptyList()
             currentStudentBaseRateCents = null
             currentStudentBaseRateDuration = null
 
             val students = loadStudents("")
             val subjectOptions = cachedSubjects.map { it.toOption() }
-
-            _uiState.value = refreshRecurrence(
-                LessonCreationUiState(
-                    isVisible = true,
-                    studentQuery = "",
-                    students = students,
-                    selectedStudent = null,
-                    studentGrade = config.studentGrade?.trim().orEmpty(),
-                    subjects = subjectOptions,
-                    availableSubjects = subjectOptions,
-                    selectedSubjectId = null,
-                    selectedSubjectChips = emptyList(),
-                    date = roundedStart.toLocalDate(),
-                    time = roundedStart.toLocalTime(),
-                    durationMinutes = baseDuration,
-                    priceCents = basePrice,
-                    note = config.note.orEmpty(),
-                    currencySymbol = currencySymbol,
-                    slotStepMinutes = slotStep,
-                    origin = config.origin,
-                    locale = locale,
-                    zoneId = currentZone,
-                    recurrenceMode = RecurrenceMode.NONE,
-                    recurrenceInterval = 1,
-                    recurrenceDays = emptySet(),
-                    recurrenceEndEnabled = false,
-                    recurrenceEndDate = null
-                )
+            val baseState = LessonCreationUiState(
+                isVisible = true,
+                studentQuery = "",
+                students = students,
+                selectedStudent = null,
+                studentGrade = config.studentGrade?.trim().orEmpty(),
+                subjects = subjectOptions,
+                availableSubjects = subjectOptions,
+                selectedSubjectId = null,
+                selectedSubjectChips = emptyList(),
+                date = roundedStart.toLocalDate(),
+                time = roundedStart.toLocalTime(),
+                durationMinutes = baseDuration,
+                priceCents = basePrice,
+                note = config.note.orEmpty(),
+                currencySymbol = currencySymbol,
+                slotStepMinutes = slotStep,
+                origin = config.origin,
+                locale = locale,
+                zoneId = currentZone,
+                recurrenceMode = RecurrenceMode.NONE,
+                recurrenceInterval = 1,
+                recurrenceDays = emptySet(),
+                recurrenceEndEnabled = false,
+                recurrenceEndDate = null
             )
 
-            config.studentId?.let { selectStudent(it, applyDefaults = config.duration == null && config.subjectId == null) }
-            config.subjectId?.let { onSubjectSelected(it) }
+            val restored = savedDraft?.restore(baseState, students)
+            val refreshed = refreshRecurrence(restored ?: baseState)
+            _uiState.value = refreshed
+            currentZone = refreshed.zoneId
+            saveDraft(refreshed)
+
+            if (restored == null) {
+                config.studentId?.let { selectStudent(it, applyDefaults = config.duration == null && config.subjectId == null) }
+                config.subjectId?.let { onSubjectSelected(it) }
+            } else {
+                val keepIds = buildSet {
+                    refreshed.selectedSubjectId?.let { add(it) }
+                    refreshed.selectedSubjectChips.mapNotNullTo(this) { it.id }
+                }
+                val available = resolveAvailableSubjects(refreshed.selectedStudent, refreshed.locale, keepIds)
+                updateUiState(persist = false) { it.copy(availableSubjects = available) }
+            }
         }
     }
 
     fun dismiss() {
-        _uiState.update { it.copy(isVisible = false, snackbarMessage = null, showConflictDialog = null) }
+        updateUiState(persist = false) { it.copy(isVisible = false, snackbarMessage = null, showConflictDialog = null) }
         conflictRequest = null
+        clearDraft()
     }
 
     fun prepareForStudentCreation() {
@@ -193,7 +242,7 @@ class LessonCreationViewModel @Inject constructor(
             currentStudentBaseRateDuration = null
         }
 
-        _uiState.update { current ->
+        updateUiState { current ->
             val baseState = current.copy(studentQuery = query)
             if (!isCleared) {
                 baseState
@@ -208,7 +257,7 @@ class LessonCreationViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val students = loadStudents(query)
-            _uiState.update { current ->
+            updateUiState(persist = false) { current ->
                 if (current.studentQuery == query) {
                     current.copy(students = students)
                 } else {
@@ -219,7 +268,7 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     fun onStudentGradeChanged(value: String) {
-        _uiState.update { it.copy(studentGrade = value) }
+        updateUiState { it.copy(studentGrade = value) }
     }
 
     fun onStudentSelected(studentId: Long) {
@@ -239,7 +288,7 @@ class LessonCreationViewModel @Inject constructor(
                 state.durationMinutes.takeIf { it > 0 }
             }
             val pricePresets = computePricePresets(state.durationMinutes)
-            _uiState.update {
+            updateUiState {
                 it.copy(
                     selectedStudent = existing,
                     students = mergeStudentOption(it.students, existing),
@@ -280,7 +329,7 @@ class LessonCreationViewModel @Inject constructor(
         )
 
         val newId = runCatching { studentsRepository.upsert(newStudent) }.getOrElse { error ->
-            _uiState.update {
+            updateUiState(persist = false) {
                 it.copy(
                     snackbarMessage = error.message ?: "Не удалось сохранить ученика"
                 )
@@ -293,7 +342,7 @@ class LessonCreationViewModel @Inject constructor(
         currentRateHistory = emptyList()
         currentStudentBaseRateCents = null
         currentStudentBaseRateDuration = null
-        _uiState.update {
+        updateUiState {
             it.copy(
                 selectedStudent = option,
                 students = mergeStudentOption(it.students, option),
@@ -352,7 +401,7 @@ class LessonCreationViewModel @Inject constructor(
             availableSubjectOptions.firstOrNull { it.id == id }?.name
         } ?: firstStudentSubject
 
-        _uiState.update {
+        updateUiState {
             val sanitizedChips = it.selectedSubjectChips.filter { chip ->
                 chip.id == null || availableSubjectOptions.any { option -> option.id == chip.id }
             }
@@ -428,7 +477,7 @@ class LessonCreationViewModel @Inject constructor(
             } else {
                 state.selectedSubjectId
             }
-            _uiState.update {
+            updateUiState {
                 it.copy(
                     selectedSubjectChips = updatedChips,
                     selectedSubjectId = newPrimary
@@ -442,7 +491,7 @@ class LessonCreationViewModel @Inject constructor(
     fun onSubjectSuggestionToggled(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
-            _uiState.update { it.copy(subjectInput = "") }
+            updateUiState { it.copy(subjectInput = "") }
             return
         }
         val state = _uiState.value
@@ -451,14 +500,14 @@ class LessonCreationViewModel @Inject constructor(
         }
         if (existingIndex >= 0) {
             val updated = state.selectedSubjectChips.toMutableList().apply { removeAt(existingIndex) }
-            _uiState.update { it.copy(selectedSubjectChips = updated, subjectInput = "") }
+            updateUiState { it.copy(selectedSubjectChips = updated, subjectInput = "") }
             return
         }
         if (state.selectedSubjectChips.any { chip -> chip.name.equals(trimmed, ignoreCase = true) }) {
-            _uiState.update { it.copy(subjectInput = "") }
+            updateUiState { it.copy(subjectInput = "") }
             return
         }
-        _uiState.update { current ->
+        updateUiState { current ->
             current.copy(
                 selectedSubjectChips = current.selectedSubjectChips + SelectedSubjectChip(
                     id = null,
@@ -485,21 +534,21 @@ class LessonCreationViewModel @Inject constructor(
         } else {
             state.selectedSubjectId
         }
-        _uiState.update { it.copy(selectedSubjectChips = updated, selectedSubjectId = newPrimary) }
+        updateUiState { it.copy(selectedSubjectChips = updated, selectedSubjectId = newPrimary) }
     }
 
     fun onSubjectInputChanged(value: String) {
-        _uiState.update { it.copy(subjectInput = value) }
+        updateUiState { it.copy(subjectInput = value) }
     }
 
     private fun addSubjectChip(option: SubjectOption, state: LessonCreationUiState) {
         if (state.selectedSubjectChips.any { it.id == option.id }) {
-            _uiState.update { it.copy(subjectInput = "") }
+            updateUiState { it.copy(subjectInput = "") }
             return
         }
         val newDuration = if (durationEdited) state.durationMinutes else option.durationMinutes
         val newPrice = if (priceEdited) state.priceCents else option.defaultPriceCents
-        _uiState.update {
+        updateUiState {
             it.copy(
                 selectedSubjectId = option.id,
                 selectedSubjectChips = it.selectedSubjectChips + option.toChip(),
@@ -536,7 +585,7 @@ class LessonCreationViewModel @Inject constructor(
     fun onDurationChanged(value: Int) {
         durationEdited = true
         val sanitized = value.coerceAtLeast(0)
-        _uiState.update {
+        updateUiState {
             it.copy(
                 durationMinutes = sanitized,
                 pricePresets = computePricePresets(sanitized)
@@ -546,11 +595,11 @@ class LessonCreationViewModel @Inject constructor(
 
     fun onPriceChanged(value: Int) {
         priceEdited = true
-        _uiState.update { it.copy(priceCents = value.coerceAtLeast(0)) }
+        updateUiState { it.copy(priceCents = value.coerceAtLeast(0)) }
     }
 
     fun onNoteChanged(value: String) {
-        _uiState.update { it.copy(note = value) }
+        updateUiState { it.copy(note = value) }
     }
 
     fun onRecurrenceEnabledChanged(enabled: Boolean) {
@@ -653,11 +702,11 @@ class LessonCreationViewModel @Inject constructor(
 
     fun dismissConflict() {
         conflictRequest = null
-        _uiState.update { it.copy(showConflictDialog = null) }
+        updateUiState(persist = false) { it.copy(showConflictDialog = null) }
     }
 
     fun consumeSnackbar() {
-        _uiState.update { it.copy(snackbarMessage = null) }
+        updateUiState(persist = false) { it.copy(snackbarMessage = null) }
     }
 
     private suspend fun attemptSubmit(force: Boolean) {
@@ -667,7 +716,7 @@ class LessonCreationViewModel @Inject constructor(
             val created = ensureStudentSelected(state)
             if (created == null) {
                 errors[LessonCreationField.STUDENT] = "Выберите ученика"
-                _uiState.update { it.copy(errors = errors) }
+                updateUiState(persist = false) { it.copy(errors = errors) }
                 return
             }
             created
@@ -689,7 +738,7 @@ class LessonCreationViewModel @Inject constructor(
         }
 
         if (errors.isNotEmpty()) {
-            _uiState.update { it.copy(errors = errors) }
+            updateUiState(persist = false) { it.copy(errors = errors) }
             return
         }
 
@@ -712,22 +761,30 @@ class LessonCreationViewModel @Inject constructor(
             else -> distinctTitleParts.joinToString(separator = ", ")
         }
 
+        saveDraft(state)
+        val draft = state.toLessonDraft()
+        val recurrence = draft.repeat?.toRecurrenceRequest(
+            mode = draft.recurrenceMode,
+            baseDate = state.date,
+            baseTime = state.time,
+            zoneId = state.zoneId
+        )
         val request = LessonCreateRequest(
             studentId = student.id,
-            subjectId = state.selectedSubjectId,
+            subjectId = draft.selectedSubjectId,
             title = title,
             startAt = start.toInstant(),
             endAt = end.toInstant(),
-            priceCents = state.priceCents,
-            note = state.note.takeUnless { it.isBlank() },
-            recurrence = buildRecurrenceRequest(state, start)
+            priceCents = draft.priceCents,
+            note = draft.note.takeUnless { it.isBlank() },
+            recurrence = recurrence
         )
 
         if (!force) {
             val conflicts = lessonsRepository.findConflicts(request.startAt, request.endAt)
             if (conflicts.isNotEmpty()) {
                 conflictRequest = request
-                _uiState.update {
+                updateUiState(persist = false) {
                     it.copy(
                         errors = emptyMap(),
                         showConflictDialog = ConflictInfo(
@@ -745,7 +802,7 @@ class LessonCreationViewModel @Inject constructor(
     }
 
     private suspend fun createLesson(request: LessonCreateRequest) {
-        _uiState.update { it.copy(isSubmitting = true, errors = emptyMap()) }
+        updateUiState { it.copy(isSubmitting = true, errors = emptyMap()) }
         runCatching {
             lessonsRepository.create(request)
         }.onSuccess {
@@ -766,7 +823,7 @@ class LessonCreationViewModel @Inject constructor(
             }
             val formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm", _uiState.value.locale)
             val message = "Урок добавлен на ${start.format(formatter)}–${end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))}"
-            _uiState.update {
+            updateUiState(persist = false) {
                 it.copy(
                     isSubmitting = false,
                     isVisible = false,
@@ -780,7 +837,10 @@ class LessonCreationViewModel @Inject constructor(
             currentRateHistory = emptyList()
             currentStudentBaseRateCents = null
             currentStudentBaseRateDuration = null
+            durationEdited = false
+            priceEdited = false
             conflictRequest = null
+            clearDraft()
             _events.tryEmit(
                 LessonCreationEvent.Created(
                     start = start,
@@ -788,7 +848,7 @@ class LessonCreationViewModel @Inject constructor(
                 )
             )
         }.onFailure { error ->
-            _uiState.update {
+            updateUiState(persist = false) {
                 it.copy(
                     isSubmitting = false,
                     snackbarMessage = error.message ?: "Не удалось сохранить занятие"
@@ -799,11 +859,16 @@ class LessonCreationViewModel @Inject constructor(
 
     private fun updateUiState(
         recalculateRecurrence: Boolean = false,
+        persist: Boolean = true,
         block: (LessonCreationUiState) -> LessonCreationUiState
     ) {
         _uiState.update { current ->
             val updated = block(current)
-            if (recalculateRecurrence) refreshRecurrence(updated) else updated
+            val finalState = if (recalculateRecurrence) refreshRecurrence(updated) else updated
+            if (persist) {
+                saveDraft(finalState)
+            }
+            finalState
         }
     }
 
@@ -862,44 +927,142 @@ class LessonCreationViewModel @Inject constructor(
         )
     }
 
-    private fun buildRecurrenceRequest(
-        state: LessonCreationUiState,
-        start: ZonedDateTime
-    ): RecurrenceCreateRequest? {
-        if (!state.isRecurring || state.recurrenceMode == RecurrenceMode.NONE) return null
-        val frequency = when (state.recurrenceMode) {
-            RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
-            RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY
-            RecurrenceMode.NONE -> return null
+    private fun LessonCreationUiState.toLessonDraft(): LessonDraft {
+        val normalizedDays = when {
+            !isRecurring || recurrenceMode == RecurrenceMode.NONE -> emptySet()
+            recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW -> emptySet()
+            recurrenceDays.isEmpty() -> setOf(date.dayOfWeek)
+            else -> recurrenceDays
         }
-        val interval = when (state.recurrenceMode) {
-            RecurrenceMode.CUSTOM_WEEKS -> state.recurrenceInterval.coerceAtLeast(1)
-            RecurrenceMode.MONTHLY_BY_DOW -> state.recurrenceInterval.coerceAtLeast(1)
-            RecurrenceMode.WEEKLY -> 1
-            RecurrenceMode.NONE -> 1
-        }
-        val days = if (state.recurrenceMode == RecurrenceMode.MONTHLY_BY_DOW) {
-            emptyList()
-        } else {
-            val base = start.dayOfWeek
-            val selection = if (state.recurrenceDays.isEmpty()) setOf(base) else state.recurrenceDays
-            selection.toList().sortedBy { it.value }
-        }
-        val until = if (state.recurrenceEndEnabled) {
-            val candidate = state.recurrenceEndDate ?: state.date
-            val normalized = if (candidate.isBefore(state.date)) state.date else candidate
-            ZonedDateTime.of(normalized, state.time, currentZone).toInstant()
+        val untilEpochDay = if (recurrenceEndEnabled && recurrenceMode != RecurrenceMode.NONE) {
+            recurrenceEndDate?.toEpochDay()
         } else {
             null
         }
-        return RecurrenceCreateRequest(
-            frequency = frequency,
-            interval = interval,
-            daysOfWeek = days,
-            until = until,
-            timezone = currentZone
+        val repeatRule = if (isRecurring && recurrenceMode != RecurrenceMode.NONE) {
+            RepeatRule(
+                frequency = when (recurrenceMode) {
+                    RecurrenceMode.MONTHLY_BY_DOW -> RecurrenceFrequency.MONTHLY_BY_DOW
+                    RecurrenceMode.WEEKLY, RecurrenceMode.CUSTOM_WEEKS -> RecurrenceFrequency.WEEKLY
+                    RecurrenceMode.NONE -> RecurrenceFrequency.WEEKLY
+                },
+                interval = when (recurrenceMode) {
+                    RecurrenceMode.CUSTOM_WEEKS -> recurrenceInterval.coerceAtLeast(1)
+                    RecurrenceMode.MONTHLY_BY_DOW -> recurrenceInterval.coerceAtLeast(1)
+                    RecurrenceMode.WEEKLY -> 1
+                    RecurrenceMode.NONE -> recurrenceInterval
+                },
+                daysOfWeek = normalizedDays.map { it.value }.toSet(),
+                untilEpochDay = untilEpochDay
+            )
+        } else {
+            null
+        }
+
+        return LessonDraft(
+            isVisible = isVisible,
+            studentQuery = studentQuery,
+            selectedStudentId = selectedStudent?.id,
+            studentGrade = studentGrade,
+            selectedSubjectId = selectedSubjectId,
+            selectedSubjectChips = selectedSubjectChips.map { it.toDraft() },
+            subjectInput = subjectInput,
+            dateEpochDay = date.toEpochDay(),
+            timeMinutes = time.toSecondOfDay() / 60,
+            durationMinutes = durationMinutes,
+            priceCents = priceCents,
+            note = note,
+            origin = origin,
+            zoneId = zoneId.id,
+            recurrenceMode = recurrenceMode,
+            recurrenceInterval = recurrenceInterval,
+            recurrenceDays = recurrenceDays.map { it.value }.toSet(),
+            recurrenceEndEnabled = recurrenceEndEnabled,
+            recurrenceEndDateEpochDay = recurrenceEndDate?.toEpochDay(),
+            repeat = repeatRule
         )
     }
+
+    private fun LessonDraft.restore(
+        base: LessonCreationUiState,
+        students: List<StudentOption>
+    ): LessonCreationUiState {
+        val resolvedZone = runCatching { ZoneId.of(zoneId) }.getOrDefault(base.zoneId)
+        val resolvedDate = runCatching { LocalDate.ofEpochDay(dateEpochDay) }.getOrDefault(base.date)
+        val resolvedTime = runCatching { LocalTime.ofSecondOfDay(timeMinutes.toLong() * 60) }.getOrDefault(base.time)
+        val student = selectedStudentId?.let { id -> students.firstOrNull { it.id == id } }
+        val repeatDays = repeat?.daysOfWeek?.mapNotNull { value -> runCatching(DayOfWeek::of).getOrNull(value) }?.toSet()
+        val draftDays = recurrenceDays.mapNotNull { value -> runCatching(DayOfWeek::of).getOrNull(value) }.toSet()
+        val resolvedDays = repeatDays?.takeIf { it.isNotEmpty() } ?: draftDays
+        val untilDate = recurrenceEndDateEpochDay?.let(LocalDate::ofEpochDay)
+        val recurring = repeat != null && recurrenceMode != RecurrenceMode.NONE
+
+        return base.copy(
+            isVisible = isVisible,
+            studentQuery = studentQuery,
+            students = students,
+            selectedStudent = student,
+            studentGrade = studentGrade,
+            selectedSubjectId = selectedSubjectId,
+            selectedSubjectChips = selectedSubjectChips.map { it.toChip() },
+            subjectInput = subjectInput,
+            date = resolvedDate,
+            time = resolvedTime,
+            durationMinutes = durationMinutes,
+            priceCents = priceCents,
+            note = note,
+            origin = origin,
+            zoneId = resolvedZone,
+            isRecurring = recurring,
+            recurrenceMode = recurrenceMode,
+            recurrenceInterval = recurrenceInterval,
+            recurrenceDays = resolvedDays,
+            recurrenceEndEnabled = recurring && recurrenceEndEnabled,
+            recurrenceEndDate = untilDate
+        )
+    }
+
+    private fun RepeatRule.toRecurrenceRequest(
+        mode: RecurrenceMode,
+        baseDate: LocalDate,
+        baseTime: LocalTime,
+        zoneId: ZoneId
+    ): RecurrenceCreateRequest {
+        val start = ZonedDateTime.of(baseDate, baseTime, zoneId)
+        val normalizedDays = if (mode == RecurrenceMode.MONTHLY_BY_DOW) {
+            emptyList()
+        } else {
+            val selection = daysOfWeek.mapNotNull { value -> runCatching(DayOfWeek::of).getOrNull(value) }
+                .toSet()
+                .takeIf { it.isNotEmpty() }
+                ?: setOf(start.dayOfWeek)
+            selection.toList().sortedBy { it.value }
+        }
+        val untilInstant = untilEpochDay?.let { epochDay ->
+            val candidate = LocalDate.ofEpochDay(epochDay)
+            val normalized = if (candidate.isBefore(baseDate)) baseDate else candidate
+            ZonedDateTime.of(normalized, baseTime, zoneId).toInstant()
+        }
+
+        return RecurrenceCreateRequest(
+            frequency = frequency,
+            interval = when (mode) {
+                RecurrenceMode.CUSTOM_WEEKS -> interval.coerceAtLeast(1)
+                RecurrenceMode.MONTHLY_BY_DOW -> interval.coerceAtLeast(1)
+                RecurrenceMode.WEEKLY -> 1
+                RecurrenceMode.NONE -> interval
+            },
+            daysOfWeek = normalizedDays,
+            until = untilInstant,
+            timezone = zoneId
+        )
+    }
+
+    private fun SelectedSubjectChip.toDraft(): SelectedSubjectChipDraft =
+        SelectedSubjectChipDraft(id = id, name = name, colorArgb = colorArgb)
+
+    private fun SelectedSubjectChipDraft.toChip(): SelectedSubjectChip =
+        SelectedSubjectChip(id = id, name = name, colorArgb = colorArgb)
 
     private fun defaultRecurrenceEnd(startDate: LocalDate): LocalDate {
         val currentYear = startDate.year
