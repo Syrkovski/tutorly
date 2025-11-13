@@ -352,6 +352,7 @@ class RoomLessonsRepositoryTest {
 
         assertTrue(details.isRecurring)
         assertEquals(ruleId, details.seriesId)
+        assertNotNull(details.recurrence)
 
         val persisted = repository.getById(baseLesson.id) ?: error("Expected lesson")
         assertEquals(ruleId, persisted.seriesId)

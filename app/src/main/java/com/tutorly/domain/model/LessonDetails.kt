@@ -1,5 +1,6 @@
 package com.tutorly.domain.model
 
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.LessonStatus
 import com.tutorly.models.PaymentStatus
 import java.time.Duration
@@ -32,7 +33,8 @@ data class LessonDetails(
     val isRecurring: Boolean = false,
     val seriesId: Long? = null,
     val originalStartAt: Instant? = null,
-    val recurrenceLabel: String? = null
+    val recurrenceLabel: String? = null,
+    val recurrence: LessonRecurrence? = null
 ) {
     companion object {
         val DEFAULT_DURATION: Duration = Duration.ofMinutes(DEFAULT_LESSON_DURATION_MINUTES)

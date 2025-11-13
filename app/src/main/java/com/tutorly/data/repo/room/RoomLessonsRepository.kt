@@ -180,10 +180,12 @@ class RoomLessonsRepository(
                     rules.firstOrNull { rule -> rule.id == seriesId }
                 } ?: rules.firstOrNull { rule -> rule.baseLessonId == details.baseLessonId }
                 val label = resolvedRule?.let { rule -> RecurrenceLabelFormatter.format(rule) }
+                val recurrence = resolvedRule?.toLessonRecurrence() ?: details.recurrence
                 details.copy(
                     isRecurring = resolvedRule != null,
                     seriesId = resolvedRule?.id ?: details.seriesId,
-                    recurrenceLabel = label
+                    recurrenceLabel = label,
+                    recurrence = recurrence
                 )
             }
         }
@@ -200,7 +202,9 @@ class RoomLessonsRepository(
         val lesson = lessonDao.findById(id) ?: return null
         val rule = loadRuleForLesson(lesson)
         val normalized = ensureSeriesLink(lesson, rule)
-        return normalized.copy(recurrence = rule?.toLessonRecurrence())
+        val recurrence = rule?.toLessonRecurrence() ?: normalized.recurrence
+        val seriesId = rule?.id ?: normalized.seriesId
+        return normalized.copy(seriesId = seriesId, recurrence = recurrence)
     }
 
     override suspend fun upsert(lesson: Lesson): Long = transactionRunner {
@@ -333,7 +337,9 @@ class RoomLessonsRepository(
         val lesson = projection.lesson
         val rule = loadRuleForLesson(lesson)
         val normalized = ensureSeriesLink(lesson, rule)
-        return normalized.copy(recurrence = rule?.toLessonRecurrence())
+        val recurrence = rule?.toLessonRecurrence() ?: normalized.recurrence
+        val seriesId = rule?.id ?: normalized.seriesId
+        return normalized.copy(seriesId = seriesId, recurrence = recurrence)
     }
 
     override suspend fun delete(id: Long) {
@@ -445,13 +451,15 @@ class RoomLessonsRepository(
             val rule = detail.seriesId?.let { ruleById[it] } ?: ruleByBase[detail.baseLessonId]
             if (rule != null) {
                 val label = labelBySeries[rule.id]
+                val recurrence = rule.toLessonRecurrence()
                 bundle.copy(
                     details = detail.copy(
                         baseLessonId = rule.baseLessonId,
                         isRecurring = true,
                         seriesId = rule.id,
                         recurrenceLabel = label,
-                        originalStartAt = detail.originalStartAt ?: detail.startAt
+                        originalStartAt = detail.originalStartAt ?: detail.startAt,
+                        recurrence = recurrence
                     )
                 )
             } else {
@@ -471,7 +479,8 @@ class RoomLessonsRepository(
                         isRecurring = true,
                         seriesId = rule.id,
                         recurrenceLabel = labelBySeries[rule.id],
-                        originalStartAt = detail.originalStartAt ?: detail.startAt
+                        originalStartAt = detail.originalStartAt ?: detail.startAt,
+                        recurrence = rule.toLessonRecurrence()
                     )
                     LessonBundle(
                         details = normalizedDetail,
@@ -591,6 +600,7 @@ class RoomLessonsRepository(
         if (occurrences.isEmpty()) return emptyList()
         val exceptionByOriginal = exceptions.associateBy { it.originalDateTime }
         val label = RecurrenceLabelFormatter.format(rule)
+        val recurrence = rule.toLessonRecurrence()
         val results = mutableListOf<LessonDetails>()
 
         for (occurrence in occurrences) {
@@ -619,7 +629,8 @@ class RoomLessonsRepository(
                 isRecurring = true,
                 seriesId = rule.id,
                 originalStartAt = occurrence,
-                recurrenceLabel = label
+                recurrenceLabel = label,
+                recurrence = recurrence
             )
         }
 
@@ -639,7 +650,7 @@ class RoomLessonsRepository(
             val rule = lesson.seriesId?.let { seriesId ->
                 ruleById[seriesId]
             } ?: ruleByBase[lesson.id]
-            val recurrence = rule?.toLessonRecurrence()
+            val recurrence = rule?.toLessonRecurrence() ?: lesson.recurrence
             val seriesId = rule?.id ?: lesson.seriesId
             lesson.copy(seriesId = seriesId, recurrence = recurrence)
         }
@@ -725,8 +736,9 @@ class RoomLessonsRepository(
 
     private suspend fun ensureSeriesLink(lesson: Lesson, rule: RecurrenceRule?): Lesson {
         if (rule == null) return lesson
-        if (lesson.seriesId == rule.id) return lesson
-        val updated = lesson.copy(seriesId = rule.id)
+        val recurrence = rule.toLessonRecurrence()
+        if (lesson.seriesId == rule.id && lesson.recurrence == recurrence) return lesson
+        val updated = lesson.copy(seriesId = rule.id, recurrence = recurrence)
         lessonDao.upsert(updated)
         return updated
     }

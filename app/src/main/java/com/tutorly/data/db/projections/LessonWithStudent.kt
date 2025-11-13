@@ -59,7 +59,9 @@ fun LessonWithStudent.toLessonDetails(): LessonDetails {
         lessonNote = lesson.note,
         isRecurring = lesson.seriesId != null,
         seriesId = lesson.seriesId,
-        originalStartAt = lesson.startAt
+        originalStartAt = lesson.startAt,
+        recurrenceLabel = null,
+        recurrence = lesson.recurrence
     )
 }
 

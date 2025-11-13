@@ -297,7 +297,8 @@ private fun Lesson.toDetailsStub(): LessonDetails {
         isRecurring = seriesId != null,
         seriesId = seriesId,
         originalStartAt = startAt,
-        recurrenceLabel = recurrenceLabel
+        recurrenceLabel = recurrenceLabel,
+        recurrence = recurrence
     )
 }
 

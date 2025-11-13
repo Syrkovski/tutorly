@@ -41,6 +41,7 @@ class InMemoryLessonsRepositoryTest {
         assertNotNull(details.seriesId, "Series identifier should surface in lesson details")
         assertEquals(true, details.isRecurring, "Lesson details should mark the lesson as recurring")
         assertNotNull(details.recurrenceLabel, "Recurrence label should be available for UI rendering")
+        assertNotNull(details.recurrence, "Lesson details should expose recurrence metadata")
     }
 
     @Test
