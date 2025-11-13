@@ -139,7 +139,7 @@ class LessonCreationViewModel @Inject constructor(
             val currencySymbol = runCatching { Currency.getInstance(settings.currency).getSymbol(locale) }
                 .getOrDefault(settings.currency)
             val savedDraft = loadDraft()
-            val zone = savedDraft?.zoneId?.let { runCatching(ZoneId::of).getOrNull() }
+            val zone = savedDraft?.zoneId?.let { id -> runCatching { ZoneId.of(id) }.getOrNull() }
                 ?: config.zoneId
                 ?: config.start?.zone
                 ?: ZoneId.systemDefault()
