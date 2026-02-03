@@ -373,8 +373,8 @@ class GoogleCalendarMigrationService @Inject constructor(
             )
         }
         val rawTokens = normalized.split(Regex("\\s+")).filter { it.isNotBlank() }
-        val studentName = rawTokens.firstOrNull().orEmpty()
-        val detailTokens = rawTokens.drop(1).filterNot { it in setOf("-", "–", "—", "|", ":") }
+        val cleanedTokens = rawTokens.filterNot { it in setOf("-", "–", "—", "|", ":") }
+        val (studentName, detailTokens) = extractStudentName(cleanedTokens)
         val details = parseLessonDetails(detailTokens)
         return ParsedEventTitle(
             studentName = studentName,
@@ -407,6 +407,7 @@ class GoogleCalendarMigrationService @Inject constructor(
                 lowered == "student" ||
                 lowered == "себя" ||
                 lowered == "длясебя" ||
+                lowered == "для" ||
                 token.matches(Regex("^(?:[1-9]|1[01])$"))
         }
         if (gradeIndex >= 0) {
@@ -415,20 +416,20 @@ class GoogleCalendarMigrationService @Inject constructor(
                     "student" -> "студент"
                     "длясебя" -> "для себя"
                     "себя" -> "для себя"
+                    "для" -> "для себя"
                     else -> token
                 }
             }
-        } else {
-            val forIndex = mutable.indexOfFirst { it.equals("для", ignoreCase = true) }
-            val selfIndex = mutable.indexOfFirst { it.equals("себя", ignoreCase = true) }
-            if (forIndex >= 0 && selfIndex == forIndex + 1) {
-                mutable.removeAt(selfIndex)
-                mutable.removeAt(forIndex)
-                grade = "для себя"
+            if (grade == "для себя") {
+                val selfIndex = mutable.indexOfFirst { it.equals("себя", ignoreCase = true) }
+                if (selfIndex >= 0) {
+                    mutable.removeAt(selfIndex)
+                }
             }
         }
 
-        val subject = mutable.lastOrNull()?.takeIf { it.isNotBlank() }
+        val subjectToken = mutable.lastOrNull()?.takeIf { it.isNotBlank() }
+        val subject = subjectToken?.let { normalizeSubject(it) }
         val title = subject
 
         return ParsedLessonDetails(
@@ -437,6 +438,43 @@ class GoogleCalendarMigrationService @Inject constructor(
             grade = grade,
             rateCents = rateCents
         )
+    }
+
+    private fun extractStudentName(tokens: List<String>): Pair<String, List<String>> {
+        if (tokens.isEmpty()) return "" to emptyList()
+        val first = tokens.first()
+        if (tokens.size == 1) return first to emptyList()
+        val second = tokens[1]
+        val isSecondName = second.matches(Regex("^[\\p{L}\\-]+$")) &&
+            !second.matches(Regex("\\d{4,5}")) &&
+            !second.matches(Regex("^(?:[1-9]|1[01])$")) &&
+            !second.equals("студент", ignoreCase = true) &&
+            !second.equals("student", ignoreCase = true) &&
+            !second.equals("для", ignoreCase = true) &&
+            !second.equals("себя", ignoreCase = true)
+        return if (isSecondName) {
+            "${first} ${second}" to tokens.drop(2)
+        } else {
+            first to tokens.drop(1)
+        }
+    }
+
+    private fun normalizeSubject(raw: String): String {
+        val normalized = raw.lowercase().trim('.', ',', ';', ':')
+        val mapped = when (normalized) {
+            "мат", "матем", "математика", "math" -> "Математика"
+            "анг", "англ", "английский", "english", "eng" -> "Английский язык"
+            "инф", "информ", "информатика", "it" -> "Информатика"
+            "рус", "русский", "русск" -> "Русский язык"
+            "лит", "литература" -> "Литература"
+            "физ", "физика" -> "Физика"
+            "хим", "химия" -> "Химия"
+            "био", "биология" -> "Биология"
+            "общ", "обществознание", "обществозн" -> "Обществознание"
+            "ист", "история" -> "История"
+            else -> raw
+        }
+        return mapped.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 
     private fun buildRecurrenceRequest(
