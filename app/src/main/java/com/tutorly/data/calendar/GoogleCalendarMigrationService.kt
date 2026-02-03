@@ -121,7 +121,12 @@ class GoogleCalendarMigrationService @Inject constructor(
             if (allowedNormalized != null && normalized !in allowedNormalized) {
                 return@forEach
             }
-            val (student, wasCreated) = findOrCreateStudent(parsed.studentName)
+            val (student, wasCreated) = findOrCreateStudent(
+                name = parsed.studentName,
+                subject = parsed.subject,
+                grade = parsed.grade,
+                rateCents = parsed.rateCents
+            )
             if (student.id == 0L) {
                 skippedMissingTitle++
                 return@forEach
@@ -139,10 +144,11 @@ class GoogleCalendarMigrationService @Inject constructor(
                 student = student,
                 studentName = parsed.studentName,
                 normalizedStudentName = normalized,
-                lessonTitle = parsed.lessonTitle,
+                lessonTitle = parsed.lessonTitle ?: parsed.subject,
                 startAt = startAt,
                 endAt = endAt,
-                note = note
+                note = note,
+                priceCents = parsed.rateCents
             )
         }
 
@@ -202,7 +208,7 @@ class GoogleCalendarMigrationService @Inject constructor(
                             title = event.lessonTitle,
                             startAt = event.startAt,
                             endAt = event.endAt,
-                            priceCents = 0,
+                            priceCents = event.priceCents ?: 0,
                             note = event.note,
                             recurrence = recurrenceRequest
                         )
@@ -221,7 +227,7 @@ class GoogleCalendarMigrationService @Inject constructor(
                         title = event.lessonTitle,
                         startAt = event.startAt,
                         endAt = event.endAt,
-                        priceCents = 0,
+                        priceCents = event.priceCents ?: 0,
                         note = event.note
                     )
                 )
@@ -250,13 +256,37 @@ class GoogleCalendarMigrationService @Inject constructor(
         )
     }
 
-    private suspend fun findOrCreateStudent(name: String): Pair<Student, Boolean> {
+    private suspend fun findOrCreateStudent(
+        name: String,
+        subject: String?,
+        grade: String?,
+        rateCents: Int?
+    ): Pair<Student, Boolean> {
         val normalized = name.trim()
         val existing = studentsRepository.findByName(normalized)
         if (existing != null) {
-            return existing to false
+            val updated = existing.copy(
+                subject = existing.subject ?: subject,
+                grade = existing.grade ?: grade,
+                rateCents = existing.rateCents ?: rateCents,
+                updatedAt = Instant.now()
+            )
+            val resolved = if (updated != existing) {
+                val id = studentsRepository.upsert(updated)
+                studentsRepository.getById(id) ?: updated
+            } else {
+                existing
+            }
+            return resolved to false
         }
-        val id = studentsRepository.upsert(Student(name = normalized))
+        val id = studentsRepository.upsert(
+            Student(
+                name = normalized,
+                subject = subject,
+                grade = grade,
+                rateCents = rateCents
+            )
+        )
         return (studentsRepository.getById(id) ?: Student(id = id, name = normalized)) to true
     }
 
@@ -341,15 +371,76 @@ class GoogleCalendarMigrationService @Inject constructor(
         if (split != null) {
             val (idx, separator) = split
             val studentName = normalized.substring(0, idx).trim()
-            val lessonTitle = normalized.substring(idx + separator.length).trim()
+            val rawDetails = normalized.substring(idx + separator.length).trim()
                 .takeIf { it.isNotBlank() && !it.equals(studentName, ignoreCase = true) }
-            return ParsedEventTitle(studentName = studentName, lessonTitle = lessonTitle)
+            val details = parseLessonDetails(rawDetails)
+            return ParsedEventTitle(
+                studentName = studentName,
+                lessonTitle = details.title,
+                subject = details.subject,
+                grade = details.grade,
+                rateCents = details.rateCents
+            )
         }
-        return ParsedEventTitle(studentName = normalized, lessonTitle = null)
+        val details = parseLessonDetails(null)
+        return ParsedEventTitle(
+            studentName = normalized,
+            lessonTitle = null,
+            subject = details.subject,
+            grade = details.grade,
+            rateCents = details.rateCents
+        )
     }
 
     private fun normalizeStudentName(name: String): String =
         name.trim().lowercase()
+
+    private fun parseLessonDetails(raw: String?): ParsedLessonDetails {
+        if (raw.isNullOrBlank()) {
+            return ParsedLessonDetails(title = null, subject = null, grade = null, rateCents = null)
+        }
+        var working = raw.trim()
+
+        val rateRegex = Regex("(?i)(\\d[\\d\\s]{1,6})\\s*(₽|р\\.?|руб\\.?|rub)\\b")
+        val rateMatch = rateRegex.find(working)
+        val rateCents = rateMatch?.groupValues?.getOrNull(1)?.let { digits ->
+            digits.replace("\\s".toRegex(), "").toIntOrNull()?.let { it * 100 }
+        }
+        if (rateMatch != null) {
+            working = working.replace(rateMatch.value, " ")
+        }
+
+        val rateHintRegex = Regex("(?i)(ставка|rate)\\s*(\\d[\\d\\s]{1,6})")
+        val rateHintMatch = rateHintRegex.find(working)
+        val rateFromHint = rateHintMatch?.groupValues?.getOrNull(2)?.let { digits ->
+            digits.replace("\\s".toRegex(), "").toIntOrNull()?.let { it * 100 }
+        }
+        if (rateHintMatch != null) {
+            working = working.replace(rateHintMatch.value, " ")
+        }
+
+        val gradeRegex = Regex("(?i)\\b(\\d{1,2})([а-яa-z])?\\s*(класс|кл|к)\\.?\\b")
+        val gradeMatch = gradeRegex.find(working)
+        val grade = gradeMatch?.let { match ->
+            val number = match.groupValues[1]
+            val letter = match.groupValues.getOrNull(2)?.uppercase()?.takeIf { it.isNotBlank() }
+            if (letter != null) "$number$letter" else number
+        }
+        if (gradeMatch != null) {
+            working = working.replace(gradeMatch.value, " ")
+        }
+
+        working = working.replace(Regex("(?i)\\b(ставка|урок|занятие)\\b"), " ")
+        val subject = working.replace(Regex("[,;|]+"), " ").trim().takeIf { it.isNotBlank() }
+        val title = subject
+
+        return ParsedLessonDetails(
+            title = title,
+            subject = subject,
+            grade = grade,
+            rateCents = rateCents ?: rateFromHint
+        )
+    }
 
     private fun buildRecurrenceRequest(
         events: List<ImportEvent>,
@@ -501,7 +592,17 @@ data class GoogleCalendarImportCandidate(
 
 private data class ParsedEventTitle(
     val studentName: String,
-    val lessonTitle: String?
+    val lessonTitle: String?,
+    val subject: String?,
+    val grade: String?,
+    val rateCents: Int?
+)
+
+private data class ParsedLessonDetails(
+    val title: String?,
+    val subject: String?,
+    val grade: String?,
+    val rateCents: Int?
 )
 
 private data class CalendarInstance(
@@ -526,7 +627,8 @@ private data class ImportEvent(
     val lessonTitle: String?,
     val startAt: Instant,
     val endAt: Instant,
-    val note: String?
+    val note: String?,
+    val priceCents: Int?
 ) {
     fun seriesKey(zone: ZoneId): SeriesKey {
         val startLocal = startAt.atZone(zone)
@@ -535,7 +637,8 @@ private data class ImportEvent(
             studentName = normalizedStudentName,
             lessonTitle = lessonTitle?.trim()?.lowercase(),
             startTime = startLocal.toLocalTime(),
-            durationMinutes = durationMinutes
+            durationMinutes = durationMinutes,
+            priceCents = priceCents
         )
     }
 }
@@ -544,5 +647,6 @@ private data class SeriesKey(
     val studentName: String,
     val lessonTitle: String?,
     val startTime: LocalTime,
-    val durationMinutes: Int
+    val durationMinutes: Int,
+    val priceCents: Int?
 )
