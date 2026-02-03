@@ -460,6 +460,6 @@ private fun Lesson.toTodayStub(): LessonForToday {
         seriesId = seriesId,
         originalStartAt = startAt,
         recurrenceLabel = recurrenceLabel,
-        paidCents = TODO(),
+        paidCents = paidCents,
     )
 }
