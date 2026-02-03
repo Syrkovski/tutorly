@@ -52,11 +52,8 @@ class GoogleCalendarMigrationService @Inject constructor(
 
         val builder = CalendarContract.Instances.CONTENT_URI
             .buildUpon()
-        CalendarContract.Instances.appendRange(
-            builder,
-            rangeStart.toEpochMilli(),
-            rangeEnd.toEpochMilli()
-        )
+            .appendPath(rangeStart.toEpochMilli().toString())
+            .appendPath(rangeEnd.toEpochMilli().toString())
         resolver.query(
             builder.build(),
             projection,
