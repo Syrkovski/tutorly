@@ -253,7 +253,9 @@ class RoomLessonsRepository(
             subjectId = request.subjectId,
             title = request.title,
             startAt = request.startAt,
-            endAt = request.endAt,
+                val anchor = lessonDao.findById(id)
+                val normalizedAnchor = if (anchor != null) ensureSeriesLink(anchor, rule) else lesson
+                generateFutureOccurrences(normalizedAnchor, rule)
             priceCents = request.priceCents,
             paidCents = 0,
             paymentStatus = PaymentStatus.UNPAID,
