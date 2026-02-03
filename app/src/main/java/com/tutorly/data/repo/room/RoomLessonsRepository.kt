@@ -86,7 +86,7 @@ class RoomLessonsRepository(
                     seriesId = detail.seriesId,
                     originalStartAt = detail.originalStartAt,
                     recurrenceLabel = detail.recurrenceLabel,
-                    paidCents = TODO(),
+                    paidCents = detail.paidCents,
                 )
             }
         }
@@ -126,7 +126,7 @@ class RoomLessonsRepository(
                     seriesId = detail.seriesId,
                     originalStartAt = detail.originalStartAt,
                     recurrenceLabel = detail.recurrenceLabel,
-                    paidCents = TODO(),
+                    paidCents = detail.paidCents,
                 )
             }
         }

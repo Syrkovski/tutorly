@@ -95,7 +95,7 @@ fun LessonWithStudent.toLessonForToday(): LessonForToday {
         seriesId = lesson.seriesId,
         originalStartAt = lesson.startAt,
         recurrenceLabel = null,
-        paidCents = TODO(),
+        paidCents = lesson.paidCents,
     )
 }
 
