@@ -395,6 +395,7 @@ class GoogleCalendarMigrationService @Inject constructor(
         val mutable = tokens.toMutableList()
         var rateCents: Int? = null
         var grade: String? = null
+        val examTags = mutableListOf<String>()
 
         val rateIndex = mutable.indexOfFirst { it.matches(Regex("\\d{4,5}")) }
         if (rateIndex >= 0) {
@@ -419,6 +420,8 @@ class GoogleCalendarMigrationService @Inject constructor(
                     "для" -> "для себя"
                     else -> token
                 }
+            }.let { value ->
+                if (value.matches(Regex("^(?:[1-9]|1[01])$"))) "$value класс" else value
             }
             if (grade == "для себя") {
                 val selfIndex = mutable.indexOfFirst { it.equals("себя", ignoreCase = true) }
@@ -428,8 +431,25 @@ class GoogleCalendarMigrationService @Inject constructor(
             }
         }
 
+        val examTokens = setOf("огэ", "егэ", "гиа", "впр")
+        mutable.removeAll { token ->
+            val lowered = token.lowercase()
+            if (lowered in examTokens) {
+                examTags += lowered.uppercase()
+                true
+            } else {
+                false
+            }
+        }
+
         val subjectToken = mutable.lastOrNull()?.takeIf { it.isNotBlank() }
-        val subject = subjectToken?.let { normalizeSubject(it) }
+        val subjectBase = subjectToken?.let { normalizeSubject(it) }
+        val subject = when {
+            subjectBase == null && examTags.isEmpty() -> null
+            subjectBase == null -> examTags.joinToString(", ")
+            examTags.isEmpty() -> subjectBase
+            else -> listOf(subjectBase, examTags.joinToString(", ")).joinToString(", ")
+        }
         val title = subject
 
         return ParsedLessonDetails(
@@ -462,15 +482,15 @@ class GoogleCalendarMigrationService @Inject constructor(
     private fun normalizeSubject(raw: String): String {
         val normalized = raw.lowercase().trim('.', ',', ';', ':')
         val mapped = when (normalized) {
-            "мат", "матем", "математика", "math" -> "Математика"
-            "анг", "англ", "английский", "english", "eng" -> "Английский язык"
-            "инф", "информ", "информатика", "it" -> "Информатика"
-            "рус", "русский", "русск" -> "Русский язык"
-            "лит", "литература" -> "Литература"
-            "физ", "физика" -> "Физика"
-            "хим", "химия" -> "Химия"
-            "био", "биология" -> "Биология"
-            "общ", "обществознание", "обществозн" -> "Обществознание"
+            "м", "мат", "матем", "математика", "math" -> "Математика"
+            "а", "анг", "англ", "английский", "english", "eng" -> "Английский язык"
+            "и", "инф", "информ", "информатика", "it" -> "Информатика"
+            "р", "рус", "русский", "русск" -> "Русский язык"
+            "л", "лит", "литература" -> "Литература"
+            "ф", "физ", "физика" -> "Физика"
+            "х", "хим", "химия" -> "Химия"
+            "б", "био", "биология" -> "Биология"
+            "о", "общ", "обществознание", "обществозн" -> "Обществознание"
             "ист", "история" -> "История"
             else -> raw
         }
