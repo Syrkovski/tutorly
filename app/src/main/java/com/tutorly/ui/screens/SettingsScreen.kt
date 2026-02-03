@@ -352,6 +352,10 @@ private fun CalendarImportCandidatesDialog(
         title = { Text(text = stringResource(id = R.string.settings_calendar_import_dialog_title)) },
         text = {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (candidates.isEmpty()) {
