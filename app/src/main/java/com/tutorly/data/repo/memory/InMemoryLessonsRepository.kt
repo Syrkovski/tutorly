@@ -9,10 +9,10 @@ import com.tutorly.domain.model.resolveDuration
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.LessonStatus
-import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.RecurrenceFrequency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -459,6 +459,7 @@ private fun Lesson.toTodayStub(): LessonForToday {
         isRecurring = seriesId != null,
         seriesId = seriesId,
         originalStartAt = startAt,
-        recurrenceLabel = recurrenceLabel
+        recurrenceLabel = recurrenceLabel,
+        paidCents = TODO(),
     )
 }

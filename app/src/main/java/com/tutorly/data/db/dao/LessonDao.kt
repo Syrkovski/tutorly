@@ -85,6 +85,9 @@ interface LessonDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(lesson: Lesson): Long
 
+    @Query("UPDATE lessons SET seriesId = :seriesId, updatedAt = :now WHERE id = :id")
+    suspend fun updateSeriesId(id: Long, seriesId: Long, now: Instant)
+
     @Query("UPDATE lessons SET paymentStatus=:status, paidCents=:paid, markedAt=:markedAt, updatedAt=:now WHERE id=:id")
     suspend fun updatePayment(
         id: Long,

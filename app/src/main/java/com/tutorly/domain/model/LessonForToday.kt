@@ -29,5 +29,6 @@ data class LessonForToday(
     val isRecurring: Boolean,
     val seriesId: Long?,
     val originalStartAt: Instant?,
-    val recurrenceLabel: String?
+    val recurrenceLabel: String?,
+    val paidCents: Int
 )
