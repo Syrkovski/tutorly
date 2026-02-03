@@ -30,6 +30,8 @@ class EnumConverters {
             ?.mapNotNull { token -> token.toIntOrNull()?.let { DayOfWeek.of(it) } }
             ?: emptyList()
     @TypeConverter fun fromDayOfWeekList(v: List<DayOfWeek>?): String? =
-        v?.takeIf { it.isNotEmpty() }?.joinToString(separator = ",") { it.value.toString() }
+        v?.let { list ->
+            if (list.isEmpty()) "" else list.joinToString(separator = ",") { it.value.toString() }
+        }
 }
 
