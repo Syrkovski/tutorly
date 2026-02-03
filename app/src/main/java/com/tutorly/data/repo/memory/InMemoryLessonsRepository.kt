@@ -9,14 +9,17 @@ import com.tutorly.domain.model.resolveDuration
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.models.Lesson
 import com.tutorly.domain.recurrence.RecurrenceLabelFormatter
+import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.Payment
 import com.tutorly.models.PaymentStatus
 import com.tutorly.models.LessonStatus
+import com.tutorly.models.RecurrenceFrequency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.Instant
+import java.time.temporal.TemporalAdjusters
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -29,30 +32,38 @@ class InMemoryLessonsRepository : LessonsRepository {
 
     override fun observeLessons(from: Instant, to: Instant): Flow<List<LessonDetails>> =
         lessonsFlow.map { lessons ->
-            lessons.filter { it.startAt >= from && it.startAt < to }
-                .sortedBy { it.startAt }
+            val base = lessons.filter { it.startAt >= from && it.startAt < to }
                 .map { it.toDetailsStub() }
+            val generated = lessons.flatMap { lesson -> lesson.expandRecurrenceDetails(from, to) }
+            (base + generated).sortedBy { it.startAt }
         }
 
     override fun observeTodayLessons(dayStart: Instant, dayEnd: Instant): Flow<List<LessonForToday>> =
         lessonsFlow.map { lessons ->
-            lessons.filter { it.startAt >= dayStart && it.startAt < dayEnd }
-                .sortedBy { it.startAt }
+            val base = lessons.filter { it.startAt >= dayStart && it.startAt < dayEnd }
                 .map { it.toTodayStub() }
+            val generated = lessons.flatMap { lesson -> lesson.expandRecurrenceToday(dayStart, dayEnd) }
+            (base + generated).sortedBy { it.startAt }
         }
 
     override fun observeOutstandingLessons(before: Instant): Flow<List<LessonForToday>> =
         lessonsFlow.map { lessons ->
-            lessons.filter { it.startAt < before && it.paymentStatus in PaymentStatus.outstandingStatuses }
-                .sortedBy { it.startAt }
+            val base = lessons.filter { it.startAt < before && it.paymentStatus in PaymentStatus.outstandingStatuses }
                 .map { it.toTodayStub() }
+            val generated = lessons
+                .filter { it.paymentStatus in PaymentStatus.outstandingStatuses }
+                .flatMap { lesson -> lesson.expandRecurrenceToday(Instant.EPOCH, before) }
+            (base + generated).sortedBy { it.startAt }
         }
 
     override fun observeOutstandingLessonDetails(before: Instant): Flow<List<LessonDetails>> =
         lessonsFlow.map { lessons ->
-            lessons.filter { it.startAt < before && it.paymentStatus in PaymentStatus.outstandingStatuses }
-                .sortedBy { it.startAt }
+            val base = lessons.filter { it.startAt < before && it.paymentStatus in PaymentStatus.outstandingStatuses }
                 .map { it.toDetailsStub() }
+            val generated = lessons
+                .filter { it.paymentStatus in PaymentStatus.outstandingStatuses }
+                .flatMap { lesson -> lesson.expandRecurrenceDetails(Instant.EPOCH, before) }
+            (base + generated).sortedBy { it.startAt }
         }
 
     override fun observeWeekStats(from: Instant, to: Instant): Flow<LessonsRangeStats> =
@@ -104,6 +115,17 @@ class InMemoryLessonsRepository : LessonsRepository {
     override suspend fun create(request: LessonCreateRequest): Long {
         val id = seq.getAndIncrement()
         val now = Instant.now()
+        val recurrence = request.recurrence?.let { rule ->
+            LessonRecurrence(
+                frequency = rule.frequency,
+                interval = rule.interval,
+                daysOfWeek = rule.daysOfWeek,
+                startDateTime = request.startAt,
+                untilDateTime = rule.until,
+                timezone = rule.timezone
+            )
+        }
+        val seriesId = recurrence?.let { recurrenceSeq.getAndIncrement() }
         val newLesson = Lesson(
             id = id,
             studentId = request.studentId,
@@ -119,8 +141,9 @@ class InMemoryLessonsRepository : LessonsRepository {
             note = request.note,
             createdAt = now,
             updatedAt = now,
-            seriesId = null,
-            isInstance = false
+            seriesId = seriesId,
+            isInstance = false,
+            recurrence = recurrence
         )
         store[id] = newLesson
         emit()
@@ -246,12 +269,139 @@ class InMemoryLessonsRepository : LessonsRepository {
     }
 }
 
+private fun Lesson.expandRecurrenceDetails(rangeStart: Instant, rangeEnd: Instant): List<LessonDetails> {
+    val recurrence = recurrence ?: return emptyList()
+    if (rangeStart >= rangeEnd) return emptyList()
+    val occurrences = expandRecurrence(rangeStart, rangeEnd, recurrence)
+    if (occurrences.isEmpty()) return emptyList()
+    val base = toDetailsStub()
+    val duration = base.duration
+    val seriesId = seriesId ?: id
+    return occurrences.map { occurrence ->
+        base.copy(
+            id = syntheticId(seriesId, occurrence),
+            baseLessonId = id,
+            startAt = occurrence,
+            endAt = occurrence.plus(duration),
+            duration = duration,
+            paidCents = 0,
+            isRecurring = true,
+            seriesId = seriesId,
+            originalStartAt = occurrence,
+            recurrenceLabel = base.recurrenceLabel
+        )
+    }
+}
+
+private fun Lesson.expandRecurrenceToday(rangeStart: Instant, rangeEnd: Instant): List<LessonForToday> {
+    val recurrence = recurrence ?: return emptyList()
+    if (rangeStart >= rangeEnd) return emptyList()
+    val occurrences = expandRecurrence(rangeStart, rangeEnd, recurrence)
+    if (occurrences.isEmpty()) return emptyList()
+    val base = toTodayStub()
+    val duration = base.duration
+    val seriesId = seriesId ?: id
+    return occurrences.map { occurrence ->
+        base.copy(
+            id = syntheticId(seriesId, occurrence),
+            baseLessonId = id,
+            startAt = occurrence,
+            endAt = occurrence.plus(duration),
+            duration = duration,
+            paidCents = 0,
+            isRecurring = true,
+            seriesId = seriesId,
+            originalStartAt = occurrence,
+            recurrenceLabel = base.recurrenceLabel
+        )
+    }
+}
+
+private fun expandRecurrence(
+    rangeStart: Instant,
+    rangeEnd: Instant,
+    recurrence: LessonRecurrence
+): List<Instant> {
+    val zone = recurrence.timezone
+    val base = recurrence.startDateTime.atZone(zone)
+    val effectiveEnd = recurrence.untilDateTime?.takeIf { it < rangeEnd } ?: rangeEnd
+    if (effectiveEnd <= recurrence.startDateTime) return emptyList()
+    val windowStart = rangeStart.atZone(zone)
+    val windowEnd = effectiveEnd.atZone(zone)
+    val results = mutableSetOf<Instant>()
+
+    when (recurrence.frequency) {
+        RecurrenceFrequency.MONTHLY_BY_DOW -> {
+            val monthsStep = maxOf(1, recurrence.interval)
+            val ordinal = ((base.dayOfMonth - 1) / 7) + 1
+            var monthOffset = 0
+            while (true) {
+                val candidateMonthStart = base.withDayOfMonth(1).plusMonths(monthOffset.toLong() * monthsStep)
+                var candidate = candidateMonthStart.with(
+                    TemporalAdjusters.dayOfWeekInMonth(ordinal, base.dayOfWeek)
+                )
+                candidate = candidate.withHour(base.hour)
+                    .withMinute(base.minute)
+                    .withSecond(base.second)
+                    .withNano(base.nano)
+
+                val instant = candidate.toInstant()
+                if (instant > windowEnd.toInstant()) break
+                if (candidate.isBefore(base)) {
+                    monthOffset += 1
+                    continue
+                }
+                if (instant != recurrence.startDateTime && !candidate.isBefore(windowStart) && instant < rangeEnd) {
+                    results += instant
+                }
+                monthOffset += 1
+            }
+        }
+
+        else -> {
+            val intervalWeeks = when (recurrence.frequency) {
+                RecurrenceFrequency.WEEKLY -> maxOf(1, recurrence.interval)
+                RecurrenceFrequency.BIWEEKLY -> maxOf(1, recurrence.interval) * 2
+                RecurrenceFrequency.MONTHLY_BY_DOW -> 1
+            }
+            val targetDays = if (recurrence.daysOfWeek.isEmpty()) {
+                listOf(base.dayOfWeek)
+            } else {
+                recurrence.daysOfWeek.sortedBy { it.value }
+            }
+            for (day in targetDays) {
+                var occurrence = base.with(TemporalAdjusters.nextOrSame(day))
+                if (occurrence.isBefore(base)) {
+                    occurrence = occurrence.plusWeeks(intervalWeeks.toLong())
+                }
+                while (true) {
+                    val instant = occurrence.toInstant()
+                    if (instant > windowEnd.toInstant()) break
+                    if (instant != recurrence.startDateTime) {
+                        if (!occurrence.isBefore(windowStart) && instant < rangeEnd) {
+                            results += instant
+                        }
+                    }
+                    occurrence = occurrence.plusWeeks(intervalWeeks.toLong())
+                }
+            }
+        }
+    }
+
+    return results.toList().sorted()
+}
+
+private fun syntheticId(seriesId: Long, start: Instant): Long {
+    val combined = (seriesId shl 1) xor start.toEpochMilli()
+    val positive = combined and Long.MAX_VALUE
+    return -(positive + 1)
+}
+
 private fun Lesson.toDetailsStub(): LessonDetails {
     val duration = resolveDuration(startAt, endAt, null)
     val normalizedEnd = startAt.plus(duration)
     val recurrenceLabel = recurrence?.let { rule ->
-        val zone = rule.timezone
-        val start = rule.startDateTime.atZone(zone)
+        val start = rule.startDateTime.atZone(rule.timezone)
         RecurrenceLabelFormatter.format(rule.frequency, rule.interval, rule.daysOfWeek, start)
     }
 
@@ -285,8 +435,7 @@ private fun Lesson.toTodayStub(): LessonForToday {
     val duration = resolveDuration(startAt, endAt, null)
     val normalizedEnd = startAt.plus(duration)
     val recurrenceLabel = recurrence?.let { rule ->
-        val zone = rule.timezone
-        val start = rule.startDateTime.atZone(zone)
+        val start = rule.startDateTime.atZone(rule.timezone)
         RecurrenceLabelFormatter.format(rule.frequency, rule.interval, rule.daysOfWeek, start)
     }
 
@@ -310,6 +459,7 @@ private fun Lesson.toTodayStub(): LessonForToday {
         isRecurring = seriesId != null,
         seriesId = seriesId,
         originalStartAt = startAt,
-        recurrenceLabel = recurrenceLabel
+        recurrenceLabel = recurrenceLabel,
+        paidCents = TODO(),
     )
 }

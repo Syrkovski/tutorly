@@ -24,7 +24,6 @@ import com.tutorly.models.RecurrenceFrequency
 import com.tutorly.models.RecurrenceRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -86,7 +85,8 @@ class RoomLessonsRepository(
                     isRecurring = detail.isRecurring,
                     seriesId = detail.seriesId,
                     originalStartAt = detail.originalStartAt,
-                    recurrenceLabel = detail.recurrenceLabel
+                    recurrenceLabel = detail.recurrenceLabel,
+                    paidCents = TODO(),
                 )
             }
         }
@@ -125,7 +125,8 @@ class RoomLessonsRepository(
                     isRecurring = detail.isRecurring,
                     seriesId = detail.seriesId,
                     originalStartAt = detail.originalStartAt,
-                    recurrenceLabel = detail.recurrenceLabel
+                    recurrenceLabel = detail.recurrenceLabel,
+                    paidCents = TODO(),
                 )
             }
         }
@@ -277,16 +278,20 @@ class RoomLessonsRepository(
                     timezone = recurrenceRequest.timezone.id
                 )
             )
-            lesson = lesson.copy(id = id, seriesId = ruleId, updatedAt = Instant.now())
-            lessonDao.upsert(lesson)
+            val updatedAt = Instant.now()
+            lesson = lesson.copy(id = id, seriesId = ruleId, updatedAt = updatedAt)
+            lessonDao.updateSeriesId(id, ruleId, updatedAt)
             val rule = recurrenceRuleDao.findById(ruleId)
             if (rule != null) {
-                generateFutureOccurrences(lesson, rule)
+                val anchor = lessonDao.findById(id)
+                val normalizedAnchor = if (anchor != null) ensureSeriesLink(anchor, rule) else lesson
+                generateFutureOccurrences(normalizedAnchor, rule)
             }
         }
         prepaymentAllocator.sync(lesson.studentId)
         return id
     }
+
 
     override suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant) {
         val existing = lessonDao.findById(lessonId) ?: return
