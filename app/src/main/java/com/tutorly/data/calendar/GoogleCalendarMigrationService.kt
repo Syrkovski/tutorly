@@ -362,30 +362,23 @@ class GoogleCalendarMigrationService @Inject constructor(
     }
 
     private fun parseEventTitle(title: String): ParsedEventTitle {
-        val separators = listOf(" - ", " – ", " — ", " | ", ": ")
         val normalized = title.trim()
-        val split = separators.firstNotNullOfOrNull { separator ->
-            val idx = normalized.indexOf(separator)
-            if (idx >= 0) idx to separator else null
-        }
-        if (split != null) {
-            val (idx, separator) = split
-            val studentName = normalized.substring(0, idx).trim()
-            val rawDetails = normalized.substring(idx + separator.length).trim()
-                .takeIf { it.isNotBlank() && !it.equals(studentName, ignoreCase = true) }
-            val details = parseLessonDetails(rawDetails)
+        if (normalized.isBlank()) {
             return ParsedEventTitle(
-                studentName = studentName,
-                lessonTitle = details.title,
-                subject = details.subject,
-                grade = details.grade,
-                rateCents = details.rateCents
+                studentName = "",
+                lessonTitle = null,
+                subject = null,
+                grade = null,
+                rateCents = null
             )
         }
-        val details = parseLessonDetails(null)
+        val rawTokens = normalized.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val studentName = rawTokens.firstOrNull().orEmpty()
+        val detailTokens = rawTokens.drop(1).filterNot { it in setOf("-", "–", "—", "|", ":") }
+        val details = parseLessonDetails(detailTokens)
         return ParsedEventTitle(
-            studentName = normalized,
-            lessonTitle = null,
+            studentName = studentName,
+            lessonTitle = details.title,
             subject = details.subject,
             grade = details.grade,
             rateCents = details.rateCents
@@ -395,50 +388,54 @@ class GoogleCalendarMigrationService @Inject constructor(
     private fun normalizeStudentName(name: String): String =
         name.trim().lowercase()
 
-    private fun parseLessonDetails(raw: String?): ParsedLessonDetails {
-        if (raw.isNullOrBlank()) {
+    private fun parseLessonDetails(tokens: List<String>): ParsedLessonDetails {
+        if (tokens.isEmpty()) {
             return ParsedLessonDetails(title = null, subject = null, grade = null, rateCents = null)
         }
-        var working = raw.trim()
+        val mutable = tokens.toMutableList()
+        var rateCents: Int? = null
+        var grade: String? = null
 
-        val rateRegex = Regex("(?i)(\\d[\\d\\s]{1,6})\\s*(₽|р\\.?|руб\\.?|rub)\\b")
-        val rateMatch = rateRegex.find(working)
-        val rateCents = rateMatch?.groupValues?.getOrNull(1)?.let { digits ->
-            digits.replace("\\s".toRegex(), "").toIntOrNull()?.let { it * 100 }
-        }
-        if (rateMatch != null) {
-            working = working.replace(rateMatch.value, " ")
+        val rateIndex = mutable.indexOfFirst { it.matches(Regex("\\d{4,5}")) }
+        if (rateIndex >= 0) {
+            rateCents = mutable.removeAt(rateIndex).toIntOrNull()?.let { it * 100 }
         }
 
-        val rateHintRegex = Regex("(?i)(ставка|rate)\\s*(\\d[\\d\\s]{1,6})")
-        val rateHintMatch = rateHintRegex.find(working)
-        val rateFromHint = rateHintMatch?.groupValues?.getOrNull(2)?.let { digits ->
-            digits.replace("\\s".toRegex(), "").toIntOrNull()?.let { it * 100 }
+        val gradeIndex = mutable.indexOfFirst { token ->
+            val lowered = token.lowercase()
+            lowered == "студент" ||
+                lowered == "student" ||
+                lowered == "себя" ||
+                lowered == "длясебя" ||
+                token.matches(Regex("^(?:[1-9]|1[01])$"))
         }
-        if (rateHintMatch != null) {
-            working = working.replace(rateHintMatch.value, " ")
+        if (gradeIndex >= 0) {
+            grade = mutable.removeAt(gradeIndex).let { token ->
+                when (token.lowercase()) {
+                    "student" -> "студент"
+                    "длясебя" -> "для себя"
+                    "себя" -> "для себя"
+                    else -> token
+                }
+            }
+        } else {
+            val forIndex = mutable.indexOfFirst { it.equals("для", ignoreCase = true) }
+            val selfIndex = mutable.indexOfFirst { it.equals("себя", ignoreCase = true) }
+            if (forIndex >= 0 && selfIndex == forIndex + 1) {
+                mutable.removeAt(selfIndex)
+                mutable.removeAt(forIndex)
+                grade = "для себя"
+            }
         }
 
-        val gradeRegex = Regex("(?i)\\b(\\d{1,2})([а-яa-z])?\\s*(класс|кл|к)\\.?\\b")
-        val gradeMatch = gradeRegex.find(working)
-        val grade = gradeMatch?.let { match ->
-            val number = match.groupValues[1]
-            val letter = match.groupValues.getOrNull(2)?.uppercase()?.takeIf { it.isNotBlank() }
-            if (letter != null) "$number$letter" else number
-        }
-        if (gradeMatch != null) {
-            working = working.replace(gradeMatch.value, " ")
-        }
-
-        working = working.replace(Regex("(?i)\\b(ставка|урок|занятие)\\b"), " ")
-        val subject = working.replace(Regex("[,;|]+"), " ").trim().takeIf { it.isNotBlank() }
+        val subject = mutable.lastOrNull()?.takeIf { it.isNotBlank() }
         val title = subject
 
         return ParsedLessonDetails(
             title = title,
             subject = subject,
             grade = grade,
-            rateCents = rateCents ?: rateFromHint
+            rateCents = rateCents
         )
     }
 
