@@ -25,8 +25,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.FilterChip
@@ -37,6 +39,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -75,7 +78,7 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            viewModel.startCalendarImport()
+            viewModel.loadCalendarCandidates()
         } else {
             viewModel.onCalendarPermissionDenied()
         }
@@ -100,11 +103,23 @@ fun SettingsScreen(
                     Manifest.permission.READ_CALENDAR
                 ) == PackageManager.PERMISSION_GRANTED
                 if (hasPermission) {
-                    viewModel.startCalendarImport()
+                    viewModel.loadCalendarCandidates()
                 } else {
                     permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
                 }
             }
+        )
+    }
+
+    if (uiState.isCalendarCandidateDialogVisible) {
+        CalendarImportCandidatesDialog(
+            candidates = uiState.calendarImportCandidates,
+            selectedNames = uiState.calendarImportSelectedNames,
+            isImporting = uiState.isCalendarImporting,
+            onToggleCandidate = viewModel::toggleCalendarCandidate,
+            onSelectAll = { selectAll -> viewModel.selectAllCalendarCandidates(selectAll) },
+            onDismiss = viewModel::dismissCalendarCandidatesDialog,
+            onConfirm = viewModel::confirmCalendarImport
         )
     }
 }
@@ -253,17 +268,19 @@ private fun SettingsContent(
                 )
                 Button(
                     onClick = onCalendarImportClick,
-                    enabled = !state.isCalendarImporting
+                    enabled = !state.isCalendarImporting && !state.isCalendarCandidatesLoading
                 ) {
                     Text(
                         text = if (state.isCalendarImporting) {
                             stringResource(id = R.string.settings_calendar_import_in_progress)
+                        } else if (state.isCalendarCandidatesLoading) {
+                            stringResource(id = R.string.settings_calendar_import_loading)
                         } else {
                             stringResource(id = R.string.settings_calendar_import_button)
                         }
                     )
                 }
-                if (state.isCalendarImporting) {
+                if (state.isCalendarImporting || state.isCalendarCandidatesLoading) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -273,7 +290,11 @@ private fun SettingsContent(
                             strokeWidth = 2.dp
                         )
                         Text(
-                            text = stringResource(id = R.string.settings_calendar_import_in_progress),
+                            text = if (state.isCalendarCandidatesLoading) {
+                                stringResource(id = R.string.settings_calendar_import_loading)
+                            } else {
+                                stringResource(id = R.string.settings_calendar_import_in_progress)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -313,6 +334,100 @@ private fun SettingsSectionTitle(text: String) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold
+    )
+}
+
+@Composable
+private fun CalendarImportCandidatesDialog(
+    candidates: List<com.tutorly.data.calendar.GoogleCalendarImportCandidate>,
+    selectedNames: Set<String>,
+    isImporting: Boolean,
+    onToggleCandidate: (String) -> Unit,
+    onSelectAll: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.settings_calendar_import_dialog_title)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (candidates.isEmpty()) {
+                    Text(
+                        text = stringResource(id = R.string.settings_calendar_import_no_candidates),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val selectAllChecked = selectedNames.size == candidates.size
+                        Text(
+                            text = stringResource(id = R.string.settings_calendar_import_select_all),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Checkbox(
+                            checked = selectAllChecked,
+                            onCheckedChange = { onSelectAll(it) }
+                        )
+                    }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        candidates.forEach { candidate ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = candidate.studentName,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.settings_calendar_import_candidate_count,
+                                            candidate.lessonsCount
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Checkbox(
+                                    checked = candidate.studentName in selectedNames,
+                                    onCheckedChange = { onToggleCandidate(candidate.studentName) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !isImporting && candidates.isNotEmpty()
+            ) {
+                Text(text = stringResource(id = R.string.settings_calendar_import_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isImporting
+            ) {
+                Text(text = stringResource(id = R.string.settings_calendar_import_cancel))
+            }
+        }
     )
 }
 

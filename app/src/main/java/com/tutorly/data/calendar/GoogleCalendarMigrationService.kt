@@ -22,26 +22,51 @@ class GoogleCalendarMigrationService @Inject constructor(
     private val studentsRepository: StudentsRepository,
     private val lessonsRepository: LessonsRepository
 ) {
+    suspend fun fetchImportCandidates(
+        rangeStart: Instant = defaultRangeStart(),
+        rangeEnd: Instant = defaultRangeEnd(),
+        defaultDuration: Duration = Duration.ofMinutes(60)
+    ): List<GoogleCalendarImportCandidate> {
+        val candidates = linkedMapOf<String, CandidateAccumulator>()
+        queryInstances(rangeStart, rangeEnd).forEach { instance ->
+            val status = instance.status
+            if (status == CalendarContract.Events.STATUS_CANCELED) return@forEach
+            if (instance.isAllDay) return@forEach
+            val title = instance.title?.trim().orEmpty()
+            if (title.isBlank()) return@forEach
+            val startMillis = instance.startMillis
+            if (startMillis <= 0L) return@forEach
+            val endMillis = resolveEndMillis(instance.endMillis, startMillis, defaultDuration)
+            if (endMillis <= startMillis) return@forEach
+            val parsed = parseEventTitle(title)
+            if (parsed.studentName.isBlank()) return@forEach
+
+            val normalized = normalizeStudentName(parsed.studentName)
+            val current = candidates[normalized]
+            if (current == null) {
+                candidates[normalized] = CandidateAccumulator(parsed.studentName.trim(), 1)
+            } else {
+                current.count++
+            }
+        }
+
+        return candidates.values
+            .map { candidate ->
+                GoogleCalendarImportCandidate(
+                    studentName = candidate.displayName,
+                    lessonsCount = candidate.count
+                )
+            }
+            .sortedBy { it.studentName.lowercase() }
+    }
+
     @SuppressLint("MissingPermission")
     suspend fun importFromGoogleCalendar(
         rangeStart: Instant = defaultRangeStart(),
         rangeEnd: Instant = defaultRangeEnd(),
-        defaultDuration: Duration = Duration.ofMinutes(60)
+        defaultDuration: Duration = Duration.ofMinutes(60),
+        allowedStudentNames: Set<String>? = null
     ): GoogleCalendarImportResult {
-        val projection = arrayOf(
-            CalendarContract.Instances.EVENT_ID,
-            CalendarContract.Instances.BEGIN,
-            CalendarContract.Instances.END,
-            CalendarContract.Instances.TITLE,
-            CalendarContract.Instances.DESCRIPTION,
-            CalendarContract.Instances.EVENT_LOCATION,
-            CalendarContract.Instances.ALL_DAY,
-            CalendarContract.Instances.STATUS
-        )
-        val selection = "${CalendarContract.Events.DELETED} = 0"
-        val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
-        val resolver = context.contentResolver
-
         var createdStudents = 0
         var createdLessons = 0
         var skippedAllDay = 0
@@ -49,91 +74,75 @@ class GoogleCalendarMigrationService @Inject constructor(
         var skippedDuplicates = 0
         var skippedCanceled = 0
         var totalEvents = 0
+        val allowedNormalized = allowedStudentNames?.mapTo(mutableSetOf()) { normalizeStudentName(it) }
 
-        val builder = CalendarContract.Instances.CONTENT_URI
-            .buildUpon()
-            .appendPath(rangeStart.toEpochMilli().toString())
-            .appendPath(rangeEnd.toEpochMilli().toString())
-        resolver.query(
-            builder.build(),
-            projection,
-            selection,
-            null,
-            sortOrder
-        )?.use { cursor ->
-            val startIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
-            val endIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.END)
-            val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
-            val descriptionIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.DESCRIPTION)
-            val locationIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_LOCATION)
-            val allDayIndex = cursor.getColumnIndex(CalendarContract.Instances.ALL_DAY)
-            val statusIndex = cursor.getColumnIndex(CalendarContract.Instances.STATUS)
-
-            while (cursor.moveToNext()) {
-                totalEvents++
-                val status = statusIndex.takeIf { it >= 0 }?.let { cursor.getInt(it) }
-                if (status == CalendarContract.Events.STATUS_CANCELED) {
-                    skippedCanceled++
-                    continue
-                }
-                val isAllDay = allDayIndex.takeIf { it >= 0 }?.let { cursor.getInt(it) == 1 } ?: false
-                if (isAllDay) {
-                    skippedAllDay++
-                    continue
-                }
-                val title = cursor.getString(titleIndex)?.trim().orEmpty()
-                if (title.isBlank()) {
-                    skippedMissingTitle++
-                    continue
-                }
-                val startMillis = cursor.getLong(startIndex)
-                if (startMillis <= 0L) {
-                    skippedMissingTitle++
-                    continue
-                }
-                val endMillis = resolveEndMillis(cursor.getLong(endIndex), startMillis, defaultDuration)
-                val startAt = Instant.ofEpochMilli(startMillis)
-                val endAt = Instant.ofEpochMilli(endMillis)
-                if (endAt <= startAt) {
-                    skippedMissingTitle++
-                    continue
-                }
-
-                val parsed = parseEventTitle(title)
-                if (parsed.studentName.isBlank()) {
-                    skippedMissingTitle++
-                    continue
-                }
-                val (student, wasCreated) = findOrCreateStudent(parsed.studentName)
-                if (student.id == 0L) {
-                    skippedMissingTitle++
-                    continue
-                }
-                if (wasCreated) {
-                    createdStudents++
-                }
-                val existing = lessonsRepository.findExactLesson(student.id, startAt, endAt)
-                if (existing != null) {
-                    skippedDuplicates++
-                    continue
-                }
-                val note = buildNote(
-                    cursor.getString(descriptionIndex),
-                    cursor.getString(locationIndex)
-                )
-                lessonsRepository.create(
-                    LessonCreateRequest(
-                        studentId = student.id,
-                        subjectId = null,
-                        title = parsed.lessonTitle,
-                        startAt = startAt,
-                        endAt = endAt,
-                        priceCents = 0,
-                        note = note
-                    )
-                )
-                createdLessons++
+        queryInstances(rangeStart, rangeEnd).forEach { instance ->
+            totalEvents++
+            val status = instance.status
+            if (status == CalendarContract.Events.STATUS_CANCELED) {
+                skippedCanceled++
+                return@forEach
             }
+            if (instance.isAllDay) {
+                skippedAllDay++
+                return@forEach
+            }
+            val title = instance.title?.trim().orEmpty()
+            if (title.isBlank()) {
+                skippedMissingTitle++
+                return@forEach
+            }
+            val startMillis = instance.startMillis
+            if (startMillis <= 0L) {
+                skippedMissingTitle++
+                return@forEach
+            }
+            val endMillis = resolveEndMillis(instance.endMillis, startMillis, defaultDuration)
+            val startAt = Instant.ofEpochMilli(startMillis)
+            val endAt = Instant.ofEpochMilli(endMillis)
+            if (endAt <= startAt) {
+                skippedMissingTitle++
+                return@forEach
+            }
+
+            val parsed = parseEventTitle(title)
+            if (parsed.studentName.isBlank()) {
+                skippedMissingTitle++
+                return@forEach
+            }
+            val normalized = normalizeStudentName(parsed.studentName)
+            if (allowedNormalized != null && normalized !in allowedNormalized) {
+                return@forEach
+            }
+            val (student, wasCreated) = findOrCreateStudent(parsed.studentName)
+            if (student.id == 0L) {
+                skippedMissingTitle++
+                return@forEach
+            }
+            if (wasCreated) {
+                createdStudents++
+            }
+            val existing = lessonsRepository.findExactLesson(student.id, startAt, endAt)
+            if (existing != null) {
+                skippedDuplicates++
+                return@forEach
+            }
+            val note = buildNote(
+                instance.description,
+                instance.location
+            )
+            lessonsRepository.create(
+                LessonCreateRequest(
+                    studentId = student.id,
+                    subjectId = null,
+                    title = parsed.lessonTitle,
+                    startAt = startAt,
+                    endAt = endAt,
+                    priceCents = 0,
+                    note = note
+                )
+            )
+            createdLessons++
         }
 
         return GoogleCalendarImportResult(
@@ -167,6 +176,58 @@ class GoogleCalendarMigrationService @Inject constructor(
         return parts.joinToString("\n").takeIf { it.isNotBlank() }
     }
 
+    private fun queryInstances(rangeStart: Instant, rangeEnd: Instant): List<CalendarInstance> {
+        val projection = arrayOf(
+            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.END,
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.DESCRIPTION,
+            CalendarContract.Instances.EVENT_LOCATION,
+            CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.STATUS
+        )
+        val selection = "${CalendarContract.Events.DELETED} = 0"
+        val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
+        val builder = CalendarContract.Instances.CONTENT_URI
+            .buildUpon()
+            .appendPath(rangeStart.toEpochMilli().toString())
+            .appendPath(rangeEnd.toEpochMilli().toString())
+        val resolver = context.contentResolver
+
+        val instances = mutableListOf<CalendarInstance>()
+        resolver.query(
+            builder.build(),
+            projection,
+            selection,
+            null,
+            sortOrder
+        )?.use { cursor ->
+            val startIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
+            val endIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.END)
+            val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
+            val descriptionIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.DESCRIPTION)
+            val locationIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_LOCATION)
+            val allDayIndex = cursor.getColumnIndex(CalendarContract.Instances.ALL_DAY)
+            val statusIndex = cursor.getColumnIndex(CalendarContract.Instances.STATUS)
+
+            while (cursor.moveToNext()) {
+                instances.add(
+                    CalendarInstance(
+                        title = cursor.getString(titleIndex),
+                        description = cursor.getString(descriptionIndex),
+                        location = cursor.getString(locationIndex),
+                        startMillis = cursor.getLong(startIndex),
+                        endMillis = cursor.getLong(endIndex),
+                        isAllDay = allDayIndex.takeIf { it >= 0 }?.let { cursor.getInt(it) == 1 } ?: false,
+                        status = statusIndex.takeIf { it >= 0 }?.let { cursor.getInt(it) }
+                    )
+                )
+            }
+        }
+        return instances
+    }
+
     private fun resolveEndMillis(
         rawEndMillis: Long,
         startMillis: Long,
@@ -194,6 +255,9 @@ class GoogleCalendarMigrationService @Inject constructor(
         }
         return ParsedEventTitle(studentName = normalized, lessonTitle = null)
     }
+
+    private fun normalizeStudentName(name: String): String =
+        name.trim().lowercase()
 
     private fun defaultRangeStart(): Instant {
         val zone = ZoneId.systemDefault()
@@ -227,7 +291,27 @@ data class GoogleCalendarImportResult(
     val rangeEnd: Instant
 )
 
+data class GoogleCalendarImportCandidate(
+    val studentName: String,
+    val lessonsCount: Int
+)
+
 private data class ParsedEventTitle(
     val studentName: String,
     val lessonTitle: String?
+)
+
+private data class CalendarInstance(
+    val title: String?,
+    val description: String?,
+    val location: String?,
+    val startMillis: Long,
+    val endMillis: Long,
+    val isAllDay: Boolean,
+    val status: Int?
+)
+
+private data class CandidateAccumulator(
+    val displayName: String,
+    var count: Int
 )
