@@ -488,6 +488,13 @@ private class FakeLessonDao : LessonDao {
         return id
     }
 
+    override suspend fun updateSeriesId(id: Long, seriesId: Long, now: Instant) {
+        lessons[id]?.let {
+            lessons[id] = it.copy(seriesId = seriesId, updatedAt = now)
+            emit()
+        }
+    }
+
     override suspend fun updatePayment(
         id: Long,
         status: PaymentStatus,
@@ -599,4 +606,3 @@ private class FakeRecurrenceExceptionDao : RecurrenceExceptionDao {
 
     override fun observeAll(): Flow<List<RecurrenceException>> = state
 }
-
