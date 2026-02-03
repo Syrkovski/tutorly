@@ -10,6 +10,9 @@ import com.tutorly.models.Student
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.Month
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,26 +29,17 @@ class GoogleCalendarMigrationService @Inject constructor(
         defaultDuration: Duration = Duration.ofMinutes(60)
     ): GoogleCalendarImportResult {
         val projection = arrayOf(
-            CalendarContract.Events._ID,
-            CalendarContract.Events.DTSTART,
-            CalendarContract.Events.DTEND,
-            CalendarContract.Events.DURATION,
-            CalendarContract.Events.TITLE,
-            CalendarContract.Events.DESCRIPTION,
-            CalendarContract.Events.EVENT_LOCATION,
-            CalendarContract.Events.ALL_DAY,
-            CalendarContract.Events.STATUS
+            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.END,
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.DESCRIPTION,
+            CalendarContract.Instances.EVENT_LOCATION,
+            CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.STATUS
         )
-        val selection = buildString {
-            append("${CalendarContract.Events.DTSTART} >= ?")
-            append(" AND ${CalendarContract.Events.DTSTART} <= ?")
-            append(" AND ${CalendarContract.Events.DELETED} = 0")
-        }
-        val selectionArgs = arrayOf(
-            rangeStart.toEpochMilli().toString(),
-            rangeEnd.toEpochMilli().toString()
-        )
-        val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
+        val selection = "${CalendarContract.Instances.DELETED} = 0"
+        val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
         val resolver = context.contentResolver
 
         var createdStudents = 0
@@ -56,30 +50,37 @@ class GoogleCalendarMigrationService @Inject constructor(
         var skippedCanceled = 0
         var totalEvents = 0
 
+        val builder = CalendarContract.Instances.CONTENT_URI
+            .buildUpon()
+        CalendarContract.Instances.appendRange(
+            builder,
+            rangeStart.toEpochMilli(),
+            rangeEnd.toEpochMilli()
+        )
         resolver.query(
-            CalendarContract.Events.CONTENT_URI,
+            builder.build(),
             projection,
             selection,
-            selectionArgs,
+            null,
             sortOrder
         )?.use { cursor ->
-            val startIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.DTSTART)
-            val endIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.DTEND)
-            val durationIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.DURATION)
-            val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.TITLE)
-            val descriptionIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)
-            val locationIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)
-            val allDayIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.ALL_DAY)
-            val statusIndex = cursor.getColumnIndexOrThrow(CalendarContract.Events.STATUS)
+            val startIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
+            val endIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.END)
+            val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
+            val descriptionIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.DESCRIPTION)
+            val locationIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_LOCATION)
+            val allDayIndex = cursor.getColumnIndex(CalendarContract.Instances.ALL_DAY)
+            val statusIndex = cursor.getColumnIndex(CalendarContract.Instances.STATUS)
 
             while (cursor.moveToNext()) {
                 totalEvents++
-                val status = cursor.getInt(statusIndex)
+                val status = statusIndex.takeIf { it >= 0 }?.let { cursor.getInt(it) }
                 if (status == CalendarContract.Events.STATUS_CANCELED) {
                     skippedCanceled++
                     continue
                 }
-                if (cursor.getInt(allDayIndex) == 1) {
+                val isAllDay = allDayIndex.takeIf { it >= 0 }?.let { cursor.getInt(it) == 1 } ?: false
+                if (isAllDay) {
                     skippedAllDay++
                     continue
                 }
@@ -93,12 +94,7 @@ class GoogleCalendarMigrationService @Inject constructor(
                     skippedMissingTitle++
                     continue
                 }
-                val endMillis = resolveEndMillis(
-                    cursor.getLong(endIndex),
-                    cursor.getString(durationIndex),
-                    startMillis,
-                    defaultDuration
-                )
+                val endMillis = resolveEndMillis(cursor.getLong(endIndex), startMillis, defaultDuration)
                 val startAt = Instant.ofEpochMilli(startMillis)
                 val endAt = Instant.ofEpochMilli(endMillis)
                 if (endAt <= startAt) {
@@ -176,18 +172,13 @@ class GoogleCalendarMigrationService @Inject constructor(
 
     private fun resolveEndMillis(
         rawEndMillis: Long,
-        durationValue: String?,
         startMillis: Long,
         defaultDuration: Duration
     ): Long {
         if (rawEndMillis > 0L) {
             return rawEndMillis
         }
-        val parsedDuration = durationValue?.let {
-            runCatching { Duration.parse(it) }.getOrNull()
-        }
-        val resolvedDuration = parsedDuration ?: defaultDuration
-        return startMillis + resolvedDuration.toMillis()
+        return startMillis + defaultDuration.toMillis()
     }
 
     private fun parseEventTitle(title: String): ParsedEventTitle {
@@ -207,9 +198,24 @@ class GoogleCalendarMigrationService @Inject constructor(
         return ParsedEventTitle(studentName = normalized, lessonTitle = null)
     }
 
-    private fun defaultRangeStart(): Instant = Instant.now().minus(Duration.ofDays(365))
+    private fun defaultRangeStart(): Instant {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val year = if (today.month >= Month.SEPTEMBER) today.year else today.year - 1
+        return LocalDate.of(year, Month.SEPTEMBER, 1)
+            .atStartOfDay(zone)
+            .toInstant()
+    }
 
-    private fun defaultRangeEnd(): Instant = Instant.now().plus(Duration.ofDays(365))
+    private fun defaultRangeEnd(): Instant {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val year = if (today.month >= Month.SEPTEMBER) today.year + 1 else today.year
+        return LocalDate.of(year, Month.AUGUST, 31)
+            .plusDays(1)
+            .atStartOfDay(zone)
+            .toInstant()
+    }
 }
 
 data class GoogleCalendarImportResult(

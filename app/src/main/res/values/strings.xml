@@ -305,7 +305,7 @@
     <string name="settings_theme_royal">Королевская</string>
     <string name="settings_calendar_import_title">Импорт из Google Календаря</string>
     <string name="settings_calendar_import_description">
-        Перенесём занятия из вашего Google Календаря и автоматически создадим учеников.
+        Перенесём занятия из Google Календаря за текущий учебный год и автоматически создадим учеников.
     </string>
     <string name="settings_calendar_import_button">Импортировать занятия</string>
     <string name="settings_calendar_import_in_progress">Импортируем…</string>
