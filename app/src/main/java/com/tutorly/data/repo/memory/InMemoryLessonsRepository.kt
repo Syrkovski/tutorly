@@ -104,6 +104,17 @@ class InMemoryLessonsRepository : LessonsRepository {
     override suspend fun create(request: LessonCreateRequest): Long {
         val id = seq.getAndIncrement()
         val now = Instant.now()
+        val recurrence = request.recurrence?.let { rule ->
+            LessonRecurrence(
+                frequency = rule.frequency,
+                interval = rule.interval,
+                daysOfWeek = rule.daysOfWeek,
+                startDateTime = request.startAt,
+                untilDateTime = rule.until,
+                timezone = rule.timezone
+            )
+        }
+        val seriesId = recurrence?.let { recurrenceSeq.getAndIncrement() }
         val newLesson = Lesson(
             id = id,
             studentId = request.studentId,
@@ -119,8 +130,9 @@ class InMemoryLessonsRepository : LessonsRepository {
             note = request.note,
             createdAt = now,
             updatedAt = now,
-            seriesId = null,
-            isInstance = false
+            seriesId = seriesId,
+            isInstance = false,
+            recurrence = recurrence
         )
         store[id] = newLesson
         emit()
