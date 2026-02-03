@@ -4,15 +4,21 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.provider.CalendarContract
 import com.tutorly.domain.model.LessonCreateRequest
+import com.tutorly.domain.model.RecurrenceCreateRequest
 import com.tutorly.domain.repo.LessonsRepository
 import com.tutorly.domain.repo.StudentsRepository
+import com.tutorly.models.LessonRecurrence
+import com.tutorly.models.RecurrenceFrequency
 import com.tutorly.models.Student
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.Month
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -75,6 +81,7 @@ class GoogleCalendarMigrationService @Inject constructor(
         var skippedCanceled = 0
         var totalEvents = 0
         val allowedNormalized = allowedStudentNames?.mapTo(mutableSetOf()) { normalizeStudentName(it) }
+        val events = mutableListOf<ImportEvent>()
 
         queryInstances(rangeStart, rangeEnd).forEach { instance ->
             totalEvents++
@@ -127,22 +134,107 @@ class GoogleCalendarMigrationService @Inject constructor(
                 skippedDuplicates++
                 return@forEach
             }
-            val note = buildNote(
-                instance.description,
-                instance.location
+            val note = buildNote(instance.description, instance.location)
+            events += ImportEvent(
+                student = student,
+                studentName = parsed.studentName,
+                normalizedStudentName = normalized,
+                lessonTitle = parsed.lessonTitle,
+                startAt = startAt,
+                endAt = endAt,
+                note = note
             )
-            lessonsRepository.create(
-                LessonCreateRequest(
-                    studentId = student.id,
-                    subjectId = null,
-                    title = parsed.lessonTitle,
-                    startAt = startAt,
-                    endAt = endAt,
-                    priceCents = 0,
-                    note = note
+        }
+
+        val zone = ZoneId.systemDefault()
+        val grouped = events.groupBy { it.seriesKey(zone) }.toSortedMap(compareBy { it.studentName.lowercase() })
+        for ((_, group) in grouped) {
+            if (group.isEmpty()) continue
+            val sorted = group.sortedBy { it.startAt }
+            val recurrenceRequest = buildRecurrenceRequest(sorted, zone)
+                ?: buildFallbackRecurrenceRequest(sorted, zone)
+            val recurrence = recurrenceRequest?.let { request ->
+                LessonRecurrence(
+                    frequency = request.frequency,
+                    interval = request.interval,
+                    daysOfWeek = request.daysOfWeek,
+                    startDateTime = sorted.first().startAt,
+                    untilDateTime = request.until,
+                    timezone = request.timezone
                 )
-            )
-            createdLessons++
+            }
+            var seriesId: Long? = null
+            var anchorCreated = false
+
+            for (event in sorted) {
+                val existing = lessonsRepository.findExactLesson(
+                    event.student.id,
+                    event.startAt,
+                    event.endAt
+                )
+                if (existing != null) {
+                    skippedDuplicates++
+                    if (!anchorCreated && recurrence != null) {
+                        if (existing.seriesId != null) {
+                            seriesId = existing.seriesId
+                            anchorCreated = true
+                        } else {
+                            val updatedId = lessonsRepository.upsert(
+                                existing.copy(recurrence = recurrence, updatedAt = Instant.now())
+                            )
+                            val updated = lessonsRepository.getById(updatedId)
+                            seriesId = updated?.seriesId
+                            anchorCreated = true
+                        }
+                    } else if (seriesId != null && existing.seriesId == null) {
+                        lessonsRepository.upsert(
+                            existing.copy(seriesId = seriesId, updatedAt = Instant.now())
+                        )
+                    }
+                    continue
+                }
+
+                if (!anchorCreated && recurrenceRequest != null) {
+                    val id = lessonsRepository.create(
+                        LessonCreateRequest(
+                            studentId = event.student.id,
+                            subjectId = null,
+                            title = event.lessonTitle,
+                            startAt = event.startAt,
+                            endAt = event.endAt,
+                            priceCents = 0,
+                            note = event.note,
+                            recurrence = recurrenceRequest
+                        )
+                    )
+                    createdLessons++
+                    val created = lessonsRepository.getById(id)
+                    seriesId = created?.seriesId
+                    anchorCreated = true
+                    continue
+                }
+
+                val id = lessonsRepository.create(
+                    LessonCreateRequest(
+                        studentId = event.student.id,
+                        subjectId = null,
+                        title = event.lessonTitle,
+                        startAt = event.startAt,
+                        endAt = event.endAt,
+                        priceCents = 0,
+                        note = event.note
+                    )
+                )
+                createdLessons++
+                if (seriesId != null) {
+                    val created = lessonsRepository.getById(id)
+                    if (created != null && created.seriesId == null) {
+                        lessonsRepository.upsert(
+                            created.copy(seriesId = seriesId, updatedAt = Instant.now())
+                        )
+                    }
+                }
+            }
         }
 
         return GoogleCalendarImportResult(
@@ -259,6 +351,117 @@ class GoogleCalendarMigrationService @Inject constructor(
     private fun normalizeStudentName(name: String): String =
         name.trim().lowercase()
 
+    private fun buildRecurrenceRequest(
+        events: List<ImportEvent>,
+        zone: ZoneId
+    ): RecurrenceCreateRequest? {
+        if (events.size < 2) return null
+        val sorted = events.sortedBy { it.startAt }
+        val first = sorted.first()
+        val last = sorted.last()
+        val startLocal = first.startAt.atZone(zone)
+        val days = sorted.map { it.startAt.atZone(zone).dayOfWeek }.distinct().sortedBy { it.value }
+        if (days.isEmpty()) return null
+
+        val intervalWeeks = determineIntervalWeeks(sorted, zone) ?: return null
+        val expected = generateExpectedStarts(
+            startAt = first.startAt,
+            endAt = last.startAt,
+            intervalWeeks = intervalWeeks,
+            daysOfWeek = days,
+            zone = zone
+        )
+        val actualStarts = sorted.map { it.startAt }.toSet()
+        if (expected != actualStarts) return null
+
+        val frequency = if (intervalWeeks == 2) {
+            RecurrenceFrequency.BIWEEKLY
+        } else {
+            RecurrenceFrequency.WEEKLY
+        }
+        val interval = if (intervalWeeks == 2) 1 else intervalWeeks
+        val until = last.startAt
+
+        return RecurrenceCreateRequest(
+            frequency = frequency,
+            interval = interval,
+            daysOfWeek = days,
+            until = until,
+            timezone = startLocal.zone
+        )
+    }
+
+    private fun buildFallbackRecurrenceRequest(
+        events: List<ImportEvent>,
+        zone: ZoneId
+    ): RecurrenceCreateRequest? {
+        if (events.size < 2) return null
+        val sorted = events.sortedBy { it.startAt }
+        val first = sorted.first()
+        val startLocal = first.startAt.atZone(zone)
+        val days = sorted.map { it.startAt.atZone(zone).dayOfWeek }.distinct().sortedBy { it.value }
+        if (days.isEmpty()) return null
+        return RecurrenceCreateRequest(
+            frequency = RecurrenceFrequency.WEEKLY,
+            interval = 1,
+            daysOfWeek = days,
+            until = first.startAt,
+            timezone = startLocal.zone
+        )
+    }
+
+    private fun determineIntervalWeeks(
+        events: List<ImportEvent>,
+        zone: ZoneId
+    ): Int? {
+        val byDay = events.groupBy { it.startAt.atZone(zone).dayOfWeek }
+        var intervalWeeks: Int? = null
+        for ((_, dayEvents) in byDay) {
+            if (dayEvents.size < 2) continue
+            val sorted = dayEvents.sortedBy { it.startAt }
+            val diffs = sorted.zipWithNext { a, b ->
+                val days = ChronoUnit.DAYS.between(
+                    a.startAt.atZone(zone).toLocalDate(),
+                    b.startAt.atZone(zone).toLocalDate()
+                )
+                if (days <= 0 || days % 7L != 0L) return null
+                (days / 7L).toInt()
+            }
+            val first = diffs.firstOrNull() ?: continue
+            if (diffs.any { it != first }) return null
+            intervalWeeks = when (val current = intervalWeeks) {
+                null -> first
+                else -> if (current == first) current else return null
+            }
+        }
+        return intervalWeeks ?: 1
+    }
+
+    private fun generateExpectedStarts(
+        startAt: Instant,
+        endAt: Instant,
+        intervalWeeks: Int,
+        daysOfWeek: List<java.time.DayOfWeek>,
+        zone: ZoneId
+    ): Set<Instant> {
+        if (startAt > endAt) return emptySet()
+        val base = startAt.atZone(zone)
+        val results = mutableSetOf<Instant>()
+        val endZoned = endAt.atZone(zone)
+        val stepWeeks = intervalWeeks.coerceAtLeast(1).toLong()
+        for (day in daysOfWeek) {
+            var occurrence = base.with(TemporalAdjusters.nextOrSame(day))
+            if (occurrence.isBefore(base)) {
+                occurrence = occurrence.plusWeeks(stepWeeks)
+            }
+            while (!occurrence.isAfter(endZoned)) {
+                results += occurrence.toInstant()
+                occurrence = occurrence.plusWeeks(stepWeeks)
+            }
+        }
+        return results
+    }
+
     private fun defaultRangeStart(): Instant {
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
@@ -314,4 +517,32 @@ private data class CalendarInstance(
 private data class CandidateAccumulator(
     val displayName: String,
     var count: Int
+)
+
+private data class ImportEvent(
+    val student: Student,
+    val studentName: String,
+    val normalizedStudentName: String,
+    val lessonTitle: String?,
+    val startAt: Instant,
+    val endAt: Instant,
+    val note: String?
+) {
+    fun seriesKey(zone: ZoneId): SeriesKey {
+        val startLocal = startAt.atZone(zone)
+        val durationMinutes = Duration.between(startAt, endAt).toMinutes().toInt().coerceAtLeast(0)
+        return SeriesKey(
+            studentName = normalizedStudentName,
+            lessonTitle = lessonTitle?.trim()?.lowercase(),
+            startTime = startLocal.toLocalTime(),
+            durationMinutes = durationMinutes
+        )
+    }
+}
+
+private data class SeriesKey(
+    val studentName: String,
+    val lessonTitle: String?,
+    val startTime: LocalTime,
+    val durationMinutes: Int
 )
