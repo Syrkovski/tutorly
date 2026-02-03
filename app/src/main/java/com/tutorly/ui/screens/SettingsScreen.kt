@@ -1,6 +1,8 @@
 package com.tutorly.ui.screens
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,9 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -45,7 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.content.ContextCompat
 import com.tutorly.R
 import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.theme.extendedColors
@@ -63,6 +70,16 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.startCalendarImport()
+        } else {
+            viewModel.onCalendarPermissionDenied()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -76,7 +93,18 @@ fun SettingsScreen(
             onStartTimeClick = viewModel::updateWorkDayStart,
             onEndTimeClick = viewModel::updateWorkDayEnd,
             onWeekendToggle = viewModel::toggleWeekend,
-            onThemeSelect = viewModel::selectTheme
+            onThemeSelect = viewModel::selectTheme,
+            onCalendarImportClick = {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_CALENDAR
+                ) == PackageManager.PERMISSION_GRANTED
+                if (hasPermission) {
+                    viewModel.startCalendarImport()
+                } else {
+                    permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+                }
+            }
         )
     }
 }
@@ -125,7 +153,8 @@ private fun SettingsContent(
     onStartTimeClick: (LocalTime) -> Unit,
     onEndTimeClick: (LocalTime) -> Unit,
     onWeekendToggle: (DayOfWeek) -> Unit,
-    onThemeSelect: (ThemeOption) -> Unit
+    onThemeSelect: (ThemeOption) -> Unit,
+    onCalendarImportClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val timeFormatter = rememberTimeFormatter()
@@ -201,6 +230,78 @@ private fun SettingsContent(
                     isSelected = isSelected,
                     onSelect = { onThemeSelect(option) }
                 )
+            }
+        }
+
+        SettingsSectionTitle(text = stringResource(id = R.string.settings_calendar_import_title))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.settings_calendar_import_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = onCalendarImportClick,
+                    enabled = !state.isCalendarImporting
+                ) {
+                    Text(
+                        text = if (state.isCalendarImporting) {
+                            stringResource(id = R.string.settings_calendar_import_in_progress)
+                        } else {
+                            stringResource(id = R.string.settings_calendar_import_button)
+                        }
+                    )
+                }
+                if (state.isCalendarImporting) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = stringResource(id = R.string.settings_calendar_import_in_progress),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                val errorMessage = state.calendarImportError?.let { error ->
+                    stringResource(id = error.messageRes)
+                }
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                val result = state.calendarImportResult
+                if (result != null && errorMessage == null) {
+                    Text(
+                        text = stringResource(
+                            id = R.string.settings_calendar_import_success,
+                            result.createdLessons,
+                            result.createdStudents,
+                            result.skippedDuplicates
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -311,4 +412,3 @@ private fun ThemeOptionChip(
         shape = RoundedCornerShape(50)
     )
 }
-

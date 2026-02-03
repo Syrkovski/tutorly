@@ -303,4 +303,19 @@
     <string name="settings_theme_original">Фирменная</string>
     <string name="settings_theme_plum">Лиловая</string>
     <string name="settings_theme_royal">Королевская</string>
+    <string name="settings_calendar_import_title">Импорт из Google Календаря</string>
+    <string name="settings_calendar_import_description">
+        Перенесём занятия из вашего Google Календаря и автоматически создадим учеников.
+    </string>
+    <string name="settings_calendar_import_button">Импортировать занятия</string>
+    <string name="settings_calendar_import_in_progress">Импортируем…</string>
+    <string name="settings_calendar_import_success">
+        Импортировано занятий: %1$d, создано учеников: %2$d, пропущено дубликатов: %3$d.
+    </string>
+    <string name="settings_calendar_import_permission_denied">
+        Нужен доступ к календарю, чтобы выполнить импорт.
+    </string>
+    <string name="settings_calendar_import_error">
+        Не удалось импортировать календарь. Попробуйте ещё раз.
+    </string>
 </resources>

@@ -9,6 +9,7 @@ interface StudentsRepository {
     suspend fun allActive(): List<Student>
     suspend fun searchActive(query: String): List<Student>
     suspend fun getById(id: Long): Student?
+    suspend fun findByName(name: String): Student?
 
     // observable — для UI
     fun observeStudents(query: String): Flow<List<Student>>

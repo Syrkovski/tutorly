@@ -4,6 +4,8 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.R
+import com.tutorly.data.calendar.GoogleCalendarImportResult
+import com.tutorly.data.calendar.GoogleCalendarMigrationService
 import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.AppThemePreset
 import com.tutorly.models.UserProfile
@@ -19,7 +21,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val userProfileRepository: UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    private val calendarMigrationService: GoogleCalendarMigrationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -109,6 +112,46 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userProfileRepository.setTheme(option.preset) }
     }
 
+    fun startCalendarImport() {
+        if (_uiState.value.isCalendarImporting) return
+        _uiState.update { current ->
+            current.copy(
+                isCalendarImporting = true,
+                calendarImportError = null,
+                calendarImportResult = null
+            )
+        }
+        viewModelScope.launch {
+            runCatching { calendarMigrationService.importFromGoogleCalendar() }
+                .onSuccess { result ->
+                    _uiState.update { current ->
+                        current.copy(
+                            isCalendarImporting = false,
+                            calendarImportResult = result,
+                            calendarImportError = null
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { current ->
+                        current.copy(
+                            isCalendarImporting = false,
+                            calendarImportError = CalendarImportError.GENERIC
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onCalendarPermissionDenied() {
+        _uiState.update { current ->
+            current.copy(
+                isCalendarImporting = false,
+                calendarImportError = CalendarImportError.PERMISSION_DENIED
+            )
+        }
+    }
+
     private fun minutesToLocalTime(minutes: Int): LocalTime {
         val clamped = minutes % MINUTES_IN_DAY
         val hours = clamped / 60
@@ -131,7 +174,10 @@ data class SettingsUiState(
     val workDayEndExtendsToNextDay: Boolean = false,
     val weekendDays: Set<DayOfWeek> = emptySet(),
     val selectedTheme: AppThemePreset = AppThemePreset.ORIGINAL,
-    val availableThemes: List<ThemeOption> = ThemeOption.defaults()
+    val availableThemes: List<ThemeOption> = ThemeOption.defaults(),
+    val isCalendarImporting: Boolean = false,
+    val calendarImportResult: GoogleCalendarImportResult? = null,
+    val calendarImportError: CalendarImportError? = null
 )
 
 data class ThemeOption(
@@ -158,6 +204,11 @@ data class ThemeOption(
             )
         )
     }
+}
+
+enum class CalendarImportError(@StringRes val messageRes: Int) {
+    PERMISSION_DENIED(R.string.settings_calendar_import_permission_denied),
+    GENERIC(R.string.settings_calendar_import_error)
 }
 
 private const val SLOT_STEP_MINUTES: Int = 30
