@@ -57,6 +57,17 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): Lesson?
 
+    @Query(
+        """
+        SELECT * FROM lessons
+        WHERE studentId = :studentId
+          AND startAt = :startAt
+          AND endAt = :endAt
+        LIMIT 1
+        """
+    )
+    suspend fun findByStudentAndTime(studentId: Long, startAt: Instant, endAt: Instant): Lesson?
+
     @Transaction
     @Query("SELECT * FROM lessons WHERE id = :id LIMIT 1")
     suspend fun findByIdWithStudent(id: Long): LessonWithStudent?

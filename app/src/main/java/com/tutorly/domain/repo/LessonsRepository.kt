@@ -18,6 +18,7 @@ interface LessonsRepository {
     fun observeLessonDetails(id: Long): Flow<LessonDetails?>
     fun observeByStudent(studentId: Long): Flow<List<Lesson>>
     suspend fun getById(id: Long): Lesson?
+    suspend fun findExactLesson(studentId: Long, startAt: Instant, endAt: Instant): Lesson?
     suspend fun upsert(lesson: Lesson): Long
     suspend fun create(request: LessonCreateRequest): Long
     suspend fun moveLesson(lessonId: Long, newStart: Instant, newEnd: Instant)

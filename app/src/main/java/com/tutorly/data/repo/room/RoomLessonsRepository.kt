@@ -202,6 +202,10 @@ class RoomLessonsRepository(
         return normalized.copy(recurrence = rule?.toLessonRecurrence())
     }
 
+    override suspend fun findExactLesson(studentId: Long, startAt: Instant, endAt: Instant): Lesson? {
+        return lessonDao.findByStudentAndTime(studentId, startAt, endAt)
+    }
+
     override suspend fun upsert(lesson: Lesson): Long {
         val existing = lesson.id.takeIf { it != 0L }?.let { lessonDao.findById(it) }
         val id = lessonDao.upsert(lesson)

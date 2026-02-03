@@ -303,4 +303,31 @@
     <string name="settings_theme_original">Фирменная</string>
     <string name="settings_theme_plum">Лиловая</string>
     <string name="settings_theme_royal">Королевская</string>
+    <string name="settings_calendar_import_title">Импорт из Google Календаря</string>
+    <string name="settings_calendar_import_description">
+        Перенесём занятия из Google Календаря за текущий учебный год и автоматически создадим учеников.
+    </string>
+    <string name="settings_calendar_import_button">Импортировать занятия</string>
+    <string name="settings_calendar_import_loading">Готовим список…</string>
+    <string name="settings_calendar_import_in_progress">Импортируем…</string>
+    <string name="settings_calendar_import_success">
+        Импортировано занятий: %1$d, создано учеников: %2$d, пропущено дубликатов: %3$d.
+    </string>
+    <string name="settings_calendar_import_permission_denied">
+        Нужен доступ к календарю, чтобы выполнить импорт.
+    </string>
+    <string name="settings_calendar_import_select_at_least_one">
+        Выберите хотя бы одного ученика для импорта.
+    </string>
+    <string name="settings_calendar_import_error">
+        Не удалось импортировать календарь. Попробуйте ещё раз.
+    </string>
+    <string name="settings_calendar_import_dialog_title">Кого импортировать</string>
+    <string name="settings_calendar_import_select_all">Выбрать всех</string>
+    <string name="settings_calendar_import_confirm">Импортировать</string>
+    <string name="settings_calendar_import_cancel">Отмена</string>
+    <string name="settings_calendar_import_candidate_count">%1$d занятий</string>
+    <string name="settings_calendar_import_no_candidates">
+        В текущем учебном году нет подходящих занятий.
+    </string>
 </resources>

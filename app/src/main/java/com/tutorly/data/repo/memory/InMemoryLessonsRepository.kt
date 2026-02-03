@@ -89,6 +89,12 @@ class InMemoryLessonsRepository : LessonsRepository {
 
     override suspend fun getById(id: Long): Lesson? = store[id]
 
+    override suspend fun findExactLesson(studentId: Long, startAt: Instant, endAt: Instant): Lesson? {
+        return store.values.firstOrNull { lesson ->
+            lesson.studentId == studentId && lesson.startAt == startAt && lesson.endAt == endAt
+        }
+    }
+
     override suspend fun upsert(lesson: Lesson): Long {
         val id = if (lesson.id == 0L) seq.getAndIncrement() else lesson.id
         val existing = store[id]

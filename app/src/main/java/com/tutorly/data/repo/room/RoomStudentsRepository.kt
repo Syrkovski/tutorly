@@ -34,6 +34,9 @@ class RoomStudentsRepository @Inject constructor(
     override suspend fun getById(id: Long): Student? =
         studentDao.getById(id)
 
+    override suspend fun findByName(name: String): Student? =
+        studentDao.findByName(name)
+
     override fun observeStudents(query: String): Flow<List<Student>> =
         studentDao.observeStudents(query)
 

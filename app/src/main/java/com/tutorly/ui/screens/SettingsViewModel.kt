@@ -4,6 +4,9 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tutorly.R
+import com.tutorly.data.calendar.GoogleCalendarImportCandidate
+import com.tutorly.data.calendar.GoogleCalendarImportResult
+import com.tutorly.data.calendar.GoogleCalendarMigrationService
 import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.AppThemePreset
 import com.tutorly.models.UserProfile
@@ -19,7 +22,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val userProfileRepository: UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    private val calendarMigrationService: GoogleCalendarMigrationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -109,6 +113,119 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userProfileRepository.setTheme(option.preset) }
     }
 
+    fun loadCalendarCandidates() {
+        if (_uiState.value.isCalendarImporting || _uiState.value.isCalendarCandidatesLoading) return
+        _uiState.update { current ->
+            current.copy(
+                isCalendarCandidatesLoading = true,
+                calendarImportError = null,
+                calendarImportResult = null
+            )
+        }
+        viewModelScope.launch {
+            runCatching { calendarMigrationService.fetchImportCandidates() }
+                .onSuccess { candidates ->
+                    val selected = candidates.mapTo(linkedSetOf()) { it.studentName }
+                    _uiState.update { current ->
+                        current.copy(
+                            isCalendarCandidatesLoading = false,
+                            calendarImportCandidates = candidates,
+                            calendarImportSelectedNames = selected,
+                            isCalendarCandidateDialogVisible = true
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { current ->
+                        current.copy(
+                            isCalendarCandidatesLoading = false,
+                            calendarImportError = CalendarImportError.GENERIC
+                        )
+                    }
+                }
+        }
+    }
+
+    fun toggleCalendarCandidate(name: String) {
+        _uiState.update { current ->
+            val updated = current.calendarImportSelectedNames.toMutableSet().apply {
+                if (contains(name)) remove(name) else add(name)
+            }
+            current.copy(calendarImportSelectedNames = updated)
+        }
+    }
+
+    fun selectAllCalendarCandidates(selectAll: Boolean) {
+        _uiState.update { current ->
+            val updated = if (selectAll) {
+                current.calendarImportCandidates.mapTo(linkedSetOf()) { it.studentName }
+            } else {
+                emptySet()
+            }
+            current.copy(calendarImportSelectedNames = updated)
+        }
+    }
+
+    fun dismissCalendarCandidatesDialog() {
+        _uiState.update { current ->
+            current.copy(isCalendarCandidateDialogVisible = false)
+        }
+    }
+
+    fun confirmCalendarImport() {
+        val selectedNames = _uiState.value.calendarImportSelectedNames
+        if (selectedNames.isEmpty()) {
+            _uiState.update { current ->
+                current.copy(calendarImportError = CalendarImportError.EMPTY_SELECTION)
+            }
+            return
+        }
+        startCalendarImport(selectedNames)
+    }
+
+    private fun startCalendarImport(selectedNames: Set<String>) {
+        if (_uiState.value.isCalendarImporting) return
+        _uiState.update { current ->
+            current.copy(
+                isCalendarImporting = true,
+                calendarImportError = null,
+                calendarImportResult = null
+            )
+        }
+        viewModelScope.launch {
+            runCatching {
+                calendarMigrationService.importFromGoogleCalendar(
+                    allowedStudentNames = selectedNames
+                )
+            }.onSuccess { result ->
+                _uiState.update { current ->
+                    current.copy(
+                        isCalendarImporting = false,
+                        calendarImportResult = result,
+                        calendarImportError = null,
+                        isCalendarCandidateDialogVisible = false
+                    )
+                }
+            }.onFailure {
+                _uiState.update { current ->
+                    current.copy(
+                        isCalendarImporting = false,
+                        calendarImportError = CalendarImportError.GENERIC
+                    )
+                }
+            }
+        }
+    }
+
+    fun onCalendarPermissionDenied() {
+        _uiState.update { current ->
+            current.copy(
+                isCalendarImporting = false,
+                calendarImportError = CalendarImportError.PERMISSION_DENIED
+            )
+        }
+    }
+
     private fun minutesToLocalTime(minutes: Int): LocalTime {
         val clamped = minutes % MINUTES_IN_DAY
         val hours = clamped / 60
@@ -131,7 +248,14 @@ data class SettingsUiState(
     val workDayEndExtendsToNextDay: Boolean = false,
     val weekendDays: Set<DayOfWeek> = emptySet(),
     val selectedTheme: AppThemePreset = AppThemePreset.ORIGINAL,
-    val availableThemes: List<ThemeOption> = ThemeOption.defaults()
+    val availableThemes: List<ThemeOption> = ThemeOption.defaults(),
+    val isCalendarImporting: Boolean = false,
+    val isCalendarCandidatesLoading: Boolean = false,
+    val isCalendarCandidateDialogVisible: Boolean = false,
+    val calendarImportCandidates: List<GoogleCalendarImportCandidate> = emptyList(),
+    val calendarImportSelectedNames: Set<String> = emptySet(),
+    val calendarImportResult: GoogleCalendarImportResult? = null,
+    val calendarImportError: CalendarImportError? = null
 )
 
 data class ThemeOption(
@@ -158,6 +282,12 @@ data class ThemeOption(
             )
         )
     }
+}
+
+enum class CalendarImportError(@StringRes val messageRes: Int) {
+    PERMISSION_DENIED(R.string.settings_calendar_import_permission_denied),
+    EMPTY_SELECTION(R.string.settings_calendar_import_select_at_least_one),
+    GENERIC(R.string.settings_calendar_import_error)
 }
 
 private const val SLOT_STEP_MINUTES: Int = 30

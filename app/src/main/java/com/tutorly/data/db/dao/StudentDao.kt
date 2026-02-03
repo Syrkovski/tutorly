@@ -37,6 +37,16 @@ interface StudentDao {
     @Query(
         """
         SELECT * FROM students
+        WHERE name = :name
+        COLLATE NOCASE
+        LIMIT 1
+        """
+    )
+    suspend fun findByName(name: String): Student?
+
+    @Query(
+        """
+        SELECT * FROM students
         WHERE active = 1 AND isArchived = 0 AND (
             :q == '' OR name LIKE '%' || :q || '%' OR phone LIKE '%' || :q || '%'
         )
