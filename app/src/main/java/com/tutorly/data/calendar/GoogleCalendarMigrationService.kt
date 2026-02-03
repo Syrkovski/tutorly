@@ -38,7 +38,7 @@ class GoogleCalendarMigrationService @Inject constructor(
             CalendarContract.Instances.ALL_DAY,
             CalendarContract.Instances.STATUS
         )
-        val selection = "${CalendarContract.Instances.DELETED} = 0"
+        val selection = "${CalendarContract.Events.DELETED} = 0"
         val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
         val resolver = context.contentResolver
 
