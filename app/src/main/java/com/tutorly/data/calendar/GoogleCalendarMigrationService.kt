@@ -153,8 +153,13 @@ class GoogleCalendarMigrationService @Inject constructor(
         }
 
         val zone = ZoneId.systemDefault()
-        val grouped = events.groupBy { it.seriesKey(zone) }.toSortedMap(compareBy { it.studentName.lowercase() })
-        for ((_, group) in grouped) {
+        val grouped = events.groupBy { it.seriesKey(zone) }
+        val sortedGroups = grouped.entries.sortedWith(
+            compareBy<Map.Entry<SeriesKey, List<ImportEvent>>> { it.key.studentName.lowercase() }
+                .thenBy { it.key.dayOfWeek.value }
+                .thenBy { it.key.startTime }
+        )
+        for ((_, group) in sortedGroups) {
             if (group.isEmpty()) continue
             val sorted = group.sortedBy { it.startAt }
             val recurrenceRequest = buildRecurrenceRequest(sorted, zone)
@@ -691,6 +696,7 @@ private data class ImportEvent(
         return SeriesKey(
             studentName = normalizedStudentName,
             lessonTitle = lessonTitle?.trim()?.lowercase(),
+            dayOfWeek = startLocal.dayOfWeek,
             startTime = startLocal.toLocalTime(),
             durationMinutes = durationMinutes,
             priceCents = priceCents
@@ -701,6 +707,7 @@ private data class ImportEvent(
 private data class SeriesKey(
     val studentName: String,
     val lessonTitle: String?,
+    val dayOfWeek: java.time.DayOfWeek,
     val startTime: LocalTime,
     val durationMinutes: Int,
     val priceCents: Int?
