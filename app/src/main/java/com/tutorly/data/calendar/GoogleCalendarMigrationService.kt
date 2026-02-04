@@ -145,6 +145,7 @@ class GoogleCalendarMigrationService @Inject constructor(
                 studentName = parsed.studentName,
                 normalizedStudentName = normalized,
                 lessonTitle = parsed.lessonTitle ?: parsed.subject,
+                originalTitle = title,
                 startAt = startAt,
                 endAt = endAt,
                 note = note,
@@ -673,6 +674,7 @@ private data class ImportEvent(
     val studentName: String,
     val normalizedStudentName: String,
     val lessonTitle: String?,
+    val originalTitle: String,
     val startAt: Instant,
     val endAt: Instant,
     val note: String?,
@@ -683,7 +685,8 @@ private data class ImportEvent(
         val durationMinutes = Duration.between(startAt, endAt).toMinutes().toInt().coerceAtLeast(0)
         return SeriesKey(
             studentName = normalizedStudentName,
-            lessonTitle = lessonTitle?.trim()?.lowercase(),
+            lessonTitle = lessonTitle?.trim()?.lowercase()
+                ?: originalTitle.trim().lowercase(),
             startTime = startLocal.toLocalTime(),
             dayOfWeek = startLocal.dayOfWeek,
             durationMinutes = durationMinutes,
