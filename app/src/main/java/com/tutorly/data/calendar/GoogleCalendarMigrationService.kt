@@ -158,7 +158,6 @@ class GoogleCalendarMigrationService @Inject constructor(
             if (group.isEmpty()) continue
             val sorted = group.sortedBy { it.startAt }
             val recurrenceRequest = buildRecurrenceRequest(sorted, zone)
-                ?: buildFallbackRecurrenceRequest(sorted, zone)
             val recurrence = recurrenceRequest?.let { request ->
                 LessonRecurrence(
                     frequency = request.frequency,
@@ -546,25 +545,6 @@ class GoogleCalendarMigrationService @Inject constructor(
             interval = interval,
             daysOfWeek = days,
             until = until,
-            timezone = startLocal.zone
-        )
-    }
-
-    private fun buildFallbackRecurrenceRequest(
-        events: List<ImportEvent>,
-        zone: ZoneId
-    ): RecurrenceCreateRequest? {
-        if (events.size < 2) return null
-        val sorted = events.sortedBy { it.startAt }
-        val first = sorted.first()
-        val startLocal = first.startAt.atZone(zone)
-        val days = sorted.map { it.startAt.atZone(zone).dayOfWeek }.distinct().sortedBy { it.value }
-        if (days.isEmpty()) return null
-        return RecurrenceCreateRequest(
-            frequency = RecurrenceFrequency.WEEKLY,
-            interval = 1,
-            daysOfWeek = days,
-            until = first.startAt,
             timezone = startLocal.zone
         )
     }
