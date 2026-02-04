@@ -685,6 +685,7 @@ private data class ImportEvent(
             studentName = normalizedStudentName,
             lessonTitle = lessonTitle?.trim()?.lowercase(),
             startTime = startLocal.toLocalTime(),
+            dayOfWeek = startLocal.dayOfWeek,
             durationMinutes = durationMinutes,
             priceCents = priceCents
         )
@@ -695,6 +696,7 @@ private data class SeriesKey(
     val studentName: String,
     val lessonTitle: String?,
     val startTime: LocalTime,
+    val dayOfWeek: java.time.DayOfWeek,
     val durationMinutes: Int,
     val priceCents: Int?
 )
