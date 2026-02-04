@@ -11,6 +11,7 @@ import com.tutorly.models.LessonRecurrence
 import com.tutorly.models.RecurrenceFrequency
 import com.tutorly.models.Student
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -34,6 +35,7 @@ class GoogleCalendarMigrationService @Inject constructor(
         defaultDuration: Duration = Duration.ofMinutes(60)
     ): List<GoogleCalendarImportCandidate> {
         val candidates = linkedMapOf<String, CandidateAccumulator>()
+        val weekStart = currentWeekStartInstant()
         queryInstances(rangeStart, rangeEnd).forEach { instance ->
             val status = instance.status
             if (status == CalendarContract.Events.STATUS_CANCELED) return@forEach
@@ -44,6 +46,8 @@ class GoogleCalendarMigrationService @Inject constructor(
             if (startMillis <= 0L) return@forEach
             val endMillis = resolveEndMillis(instance.endMillis, startMillis, defaultDuration)
             if (endMillis <= startMillis) return@forEach
+            val startAt = Instant.ofEpochMilli(startMillis)
+            if (startAt < weekStart) return@forEach
             val parsed = parseEventTitle(title)
             if (parsed.studentName.isBlank()) return@forEach
 
@@ -82,6 +86,7 @@ class GoogleCalendarMigrationService @Inject constructor(
         var totalEvents = 0
         val allowedNormalized = allowedStudentNames?.mapTo(mutableSetOf()) { normalizeStudentName(it) }
         val events = mutableListOf<ImportEvent>()
+        val weekStart = currentWeekStartInstant()
 
         queryInstances(rangeStart, rangeEnd).forEach { instance ->
             totalEvents++
@@ -109,6 +114,9 @@ class GoogleCalendarMigrationService @Inject constructor(
             val endAt = Instant.ofEpochMilli(endMillis)
             if (endAt <= startAt) {
                 skippedMissingTitle++
+                return@forEach
+            }
+            if (startAt < weekStart) {
                 return@forEach
             }
 
@@ -667,6 +675,15 @@ class GoogleCalendarMigrationService @Inject constructor(
         val today = LocalDate.now(zone)
         val year = if (today.month >= Month.SEPTEMBER) today.year else today.year - 1
         return LocalDate.of(year, Month.SEPTEMBER, 1)
+            .atStartOfDay(zone)
+            .toInstant()
+    }
+
+    private fun currentWeekStartInstant(): Instant {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        return today
+            .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             .atStartOfDay(zone)
             .toInstant()
     }
