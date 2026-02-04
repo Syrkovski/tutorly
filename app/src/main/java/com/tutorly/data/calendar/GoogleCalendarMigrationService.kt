@@ -146,6 +146,7 @@ class GoogleCalendarMigrationService @Inject constructor(
                 normalizedStudentName = normalized,
                 lessonTitle = parsed.lessonTitle ?: parsed.subject,
                 originalTitle = title,
+                eventId = instance.eventId,
                 startAt = startAt,
                 endAt = endAt,
                 note = note,
@@ -329,6 +330,7 @@ class GoogleCalendarMigrationService @Inject constructor(
             null,
             sortOrder
         )?.use { cursor ->
+            val eventIdIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_ID)
             val startIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
             val endIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.END)
             val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
@@ -340,6 +342,7 @@ class GoogleCalendarMigrationService @Inject constructor(
             while (cursor.moveToNext()) {
                 instances.add(
                     CalendarInstance(
+                        eventId = cursor.getLong(eventIdIndex),
                         title = cursor.getString(titleIndex),
                         description = cursor.getString(descriptionIndex),
                         location = cursor.getString(locationIndex),
@@ -655,6 +658,7 @@ private data class ParsedLessonDetails(
 )
 
 private data class CalendarInstance(
+    val eventId: Long,
     val title: String?,
     val description: String?,
     val location: String?,
@@ -675,6 +679,7 @@ private data class ImportEvent(
     val normalizedStudentName: String,
     val lessonTitle: String?,
     val originalTitle: String,
+    val eventId: Long,
     val startAt: Instant,
     val endAt: Instant,
     val note: String?,
@@ -690,7 +695,8 @@ private data class ImportEvent(
             startTime = startLocal.toLocalTime(),
             dayOfWeek = startLocal.dayOfWeek,
             durationMinutes = durationMinutes,
-            priceCents = priceCents
+            priceCents = priceCents,
+            eventId = eventId
         )
     }
 }
@@ -701,5 +707,6 @@ private data class SeriesKey(
     val startTime: LocalTime,
     val dayOfWeek: java.time.DayOfWeek,
     val durationMinutes: Int,
-    val priceCents: Int?
+    val priceCents: Int?,
+    val eventId: Long
 )
