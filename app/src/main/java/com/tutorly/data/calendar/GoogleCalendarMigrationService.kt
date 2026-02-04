@@ -436,10 +436,9 @@ class GoogleCalendarMigrationService @Inject constructor(
             }
         }
 
-        val examTokens = setOf("огэ", "егэ", "гиа", "впр")
         mutable.removeAll { token ->
-            val lowered = token.lowercase()
-            if (lowered in examTokens) {
+            val lowered = normalizeToken(token)
+            if (isExamToken(lowered)) {
                 examTags += lowered.uppercase()
                 true
             } else {
@@ -457,6 +456,14 @@ class GoogleCalendarMigrationService @Inject constructor(
         }
         val title = subject
 
+        if (grade == null) {
+            grade = when {
+                examTags.any { it == "ОГЭ" } -> "9 класс"
+                examTags.any { it == "ЕГЭ" } -> "11 класс"
+                else -> null
+            }
+        }
+
         return ParsedLessonDetails(
             title = title,
             subject = subject,
@@ -470,13 +477,16 @@ class GoogleCalendarMigrationService @Inject constructor(
         val first = tokens.first()
         if (tokens.size == 1) return first to emptyList()
         val second = tokens[1]
+        val normalizedSecond = normalizeToken(second)
         val isSecondName = second.matches(Regex("^[\\p{L}\\-]+$")) &&
             !second.matches(Regex("\\d{4,5}")) &&
             !second.matches(Regex("^(?:[1-9]|1[01])$")) &&
-            !second.equals("студент", ignoreCase = true) &&
-            !second.equals("student", ignoreCase = true) &&
-            !second.equals("для", ignoreCase = true) &&
-            !second.equals("себя", ignoreCase = true)
+            normalizedSecond != "студент" &&
+            normalizedSecond != "student" &&
+            normalizedSecond != "для" &&
+            normalizedSecond != "себя" &&
+            !isExamToken(normalizedSecond) &&
+            !isSubjectAlias(normalizedSecond)
         return if (isSecondName) {
             "${first} ${second}" to tokens.drop(2)
         } else {
@@ -485,22 +495,61 @@ class GoogleCalendarMigrationService @Inject constructor(
     }
 
     private fun normalizeSubject(raw: String): String {
-        val normalized = raw.lowercase().trim('.', ',', ';', ':')
-        val mapped = when (normalized) {
-            "м", "мат", "матем", "математика", "math" -> "Математика"
-            "а", "анг", "англ", "английский", "english", "eng" -> "Английский язык"
-            "и", "инф", "информ", "информатика", "it" -> "Информатика"
-            "р", "рус", "русский", "русск" -> "Русский язык"
-            "л", "лит", "литература" -> "Литература"
-            "ф", "физ", "физика" -> "Физика"
-            "х", "хим", "химия" -> "Химия"
-            "б", "био", "биология" -> "Биология"
-            "о", "общ", "обществознание", "обществозн" -> "Обществознание"
-            "ист", "история" -> "История"
-            else -> raw
-        }
+        val normalized = normalizeToken(raw)
+        val mapped = subjectAliases[normalized] ?: raw
         return mapped.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
+
+    private fun normalizeToken(raw: String): String =
+        raw.lowercase().trim('.', ',', ';', ':')
+
+    private fun isExamToken(token: String): Boolean =
+        token in setOf("огэ", "егэ", "гиа", "впр")
+
+    private fun isSubjectAlias(token: String): Boolean =
+        subjectAliases.containsKey(token)
+
+    private val subjectAliases = mapOf(
+        "м" to "Математика",
+        "m" to "Математика",
+        "мат" to "Математика",
+        "матем" to "Математика",
+        "математика" to "Математика",
+        "math" to "Математика",
+        "а" to "Английский язык",
+        "анг" to "Английский язык",
+        "англ" to "Английский язык",
+        "английский" to "Английский язык",
+        "english" to "Английский язык",
+        "eng" to "Английский язык",
+        "и" to "Информатика",
+        "инф" to "Информатика",
+        "информ" to "Информатика",
+        "информатика" to "Информатика",
+        "it" to "Информатика",
+        "р" to "Русский язык",
+        "рус" to "Русский язык",
+        "русский" to "Русский язык",
+        "русск" to "Русский язык",
+        "л" to "Литература",
+        "лит" to "Литература",
+        "литература" to "Литература",
+        "ф" to "Физика",
+        "физ" to "Физика",
+        "физика" to "Физика",
+        "х" to "Химия",
+        "хим" to "Химия",
+        "химия" to "Химия",
+        "б" to "Биология",
+        "био" to "Биология",
+        "биология" to "Биология",
+        "о" to "Обществознание",
+        "общ" to "Обществознание",
+        "обществознание" to "Обществознание",
+        "обществозн" to "Обществознание",
+        "ист" to "История",
+        "история" to "История"
+    )
 
     private fun buildRecurrenceRequest(
         events: List<ImportEvent>,
