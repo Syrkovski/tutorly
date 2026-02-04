@@ -220,6 +220,10 @@ class GoogleCalendarMigrationService @Inject constructor(
                     continue
                 }
 
+                if (recurrenceRequest != null && anchorCreated) {
+                    continue
+                }
+
                 val id = lessonsRepository.create(
                     LessonCreateRequest(
                         studentId = event.student.id,
