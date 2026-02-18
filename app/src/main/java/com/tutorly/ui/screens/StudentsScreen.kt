@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
@@ -253,6 +254,7 @@ fun StudentsScreen(
                         val sharedKey = "student-card-${item.student.id}"
                         StudentCard(
                             item = item,
+                            isSelectionMode = selectedStudentIds.isNotEmpty(),
                             isSelected = item.student.id in selectedStudentIds,
                             onClick = {
                                 vm.onStudentClick(item.student.id, onStudentOpen)
@@ -436,12 +438,15 @@ private fun StudentsTopBar(
                 text = titleText,
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.surface,
-                textAlign = TextAlign.Center,
+                textAlign = if (hasSelection) TextAlign.Start else TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 72.dp)
+                    .align(if (hasSelection) Alignment.CenterStart else Alignment.Center)
+                    .padding(
+                        start = if (hasSelection) 0.dp else 72.dp,
+                        end = 72.dp
+                    )
             )
 
             if (hasSelection) {
@@ -637,6 +642,7 @@ private fun StudentCard(
     item: StudentsViewModel.StudentListItem,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    isSelectionMode: Boolean,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -692,12 +698,24 @@ private fun StudentCard(
         elevation = TutorlyCardDefaults.elevation()
     ) {
         Box(Modifier.fillMaxWidth()) {
+            if (isSelectionMode) {
+                SelectionIndicator(
+                    selected = isSelected,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 16.dp)
+                )
+            }
+
             if (item.hasDebt) {
                 PaymentBadge(
                     status = PaymentBadgeStatus.DEBT,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 12.dp, end = 16.dp)
+                        .padding(
+                            top = if (isSelectionMode) 40.dp else 12.dp,
+                            end = 16.dp
+                        )
                 )
             }
 
@@ -793,6 +811,37 @@ private fun StudentCard(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionIndicator(
+    selected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.size(22.dp),
+        shape = CircleShape,
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.5.dp,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outline
+            }
+        )
+    ) {
+        if (selected) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
             }
         }
     }
