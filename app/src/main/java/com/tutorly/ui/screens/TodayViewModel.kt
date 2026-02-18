@@ -147,8 +147,8 @@ class TodayViewModel @Inject constructor(
         val outstanding = outstandingLessons
             .filter { it.paymentStatus in PaymentStatus.outstandingStatuses }
             .sortedByDescending { it.priceCents }
-        val pastDueLessonsPreview = outstanding.take(3)
-        val hasMorePastLessons = outstanding.size > pastDueLessonsPreview.size
+        val pastDueLessonsPreview = outstanding
+        val hasMorePastLessons = false
 
         if (todayLessons.isEmpty()) {
             if (dayClosedState.value) {
