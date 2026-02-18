@@ -13,4 +13,6 @@ interface UserProfileRepository {
     suspend fun setWeekendDays(days: Set<DayOfWeek>)
 
     suspend fun setTheme(theme: AppThemePreset)
+
+    suspend fun setOnboardingCompleted(completed: Boolean)
 }

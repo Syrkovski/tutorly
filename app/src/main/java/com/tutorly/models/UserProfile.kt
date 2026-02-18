@@ -9,7 +9,8 @@ data class UserProfile(
     val workDayStartMinutes: Int = DEFAULT_WORK_DAY_START,
     val workDayEndMinutes: Int = DEFAULT_WORK_DAY_END,
     val weekendDays: Set<DayOfWeek> = emptySet(),
-    val theme: AppThemePreset = AppThemePreset.ORIGINAL
+    val theme: AppThemePreset = AppThemePreset.ORIGINAL,
+    val onboardingCompleted: Boolean = false
 ) {
     companion object {
         const val DEFAULT_WORK_DAY_START: Int = 9 * 60

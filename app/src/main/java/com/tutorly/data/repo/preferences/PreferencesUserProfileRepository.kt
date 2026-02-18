@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.tutorly.domain.repo.UserProfileRepository
@@ -54,6 +55,12 @@ class PreferencesUserProfileRepository @Inject constructor(
         }
     }
 
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[Keys.ONBOARDING_COMPLETED] = completed
+        }
+    }
+
     private fun Preferences.toUserProfile(): UserProfile {
         val start = this[Keys.WORK_DAY_START] ?: UserProfile.DEFAULT_WORK_DAY_START
         val end = this[Keys.WORK_DAY_END] ?: UserProfile.DEFAULT_WORK_DAY_END
@@ -73,7 +80,8 @@ class PreferencesUserProfileRepository @Inject constructor(
             workDayStartMinutes = sanitizedStart,
             workDayEndMinutes = sanitizedEnd,
             weekendDays = weekend,
-            theme = theme
+            theme = theme,
+            onboardingCompleted = this[Keys.ONBOARDING_COMPLETED] ?: false
         )
     }
 
@@ -89,6 +97,7 @@ class PreferencesUserProfileRepository @Inject constructor(
         val WORK_DAY_END = intPreferencesKey("profile_work_day_end")
         val WEEKEND_DAYS = stringSetPreferencesKey("profile_weekend_days")
         val THEME = stringPreferencesKey("profile_theme")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("profile_onboarding_completed")
     }
 
     companion object {
