@@ -16,7 +16,7 @@ interface StudentsRepository {
     fun observeArchivedStudents(query: String): Flow<List<Student>>
     fun observeStudent(id: Long): Flow<Student?>
 
-    fun observeStudentProfile(studentId: Long, recentLessonsLimit: Int = 5): Flow<StudentProfile?>
+    fun observeStudentProfile(studentId: Long): Flow<StudentProfile?>
 
     // crud
     suspend fun upsert(student: Student): Long
