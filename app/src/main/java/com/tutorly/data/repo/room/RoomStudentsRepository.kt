@@ -69,15 +69,17 @@ class RoomStudentsRepository @Inject constructor(
             student ?: return@combine null
 
             val now = Instant.now()
-            val occurredLessons = lessons.filter { it.startAt <= now }
-            val occurredLessonsWithSubject = lessonsWithSubject.filter { it.lesson.startAt <= now }
+            val lessonsForProfile = lessons.filterNot { lesson -> lesson.isInstance && lesson.startAt > now }
+            val lessonsWithSubjectForProfile = lessonsWithSubject.filterNot { projection ->
+                projection.lesson.isInstance && projection.lesson.startAt > now
+            }
 
-            val metrics = buildMetrics(occurredLessons, prepaymentCents)
-            val rate = occurredLessonsWithSubject.firstOrNull()?.lesson?.let(::buildRate)
-            val recentSubject = occurredLessonsWithSubject.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
+            val metrics = buildMetrics(lessonsForProfile, prepaymentCents)
+            val rate = lessonsWithSubjectForProfile.firstOrNull()?.lesson?.let(::buildRate)
+            val recentSubject = lessonsWithSubjectForProfile.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
             val primarySubject = student.subject?.takeIf { it.isNotBlank() }?.trim()
                 ?: recentSubject
-            val profileLessons = occurredLessonsWithSubject.map { projection ->
+            val profileLessons = lessonsWithSubjectForProfile.map { projection ->
                 toProfileLesson(projection, primarySubject)
             }
 
