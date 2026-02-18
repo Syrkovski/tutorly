@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -176,7 +176,7 @@ private fun StepSubjects(
             OutlinedTextField(
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
+                    .heightIn(min = 56.dp),
                 value = state.customSubject,
                 onValueChange = viewModel::setCustomSubject,
                 singleLine = true,
@@ -235,7 +235,7 @@ private fun StepRate(
             OutlinedTextField(
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
+                    .heightIn(min = 56.dp),
                 value = state.customRateInput,
                 onValueChange = viewModel::setCustomRate,
                 singleLine = true,
