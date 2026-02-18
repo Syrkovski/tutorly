@@ -647,9 +647,17 @@ private fun DayProgressSummary(
             val progress = if (total == 0) 0f else completed.toFloat() / total.toFloat()
             LinearProgressIndicator(
                 progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(999.dp)),
                 color = MaterialTheme.extendedColors.accent,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+            Text(
+                text = "$completed/$total",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (allLessonsCompleted) {
                 Text(

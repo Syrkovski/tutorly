@@ -575,15 +575,30 @@ private fun CalendarTimelineHeader(
 
         dayProgress?.let {
             val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
-            LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp),
-                color = MaterialTheme.extendedColors.accent,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+                    .padding(bottom = 8.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = { progress.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(999.dp)),
+                    color = MaterialTheme.extendedColors.accent,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Text(
+                    text = "${it.completed}/${it.total}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 4.dp)
+                )
+            }
         }
     }
 }
