@@ -87,6 +87,8 @@ class GoogleCalendarMigrationService @Inject constructor(
         val allowedNormalized = allowedStudentNames?.mapTo(mutableSetOf()) { normalizeStudentName(it) }
         val events = mutableListOf<ImportEvent>()
         val weekStart = currentWeekStartInstant()
+        val zone = ZoneId.systemDefault()
+        val schoolYearEnd = schoolYearEndInstant(zone)
 
         queryInstances(rangeStart, rangeEnd).forEach { instance ->
             totalEvents++
@@ -117,6 +119,9 @@ class GoogleCalendarMigrationService @Inject constructor(
                 return@forEach
             }
             if (startAt < weekStart) {
+                return@forEach
+            }
+            if (startAt > schoolYearEnd) {
                 return@forEach
             }
 
@@ -160,7 +165,6 @@ class GoogleCalendarMigrationService @Inject constructor(
             )
         }
 
-        val zone = ZoneId.systemDefault()
         val grouped = events.groupBy { it.seriesKey(zone) }
         val sortedGroups = grouped.entries.sortedWith(
             compareBy<Map.Entry<SeriesKey, List<ImportEvent>>> { it.key.studentName.lowercase() }
@@ -588,7 +592,7 @@ class GoogleCalendarMigrationService @Inject constructor(
             RecurrenceFrequency.WEEKLY
         }
         val interval = if (intervalWeeks == 2) 1 else intervalWeeks
-        val until = last.startAt
+        val until = schoolYearEndInstant(zone)
 
         return RecurrenceCreateRequest(
             frequency = frequency,
@@ -613,9 +617,19 @@ class GoogleCalendarMigrationService @Inject constructor(
             frequency = RecurrenceFrequency.WEEKLY,
             interval = 1,
             daysOfWeek = days,
-            until = first.startAt,
+            until = schoolYearEndInstant(zone),
             timezone = startLocal.zone
         )
+    }
+
+
+    private fun schoolYearEndInstant(zone: ZoneId): Instant {
+        val today = LocalDate.now(zone)
+        val endYear = if (today.monthValue > Month.JUNE.value) today.year + 1 else today.year
+        return LocalDate.of(endYear, Month.JUNE, 30)
+            .atTime(LocalTime.MAX)
+            .atZone(zone)
+            .toInstant()
     }
 
     private fun determineIntervalWeeks(

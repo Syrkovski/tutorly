@@ -47,13 +47,12 @@ class RoomStudentsRepository @Inject constructor(
         studentDao.observeStudent(id)
 
     override fun observeStudentProfile(
-        studentId: Long,
-        recentLessonsLimit: Int
+        studentId: Long
     ): Flow<StudentProfile?> {
         val studentFlow = studentDao.observeStudent(studentId)
         val hasDebtFlow = paymentDao.observeHasDebt(studentId, PaymentStatus.outstandingStatuses)
         val lessonsFlow = lessonDao.observeByStudent(studentId)
-        val recentLessonsFlow = lessonDao.observeRecentWithSubject(studentId, recentLessonsLimit)
+        val lessonsWithSubjectFlow = lessonDao.observeWithSubjectByStudent(studentId)
         val prepaymentFlow = combine(
             paymentDao.observePrepaymentDeposits(studentId, PaymentStatus.PAID),
             paymentDao.observePrepaymentAllocations(studentId, PaymentStatus.PAID, PREPAYMENT_METHOD)
@@ -63,17 +62,17 @@ class RoomStudentsRepository @Inject constructor(
             studentFlow,
             hasDebtFlow,
             lessonsFlow,
-            recentLessonsFlow,
+            lessonsWithSubjectFlow,
             prepaymentFlow
-        ) { student, hasDebt, lessons, recentLessons, prepaymentCents ->
+        ) { student, hasDebt, lessons, lessonsWithSubject, prepaymentCents ->
             student ?: return@combine null
 
             val metrics = buildMetrics(lessons, prepaymentCents)
-            val rate = recentLessons.firstOrNull()?.lesson?.let(::buildRate)
-            val recentSubject = recentLessons.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
+            val rate = lessonsWithSubject.firstOrNull()?.lesson?.let(::buildRate)
+            val recentSubject = lessonsWithSubject.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
             val primarySubject = student.subject?.takeIf { it.isNotBlank() }?.trim()
                 ?: recentSubject
-            val profileLessons = recentLessons.map { projection ->
+            val profileLessons = lessonsWithSubject.map { projection ->
                 toProfileLesson(projection, primarySubject)
             }
 
