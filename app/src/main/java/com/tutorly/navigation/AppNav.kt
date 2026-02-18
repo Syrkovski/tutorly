@@ -329,13 +329,7 @@ fun AppNavRoot() {
             }
         }
         if (!profileState.onboardingCompleted) {
-            OnboardingDialog(
-                onImportLessons = {
-                    nav.navigate(ROUTE_SETTINGS) {
-                        launchSingleTop = true
-                    }
-                }
-            )
+            OnboardingDialog()
         }
     }
 }

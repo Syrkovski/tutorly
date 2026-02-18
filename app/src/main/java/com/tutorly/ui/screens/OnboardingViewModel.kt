@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tutorly.data.calendar.GoogleCalendarMigrationService
 import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.domain.repo.UserProfileRepository
 import com.tutorly.models.SubjectPreset
@@ -17,7 +18,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val userProfileRepository: UserProfileRepository,
-    private val subjectPresetsRepository: SubjectPresetsRepository
+    private val subjectPresetsRepository: SubjectPresetsRepository,
+    private val calendarMigrationService: GoogleCalendarMigrationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -78,6 +80,26 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    fun importFromGoogleCalendar() {
+        _uiState.update { current ->
+            current.copy(isImporting = true, importError = null)
+        }
+        viewModelScope.launch {
+            runCatching { calendarMigrationService.importFromGoogleCalendar() }
+                .onSuccess {
+                    completeOnboarding()
+                }
+                .onFailure {
+                    _uiState.update { current ->
+                        current.copy(
+                            isImporting = false,
+                            importError = "Не удалось импортировать занятия. Проверьте доступ к календарю."
+                        )
+                    }
+                }
+        }
+    }
+
     fun completeOnboarding() {
         val subjects = _uiState.value.selectedSubjects
         val rateCents = (_uiState.value.selectedRateRubles * 100).coerceAtLeast(0)
@@ -98,18 +120,21 @@ class OnboardingViewModel @Inject constructor(
                 }
             }
             userProfileRepository.setOnboardingCompleted(true)
+            _uiState.update { current -> current.copy(isImporting = false, importError = null) }
         }
     }
 }
 
 data class OnboardingUiState(
     val step: Int = ONBOARDING_FIRST_STEP,
-    val suggestedSubjects: List<String> = SubjectSuggestionDefaults.take(12),
+    val suggestedSubjects: List<String> = SubjectSuggestionDefaults.take(8),
     val selectedSubjects: Set<String> = emptySet(),
     val customSubject: String = "",
     val recommendedRatesRubles: List<Int> = listOf(1000, 1500, 2000, 2500, 3000),
     val selectedRateRubles: Int = 1500,
-    val customRateInput: String = ""
+    val customRateInput: String = "",
+    val isImporting: Boolean = false,
+    val importError: String? = null
 )
 
 private const val ONBOARDING_FIRST_STEP: Int = 1
