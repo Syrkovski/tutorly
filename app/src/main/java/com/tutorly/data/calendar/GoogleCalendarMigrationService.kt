@@ -87,6 +87,8 @@ class GoogleCalendarMigrationService @Inject constructor(
         val allowedNormalized = allowedStudentNames?.mapTo(mutableSetOf()) { normalizeStudentName(it) }
         val events = mutableListOf<ImportEvent>()
         val weekStart = currentWeekStartInstant()
+        val zone = ZoneId.systemDefault()
+        val schoolYearEnd = schoolYearEndInstant(zone)
 
         queryInstances(rangeStart, rangeEnd).forEach { instance ->
             totalEvents++
@@ -117,6 +119,9 @@ class GoogleCalendarMigrationService @Inject constructor(
                 return@forEach
             }
             if (startAt < weekStart) {
+                return@forEach
+            }
+            if (startAt > schoolYearEnd) {
                 return@forEach
             }
 
@@ -160,7 +165,6 @@ class GoogleCalendarMigrationService @Inject constructor(
             )
         }
 
-        val zone = ZoneId.systemDefault()
         val grouped = events.groupBy { it.seriesKey(zone) }
         val sortedGroups = grouped.entries.sortedWith(
             compareBy<Map.Entry<SeriesKey, List<ImportEvent>>> { it.key.studentName.lowercase() }
