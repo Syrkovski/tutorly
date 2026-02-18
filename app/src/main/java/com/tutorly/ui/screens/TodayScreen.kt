@@ -61,6 +61,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -1141,17 +1142,19 @@ private fun LessonsList(
         return
     }
     Column(modifier = Modifier.fillMaxWidth()) {
-        lessons.forEachIndexed { index, lesson ->
-            TodayLessonRow(
-                lesson = lesson,
-                onSwipeRight = onSwipeRight,
-                onSwipeLeft = onSwipeLeft,
-                onClick = { onLessonOpen(lesson.baseLessonId) },
-                onLongPress = { onLessonLongPress(lesson) },
-                cardElevation = cardElevation,
-                showLessonDate = showLessonDate,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+        lessons.forEach { lesson ->
+            key(lesson.id) {
+                TodayLessonRow(
+                    lesson = lesson,
+                    onSwipeRight = onSwipeRight,
+                    onSwipeLeft = onSwipeLeft,
+                    onClick = { onLessonOpen(lesson.baseLessonId) },
+                    onLongPress = { onLessonLongPress(lesson) },
+                    cardElevation = cardElevation,
+                    showLessonDate = showLessonDate,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }
