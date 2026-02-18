@@ -7,6 +7,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 //import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Archive
@@ -38,6 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -106,12 +109,15 @@ fun StudentsScreen(
     val students by vm.students.collectAsState()
     val formState by vm.editorFormState.collectAsState()
     val isArchiveMode by vm.isArchiveMode.collectAsState()
+    val selectedStudentIds by vm.selectedStudentIds.collectAsState()
     val subjectPresets by vm.subjectPresets.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editorOrigin by rememberSaveable { mutableStateOf(StudentEditorOrigin.NONE) }
+    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showArchiveConfirm by rememberSaveable { mutableStateOf(false) }
 
     val openCreationEditor: (StudentEditorOrigin) -> Unit = { origin ->
         editorOrigin = origin
@@ -173,19 +179,26 @@ fun StudentsScreen(
         topBar = {
             StudentsTopBar(
                 isArchiveMode = isArchiveMode,
-                onToggleArchive = vm::toggleArchiveMode
+                hasSelection = selectedStudentIds.isNotEmpty(),
+                selectedCount = selectedStudentIds.size,
+                onToggleArchive = vm::toggleArchiveMode,
+                onClearSelection = vm::clearSelection,
+                onDeleteSelection = { showDeleteConfirm = true },
+                onArchiveSelection = { showArchiveConfirm = true }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
-                containerColor = MaterialTheme.extendedColors.accent,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PersonAdd,
-                    contentDescription = stringResource(id = R.string.add_student)
-                )
+            if (selectedStudentIds.isEmpty()) {
+                FloatingActionButton(
+                    onClick = { openCreationEditor(StudentEditorOrigin.STUDENTS) },
+                    containerColor = MaterialTheme.extendedColors.accent,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = stringResource(id = R.string.add_student)
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -240,7 +253,11 @@ fun StudentsScreen(
                         val sharedKey = "student-card-${item.student.id}"
                         StudentCard(
                             item = item,
-                            onClick = { onStudentOpen(item.student.id) },
+                            isSelected = item.student.id in selectedStudentIds,
+                            onClick = {
+                                vm.onStudentClick(item.student.id, onStudentOpen)
+                            },
+                            onLongClick = { vm.onStudentLongPress(item.student.id) },
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
                             sharedContentKey = sharedKey
@@ -270,18 +287,131 @@ fun StudentsScreen(
             }
         )
     }
+
+    if (showArchiveConfirm) {
+        val inArchiveMode = isArchiveMode
+        AlertDialog(
+            onDismissRequest = { showArchiveConfirm = false },
+            title = {
+                Text(
+                    text = stringResource(
+                        id = if (inArchiveMode) {
+                            R.string.students_confirm_unarchive_title
+                        } else {
+                            R.string.students_confirm_archive_title
+                        }
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(
+                        id = if (inArchiveMode) {
+                            R.string.students_confirm_unarchive_message
+                        } else {
+                            R.string.students_confirm_archive_message
+                        },
+                        selectedStudentIds.size
+                    )
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    vm.archiveSelectedStudents(
+                        archive = !inArchiveMode,
+                        onSuccess = {
+                            showArchiveConfirm = false
+                        },
+                        onError = {
+                            showArchiveConfirm = false
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    context.getString(R.string.students_bulk_action_error)
+                                )
+                            }
+                        }
+                    )
+                }) {
+                    Text(
+                        text = stringResource(
+                            id = if (inArchiveMode) {
+                                R.string.students_unarchive_action
+                            } else {
+                                R.string.students_archive_action
+                            }
+                        )
+                    )
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showArchiveConfirm = false }) {
+                    Text(text = stringResource(id = R.string.student_editor_cancel))
+                }
+            }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(text = stringResource(id = R.string.students_confirm_delete_title)) },
+            text = {
+                Text(
+                    text = stringResource(
+                        id = R.string.students_confirm_delete_message,
+                        selectedStudentIds.size
+                    )
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    vm.deleteSelectedStudents(
+                        onSuccess = {
+                            showDeleteConfirm = false
+                        },
+                        onError = {
+                            showDeleteConfirm = false
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    context.getString(R.string.students_bulk_action_error)
+                                )
+                            }
+                        }
+                    )
+                }) {
+                    Text(text = stringResource(id = R.string.students_delete_action))
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDeleteConfirm = false }) {
+                    Text(text = stringResource(id = R.string.student_editor_cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun StudentsTopBar(
     isArchiveMode: Boolean,
-    onToggleArchive: () -> Unit
+    hasSelection: Boolean,
+    selectedCount: Int,
+    onToggleArchive: () -> Unit,
+    onClearSelection: () -> Unit,
+    onDeleteSelection: () -> Unit,
+    onArchiveSelection: () -> Unit
 ) {
     TopBarContainer {
-        val titleRes = if (isArchiveMode) {
-            R.string.students_archive_title
+        val titleText = if (hasSelection) {
+            stringResource(id = R.string.students_selected_count, selectedCount)
         } else {
-            R.string.students_title
+            stringResource(
+                id = if (isArchiveMode) {
+                    R.string.students_archive_title
+                } else {
+                    R.string.students_title
+                }
+            )
         }
         val actionIcon = if (isArchiveMode) {
             Icons.Outlined.Unarchive
@@ -303,7 +433,7 @@ private fun StudentsTopBar(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = stringResource(id = titleRes),
+                text = titleText,
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.surface,
                 textAlign = TextAlign.Center,
@@ -314,17 +444,58 @@ private fun StudentsTopBar(
                     .padding(horizontal = 72.dp)
             )
 
-            IconButton(
-                onClick = onToggleArchive,
-                modifier = Modifier.align(Alignment.CenterEnd),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Icon(
-                    imageVector = actionIcon,
-                    contentDescription = contentDescription
-                )
+            if (hasSelection) {
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = onArchiveSelection,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = actionIcon,
+                            contentDescription = contentDescription
+                        )
+                    }
+                    IconButton(
+                        onClick = onDeleteSelection,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = stringResource(id = R.string.students_delete_action)
+                        )
+                    }
+                    IconButton(
+                        onClick = onClearSelection,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(id = R.string.student_editor_close)
+                        )
+                    }
+                }
+            } else {
+                IconButton(
+                    onClick = onToggleArchive,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Icon(
+                        imageVector = actionIcon,
+                        contentDescription = contentDescription
+                    )
+                }
             }
         }
     }
@@ -465,6 +636,8 @@ private fun EmptyStudentsState(isArchiveMode: Boolean, modifier: Modifier = Modi
 private fun StudentCard(
     item: StudentsViewModel.StudentListItem,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    isSelected: Boolean,
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
@@ -501,13 +674,20 @@ private fun StudentCard(
     }
 
     Card(
-        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .then(sharedModifier),
+            .then(sharedModifier)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLowest
+            }
         ),
         elevation = TutorlyCardDefaults.elevation()
     ) {
@@ -647,4 +827,3 @@ fun StudentAvatar(
         )
     }
 }
-

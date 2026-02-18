@@ -47,6 +47,9 @@ class StudentsViewModel @Inject constructor(
     private val _subjectPresets = MutableStateFlow<List<SubjectPreset>>(emptyList())
     val subjectPresets: StateFlow<List<SubjectPreset>> = _subjectPresets.asStateFlow()
 
+    private val _selectedStudentIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedStudentIds: StateFlow<Set<Long>> = _selectedStudentIds.asStateFlow()
+
     private val debtObservers = mutableMapOf<Long, Job>()
     private val _debts = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
     private val lessonObservers = mutableMapOf<Long, Job>()
@@ -74,6 +77,7 @@ class StudentsViewModel @Inject constructor(
             source
         }
         .onEach {
+            syncSelection(it)
             syncDebtObservers(it)
             syncLessonObservers(it)
         }
@@ -101,6 +105,92 @@ class StudentsViewModel @Inject constructor(
 
     fun toggleArchiveMode() {
         _isArchiveMode.update { !it }
+        clearSelection()
+    }
+
+    fun onStudentLongPress(studentId: Long) {
+        _selectedStudentIds.update { current ->
+            if (studentId in current) {
+                current
+            } else {
+                current + studentId
+            }
+        }
+    }
+
+    fun onStudentClick(studentId: Long, onOpenStudent: (Long) -> Unit) {
+        val selected = _selectedStudentIds.value
+        if (selected.isEmpty()) {
+            onOpenStudent(studentId)
+            return
+        }
+
+        toggleStudentSelection(studentId)
+    }
+
+    fun toggleStudentSelection(studentId: Long) {
+        _selectedStudentIds.update { selected ->
+            if (studentId in selected) {
+                selected - studentId
+            } else {
+                selected + studentId
+            }
+        }
+    }
+
+    fun clearSelection() {
+        _selectedStudentIds.value = emptySet()
+    }
+
+    fun archiveSelectedStudents(
+        archive: Boolean,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val ids = _selectedStudentIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val now = Instant.now()
+            runCatching {
+                ids.forEach { id ->
+                    val student = repo.getById(id) ?: return@forEach
+                    repo.upsert(
+                        student.copy(
+                            isArchived = archive,
+                            updatedAt = now
+                        )
+                    )
+                }
+            }.onSuccess {
+                clearSelection()
+                onSuccess()
+            }.onFailure { throwable ->
+                onError(throwable.message ?: "")
+            }
+        }
+    }
+
+    fun deleteSelectedStudents(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val ids = _selectedStudentIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            runCatching {
+                ids.forEach { id ->
+                    val student = repo.getById(id) ?: return@forEach
+                    repo.delete(student)
+                }
+            }.onSuccess {
+                clearSelection()
+                onSuccess()
+            }.onFailure { throwable ->
+                onError(throwable.message ?: "")
+            }
+        }
     }
 
     fun startStudentCreation(
@@ -309,6 +399,13 @@ class StudentsViewModel @Inject constructor(
                     _debts.update { debts -> debts + (id to hasDebt) }
                 }
             }
+        }
+    }
+
+    private fun syncSelection(students: List<Student>) {
+        val visibleIds = students.map { it.id }.toSet()
+        _selectedStudentIds.update { selected ->
+            selected.intersect(visibleIds)
         }
     }
 
