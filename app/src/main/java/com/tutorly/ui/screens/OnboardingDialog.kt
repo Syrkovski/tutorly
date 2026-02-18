@@ -18,7 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -47,7 +51,7 @@ fun OnboardingDialog(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            viewModel.importFromGoogleCalendar()
+            viewModel.loadCalendarCandidates()
         }
     }
 
@@ -108,15 +112,21 @@ fun OnboardingDialog(
                                     Manifest.permission.READ_CALENDAR
                                 ) == PackageManager.PERMISSION_GRANTED
                                 if (hasPermission) {
-                                    viewModel.importFromGoogleCalendar()
+                                    viewModel.loadCalendarCandidates()
                                 } else {
                                     permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
                                 }
                             },
-                            enabled = !state.isImporting,
+                            enabled = !state.isImporting && !state.isCandidatesLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (state.isImporting) "Импортируем…" else "Импортировать из Google Календаря")
+                            Text(
+                                when {
+                                    state.isImporting -> "Импортируем…"
+                                    state.isCandidatesLoading -> "Загружаем учеников…"
+                                    else -> "Импортировать из Google Календаря"
+                                }
+                            )
                         }
                         state.importError?.let { error ->
                             Text(
@@ -129,6 +139,18 @@ fun OnboardingDialog(
                 }
             }
         }
+    }
+
+    if (state.isCandidateDialogVisible) {
+        OnboardingImportCandidatesDialog(
+            candidates = state.calendarImportCandidates,
+            selectedNames = state.selectedCandidateNames,
+            isImporting = state.isImporting,
+            onToggleCandidate = viewModel::toggleCalendarCandidate,
+            onSelectAll = viewModel::selectAllCalendarCandidates,
+            onDismiss = viewModel::dismissCandidateDialog,
+            onConfirm = viewModel::importFromGoogleCalendar
+        )
     }
 }
 
@@ -269,4 +291,82 @@ private fun StepImport(state: OnboardingUiState) {
             )
         }
     }
+}
+
+@Composable
+private fun OnboardingImportCandidatesDialog(
+    candidates: List<com.tutorly.data.calendar.GoogleCalendarImportCandidate>,
+    selectedNames: Set<String>,
+    isImporting: Boolean,
+    onToggleCandidate: (String) -> Unit,
+    onSelectAll: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Выберите учеников для импорта") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (candidates.isEmpty()) {
+                    Text(
+                        text = "Подходящих учеников не найдено",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Выбрать всех")
+                        Checkbox(
+                            checked = selectedNames.size == candidates.size,
+                            onCheckedChange = { onSelectAll(it) }
+                        )
+                    }
+                    candidates.forEach { candidate ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(candidate.studentName)
+                                Text(
+                                    text = "Занятий: ${candidate.lessonsCount}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Checkbox(
+                                checked = candidate.studentName in selectedNames,
+                                onCheckedChange = { onToggleCandidate(candidate.studentName) }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !isImporting && candidates.isNotEmpty()) {
+                Text("Импортировать")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isImporting) {
+                Text("Отмена")
+            }
+        }
+    )
 }

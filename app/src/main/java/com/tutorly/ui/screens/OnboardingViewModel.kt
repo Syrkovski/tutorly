@@ -2,6 +2,7 @@ package com.tutorly.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tutorly.data.calendar.GoogleCalendarImportCandidate
 import com.tutorly.data.calendar.GoogleCalendarMigrationService
 import com.tutorly.domain.repo.SubjectPresetsRepository
 import com.tutorly.domain.repo.UserProfileRepository
@@ -43,6 +44,7 @@ class OnboardingViewModel @Inject constructor(
         if (subject.isBlank()) return
         _uiState.update { current ->
             current.copy(
+                suggestedSubjects = addSubjectIfMissing(current.suggestedSubjects, subject),
                 selectedSubjects = current.selectedSubjects + subject,
                 customSubject = ""
             )
@@ -62,6 +64,7 @@ class OnboardingViewModel @Inject constructor(
         if (value <= 0) return
         _uiState.update { current ->
             current.copy(
+                recommendedRatesRubles = addRateIfMissing(current.recommendedRatesRubles, value),
                 selectedRateRubles = value,
                 customRateInput = ""
             )
@@ -80,12 +83,72 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    fun loadCalendarCandidates() {
+        _uiState.update { current ->
+            current.copy(isCandidatesLoading = true, importError = null)
+        }
+        viewModelScope.launch {
+            runCatching { calendarMigrationService.fetchImportCandidates() }
+                .onSuccess {
+                    _uiState.update { current ->
+                        current.copy(
+                            isCandidatesLoading = false,
+                            isCandidateDialogVisible = true,
+                            calendarImportCandidates = it,
+                            selectedCandidateNames = it.mapTo(linkedSetOf()) { c -> c.studentName }
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { current ->
+                        current.copy(
+                            isCandidatesLoading = false,
+                            importError = "Не удалось импортировать занятия. Проверьте доступ к календарю."
+                        )
+                    }
+                }
+        }
+    }
+
+    fun dismissCandidateDialog() {
+        _uiState.update { current -> current.copy(isCandidateDialogVisible = false) }
+    }
+
+    fun toggleCalendarCandidate(name: String) {
+        _uiState.update { current ->
+            val updated = current.selectedCandidateNames.toMutableSet().apply {
+                if (contains(name)) remove(name) else add(name)
+            }
+            current.copy(selectedCandidateNames = updated)
+        }
+    }
+
+    fun selectAllCalendarCandidates(selectAll: Boolean) {
+        _uiState.update { current ->
+            val updated = if (selectAll) {
+                current.calendarImportCandidates.mapTo(linkedSetOf()) { it.studentName }
+            } else {
+                emptySet()
+            }
+            current.copy(selectedCandidateNames = updated)
+        }
+    }
+
     fun importFromGoogleCalendar() {
+        val selected = _uiState.value.selectedCandidateNames
+        if (selected.isEmpty()) {
+            _uiState.update { current ->
+                current.copy(importError = "Выберите хотя бы одного ученика для импорта")
+            }
+            return
+        }
         _uiState.update { current ->
             current.copy(isImporting = true, importError = null)
         }
         viewModelScope.launch {
-            runCatching { calendarMigrationService.importFromGoogleCalendar() }
+            runCatching {
+                calendarMigrationService.importFromGoogleCalendar(allowedStudentNames = selected)
+            }
                 .onSuccess {
                     completeOnboarding()
                 }
@@ -133,9 +196,23 @@ data class OnboardingUiState(
     val recommendedRatesRubles: List<Int> = listOf(1000, 1500, 2000, 2500, 3000),
     val selectedRateRubles: Int = 1500,
     val customRateInput: String = "",
+    val isCandidatesLoading: Boolean = false,
+    val isCandidateDialogVisible: Boolean = false,
+    val calendarImportCandidates: List<GoogleCalendarImportCandidate> = emptyList(),
+    val selectedCandidateNames: Set<String> = emptySet(),
     val isImporting: Boolean = false,
     val importError: String? = null
 )
+
+private fun addSubjectIfMissing(subjects: List<String>, subject: String): List<String> {
+    if (subjects.any { it.equals(subject, ignoreCase = true) }) return subjects
+    return subjects + subject
+}
+
+private fun addRateIfMissing(rates: List<Int>, rate: Int): List<Int> {
+    if (rate in rates) return rates
+    return (rates + rate).sorted()
+}
 
 private const val ONBOARDING_FIRST_STEP: Int = 1
 private const val ONBOARDING_LAST_STEP: Int = 3
