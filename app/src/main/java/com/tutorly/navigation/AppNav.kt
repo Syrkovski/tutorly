@@ -35,11 +35,13 @@ import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.tutorly.ui.CalendarMode
 import com.tutorly.ui.CalendarScreen
 import com.tutorly.ui.CalendarViewModel
+import com.tutorly.ui.UserProfileViewModel
 import com.tutorly.ui.lessoncreation.LessonCreationConfig
 import com.tutorly.ui.lessoncreation.LessonCreationOrigin
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.components.AppBottomBar
 import com.tutorly.ui.screens.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import com.tutorly.ui.theme.extendedColors
@@ -75,6 +77,8 @@ private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null)
 @Composable
 fun AppNavRoot() {
     val nav = rememberAnimatedNavController()
+    val profileViewModel: UserProfileViewModel = hiltViewModel()
+    val profileState by profileViewModel.profile.collectAsStateWithLifecycle()
     val backStack by nav.currentBackStackEntryAsState()
     val destinationRoute = backStack?.destination?.route ?: ROUTE_CALENDAR
     val route = destinationRoute.substringBefore("?")
@@ -311,8 +315,17 @@ fun AppNavRoot() {
                 }
             }
         }
+        if (!profileState.onboardingCompleted) {
+            OnboardingDialog(
+                onImportLessons = {
+                    nav.navigate(ROUTE_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     }
-}}
+}
 
 fun calendarRoute(nav: NavHostController): String {
     val entry = runCatching { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }.getOrNull()
