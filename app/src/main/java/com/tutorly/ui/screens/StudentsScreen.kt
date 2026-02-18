@@ -7,6 +7,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 //import androidx.compose.animation.sharedBounds
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -689,12 +690,13 @@ private fun StudentCard(
             ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLowest
-            }
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
+        border = if (isSelected) {
+            BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
+        } else {
+            null
+        },
         elevation = TutorlyCardDefaults.elevation()
     ) {
         Box(Modifier.fillMaxWidth()) {
@@ -702,8 +704,8 @@ private fun StudentCard(
                 SelectionIndicator(
                     selected = isSelected,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 12.dp, end = 16.dp)
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 12.dp, end = 16.dp)
                 )
             }
 
@@ -712,10 +714,7 @@ private fun StudentCard(
                     status = PaymentBadgeStatus.DEBT,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(
-                            top = if (isSelectionMode) 40.dp else 12.dp,
-                            end = 16.dp
-                        )
+                        .padding(top = 12.dp, end = 16.dp)
                 )
             }
 
@@ -826,7 +825,7 @@ private fun SelectionIndicator(
         shape = CircleShape,
         color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onPrimary,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             width = 1.5.dp,
             color = if (selected) {
                 MaterialTheme.colorScheme.primary
