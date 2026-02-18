@@ -693,22 +693,13 @@ private fun StudentCard(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
         border = if (isSelected) {
-            BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
+            BorderStroke(2.5.dp, MaterialTheme.colorScheme.outline)
         } else {
             null
         },
         elevation = TutorlyCardDefaults.elevation()
     ) {
         Box(Modifier.fillMaxWidth()) {
-            if (isSelectionMode) {
-                SelectionIndicator(
-                    selected = isSelected,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 12.dp, end = 16.dp)
-                )
-            }
-
             if (item.hasDebt) {
                 PaymentBadge(
                     status = PaymentBadgeStatus.DEBT,
@@ -779,7 +770,7 @@ private fun StudentCard(
                             }
                         }
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            color = Color.Transparent,
                             contentColor = MaterialTheme.colorScheme.primary,
                             shape = MaterialTheme.shapes.small
                         ) {
@@ -810,6 +801,15 @@ private fun StudentCard(
                         }
                     }
                 }
+            }
+
+            if (isSelectionMode) {
+                SelectionIndicator(
+                    selected = isSelected,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 12.dp, end = 16.dp)
+                )
             }
         }
     }
