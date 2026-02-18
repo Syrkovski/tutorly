@@ -8,6 +8,17 @@
     <string name="students_archive_title">Архив учеников</string>
     <string name="students_archive_show">Открыть архив учеников</string>
     <string name="students_archive_show_active">Показать активных учеников</string>
+    <string name="students_selected_count">Выбрано: %1$d</string>
+    <string name="students_archive_action">В архив</string>
+    <string name="students_unarchive_action">Вернуть</string>
+    <string name="students_delete_action">Удалить</string>
+    <string name="students_confirm_archive_title">Отправить в архив?</string>
+    <string name="students_confirm_archive_message">Отправить в архив %1$d учен.</string>
+    <string name="students_confirm_unarchive_title">Вернуть из архива?</string>
+    <string name="students_confirm_unarchive_message">Вернуть в активные %1$d учен.</string>
+    <string name="students_confirm_delete_title">Удалить учеников?</string>
+    <string name="students_confirm_delete_message">Удалить %1$d учен. без возможности восстановления?</string>
+    <string name="students_bulk_action_error">Не удалось выполнить действие</string>
     <string name="students_subject_label">Предмет</string>
     <string name="students_subject_placeholder">Не указан</string>
     <string name="students_grade_label">Класс</string>
