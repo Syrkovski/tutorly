@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -585,14 +586,10 @@ private fun CalendarTimelineHeader(
                     .padding(bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                LinearProgressIndicator(
-                    progress = { progress.coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp)
-                        .clip(RoundedCornerShape(999.dp)),
-                    color = MaterialTheme.extendedColors.accent,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                GradientProgressBar(
+                    progress = progress,
+                    height = 12.dp,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -637,6 +634,41 @@ private data class DayProgress(
     val completed: Int,
     val total: Int
 )
+
+@Composable
+private fun GradientProgressBar(
+    progress: Float,
+    height: Dp,
+    modifier: Modifier = Modifier
+) {
+    val clampedProgress = progress.coerceIn(0f, 1f)
+    val accent = MaterialTheme.extendedColors.accent
+    val gradient = remember(accent) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                accent.copy(alpha = 0.65f),
+                accent
+            )
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        if (clampedProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(clampedProgress)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(gradient)
+            )
+        }
+    }
+}
 
 @Composable
 private fun CalendarModeToggle(

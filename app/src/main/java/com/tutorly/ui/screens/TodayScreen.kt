@@ -43,7 +43,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -71,12 +70,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
@@ -647,14 +648,10 @@ private fun DayProgressSummary(
                 modifier = Modifier.size(width = 178.dp, height = 154.dp)
             )
             val progress = if (total == 0) 0f else completed.toFloat() / total.toFloat()
-            LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(999.dp)),
-                color = MaterialTheme.extendedColors.accent,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            GradientProgressBar(
+                progress = progress,
+                height = 14.dp,
+                modifier = Modifier.fillMaxWidth()
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -696,6 +693,42 @@ private fun DayProgressSummary(
                     style = MaterialTheme.typography.titleMedium
                 )
             }
+        }
+    }
+}
+
+
+@Composable
+private fun GradientProgressBar(
+    progress: Float,
+    height: Dp,
+    modifier: Modifier = Modifier
+) {
+    val clampedProgress = progress.coerceIn(0f, 1f)
+    val accent = MaterialTheme.extendedColors.accent
+    val gradient = remember(accent) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                accent.copy(alpha = 0.65f),
+                accent
+            )
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        if (clampedProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(clampedProgress)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(gradient)
+            )
         }
     }
 }
