@@ -66,6 +66,18 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    fun goNext() {
+        _uiState.update { current ->
+            current.copy(step = (current.step + 1).coerceAtMost(ONBOARDING_LAST_STEP))
+        }
+    }
+
+    fun goBack() {
+        _uiState.update { current ->
+            current.copy(step = (current.step - 1).coerceAtLeast(ONBOARDING_FIRST_STEP))
+        }
+    }
+
     fun completeOnboarding() {
         val subjects = _uiState.value.selectedSubjects
         val rateCents = (_uiState.value.selectedRateRubles * 100).coerceAtLeast(0)
@@ -91,6 +103,7 @@ class OnboardingViewModel @Inject constructor(
 }
 
 data class OnboardingUiState(
+    val step: Int = ONBOARDING_FIRST_STEP,
     val suggestedSubjects: List<String> = SubjectSuggestionDefaults.take(12),
     val selectedSubjects: Set<String> = emptySet(),
     val customSubject: String = "",
@@ -98,6 +111,9 @@ data class OnboardingUiState(
     val selectedRateRubles: Int = 1500,
     val customRateInput: String = ""
 )
+
+private const val ONBOARDING_FIRST_STEP: Int = 1
+private const val ONBOARDING_LAST_STEP: Int = 3
 
 private const val DEFAULT_LESSON_DURATION_MINUTES: Int = 60
 private const val DEFAULT_SUBJECT_COLOR: Int = 0xFF4E998C.toInt()
