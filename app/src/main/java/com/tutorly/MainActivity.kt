@@ -3,13 +3,19 @@ package com.tutorly
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tutorly.navigation.AppNavRoot
 import com.tutorly.ui.UserProfileViewModel
+import com.tutorly.ui.screens.WelcomeScreen
 import com.tutorly.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 
 
 @AndroidEntryPoint // ✅ подключает Hilt к Activity (чтобы внутри Compose работали hiltViewModel() и т.д.)
@@ -20,8 +26,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             val profileViewModel: UserProfileViewModel = hiltViewModel()
             val profileState by profileViewModel.profile.collectAsStateWithLifecycle()
+            var showWelcome by remember { mutableStateOf(true) }
+
+            LaunchedEffect(Unit) {
+                delay(1800)
+                showWelcome = false
+            }
+
             AppTheme(preset = profileState.theme) {
-                AppNavRoot()
+                if (showWelcome) {
+                    WelcomeScreen()
+                } else {
+                    AppNavRoot()
+                }
             }
         }
     }
