@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -41,6 +43,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -276,27 +279,12 @@ fun CalendarScreen(
 //            containerColor = Color.Transparent
         }
     ) { padding ->
-        val dayProgressMessage = if (mode == CalendarMode.DAY) {
+        val dayProgress = if (mode == CalendarMode.DAY) {
             val lessonsForDay = uiState.lessonsWithinBoundsByDate[anchor].orEmpty()
             val completedCount = lessonsForDay.count { lesson ->
                 !lesson.end.isAfter(uiState.currentDateTime)
             }
-            val remainingCount = (lessonsForDay.size - completedCount).coerceAtLeast(0)
-            val completedText = pluralStringResource(
-                id = R.plurals.calendar_day_completed_lessons,
-                count = completedCount,
-                completedCount
-            )
-            val remainingText = pluralStringResource(
-                id = R.plurals.calendar_day_remaining_lessons,
-                count = remainingCount,
-                remainingCount
-            )
-            stringResource(
-                id = R.string.calendar_day_progress_summary,
-                completedText,
-                remainingText
-            )
+            DayProgress(completed = completedCount, total = lessonsForDay.size)
         } else {
             null
         }
@@ -317,7 +305,7 @@ fun CalendarScreen(
                 },
                 onSwipeLeft = nextPeriod,
                 onSwipeRight = prevPeriod,
-                progressMessage = dayProgressMessage
+                dayProgress = dayProgress
             )
 
             // Контент занимает остаток экрана и скроллится внутри
@@ -516,7 +504,7 @@ private fun CalendarTimelineHeader(
     onSelectMode: (CalendarMode) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
-    progressMessage: String?,
+    dayProgress: DayProgress?,
     modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru") }
@@ -588,15 +576,95 @@ private fun CalendarTimelineHeader(
                 }
         )
 
-        progressMessage?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        dayProgress?.let {
+            val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
+            val remaining = (it.total - it.completed).coerceAtLeast(0)
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                GradientProgressBar(
+                    progress = progress,
+                    height = 12.dp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.extendedColors.accent
+                        )
+                        Text(
+                            text = stringResource(R.string.progress_label_completed, it.completed),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AccessTime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(R.string.progress_label_remaining, remaining),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class DayProgress(
+    val completed: Int,
+    val total: Int
+)
+
+@Composable
+private fun GradientProgressBar(
+    progress: Float,
+    height: Dp,
+    modifier: Modifier = Modifier
+) {
+    val clampedProgress = progress.coerceIn(0f, 1f)
+    val accent = MaterialTheme.extendedColors.accent
+    val gradient = remember(accent) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                accent.copy(alpha = 0.65f),
+                accent
+            )
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        if (clampedProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(clampedProgress)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(gradient)
             )
         }
     }
@@ -1400,4 +1468,3 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
         recurrenceLabel = recurrence
     )
 }
-
