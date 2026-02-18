@@ -117,7 +117,8 @@ fun AppNavRoot() {
                         currentRoute = route,
                         onSelect = { dest ->
                             if (dest == ROUTE_STUDENTS) {
-                                val returnedToList = nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
+                                val returnedToList =
+                                    nav.popBackStack(ROUTE_STUDENTS_PATTERN, inclusive = false)
                                 if (returnedToList) {
                                     return@AppBottomBar
                                 }
@@ -148,190 +149,204 @@ fun AppNavRoot() {
                     startDestination = ROUTE_CALENDAR_PATTERN,
                     modifier = Modifier.padding(innerPadding)
                 ) {
-                composable(
-                    route = ROUTE_CALENDAR_PATTERN,
-                    arguments = listOf(
-                        navArgument(CalendarViewModel.ARG_ANCHOR_DATE) {
-                            type = NavType.StringType
-                            defaultValue = ""
-                        },
-                        navArgument(CalendarViewModel.ARG_CALENDAR_MODE) {
-                            type = NavType.StringType
-                            defaultValue = CalendarMode.DAY.name
-                        }
-                    )
-                ) { entry ->
-                    val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
-                    CalendarScreen(
-                        onAddStudent = {
-                            creationViewModel.prepareForStudentCreation()
-                            nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
-                                launchSingleTop = true
+                    composable(
+                        route = ROUTE_CALENDAR_PATTERN,
+                        arguments = listOf(
+                            navArgument(CalendarViewModel.ARG_ANCHOR_DATE) {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                            navArgument(CalendarViewModel.ARG_CALENDAR_MODE) {
+                                type = NavType.StringType
+                                defaultValue = CalendarMode.DAY.name
                             }
-                        },
-                        onEditStudent = { studentId ->
-                            nav.navigate(studentEditRoute(studentId, StudentEditTarget.PROFILE)) {
-                                launchSingleTop = true
-                            }
-                        },
-                        onOpenStudentProfile = { studentId ->
-                            nav.navigate(studentDetailsRoute(studentId)) {
-                                launchSingleTop = true
-                            }
-                        },
-                        onOpenSettings = {
-                            nav.navigate(ROUTE_SETTINGS) {
-                                launchSingleTop = true
-                            }
-                        },
-                        creationViewModel = creationViewModel
-                    )
-                }
-                composable(ROUTE_TODAY) {
-                    TodayScreen(
-                        onAddStudent = {
-                            nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
-                                launchSingleTop = true
-                            }
-                        },
-                        onEditStudent = { studentId ->
-                            nav.navigate(studentEditRoute(studentId, StudentEditTarget.PROFILE)) {
-                                launchSingleTop = true
-                            }
-                        },
-                        onOpenStudentProfile = { studentId ->
-                            nav.navigate(studentDetailsRoute(studentId)) {
-                                launchSingleTop = true
-                            }
-                        },
-                        onOpenDebtors = {
-                            nav.navigate(ROUTE_FINANCE) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
-                }      // сам рисует свой верх (заголовок + счетчики)
-                composable(
-                    route = ROUTE_STUDENTS_PATTERN,
-                    arguments = listOf(
-                        navArgument(ARG_STUDENT_EDITOR_ORIGIN) {
-                            type = NavType.StringType
-                            defaultValue = StudentEditorOrigin.NONE.name
-                        }
-                    )
-                ) { entry ->
-                    val calendarEntry =
-                        remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
-                    val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
-                    val creationState by creationViewModel.uiState.collectAsState()
-                    val originName = entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
-                    val origin =
-                        runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(
-                            StudentEditorOrigin.NONE
                         )
-                    StudentsScreen(
-                        onStudentEdit = { id ->
-                            nav.navigate(studentEditRoute(id)) {
-                                launchSingleTop = true
+                    ) { entry ->
+                        val creationViewModel: LessonCreationViewModel = hiltViewModel(entry)
+                        CalendarScreen(
+                            onAddStudent = {
+                                creationViewModel.prepareForStudentCreation()
+                                nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onEditStudent = { studentId ->
+                                nav.navigate(
+                                    studentEditRoute(
+                                        studentId,
+                                        StudentEditTarget.PROFILE
+                                    )
+                                ) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onOpenStudentProfile = { studentId ->
+                                nav.navigate(studentDetailsRoute(studentId)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onOpenSettings = {
+                                nav.navigate(ROUTE_SETTINGS) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            creationViewModel = creationViewModel
+                        )
+                    }
+                    composable(ROUTE_TODAY) {
+                        TodayScreen(
+                            onAddStudent = {
+                                nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onEditStudent = { studentId ->
+                                nav.navigate(
+                                    studentEditRoute(
+                                        studentId,
+                                        StudentEditTarget.PROFILE
+                                    )
+                                ) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onOpenStudentProfile = { studentId ->
+                                nav.navigate(studentDetailsRoute(studentId)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onOpenDebtors = {
+                                nav.navigate(ROUTE_FINANCE) {
+                                    launchSingleTop = true
+                                }
                             }
-                        },
-                        onAddLesson = { studentId ->
-                            creationViewModel.start(
-                                LessonCreationConfig(
-                                    studentId = studentId,
-                                    zoneId = ZonedDateTime.now().zone,
-                                    origin = LessonCreationOrigin.STUDENT
-                                )
+                        )
+                    }      // сам рисует свой верх (заголовок + счетчики)
+                    composable(
+                        route = ROUTE_STUDENTS_PATTERN,
+                        arguments = listOf(
+                            navArgument(ARG_STUDENT_EDITOR_ORIGIN) {
+                                type = NavType.StringType
+                                defaultValue = StudentEditorOrigin.NONE.name
+                            }
+                        )
+                    ) { entry ->
+                        val calendarEntry =
+                            remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
+                        val creationViewModel: LessonCreationViewModel =
+                            hiltViewModel(calendarEntry)
+                        val creationState by creationViewModel.uiState.collectAsState()
+                        val originName =
+                            entry.arguments?.getString(ARG_STUDENT_EDITOR_ORIGIN).orEmpty()
+                        val origin =
+                            runCatching { StudentEditorOrigin.valueOf(originName) }.getOrDefault(
+                                StudentEditorOrigin.NONE
                             )
-                            nav.navigate(calendarRoute(nav)) {
-                                launchSingleTop = true
-                                restoreState = true
+                        StudentsScreen(
+                            onStudentEdit = { id ->
+                                nav.navigate(studentEditRoute(id)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onAddLesson = { studentId ->
+                                creationViewModel.start(
+                                    LessonCreationConfig(
+                                        studentId = studentId,
+                                        zoneId = ZonedDateTime.now().zone,
+                                        origin = LessonCreationOrigin.STUDENT
+                                    )
+                                )
+                                nav.navigate(calendarRoute(nav)) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            onStudentOpen = { id ->
+                                nav.navigate(studentDetailsRoute(id)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onStudentCreatedFromLesson = { newId ->
+                                val reopened = creationViewModel.onStudentCreated(newId)
+                                nav.popBackStack()
+                                nav.navigate(calendarRoute(nav)) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                                if (!reopened) {
+                                    creationViewModel.dismiss()
+                                }
+                            },
+                            initialEditorOrigin = origin,
+                            initialStudentName = creationState.studentQuery,
+                            initialStudentGrade = creationState.studentGrade,
+                            sharedTransitionScope = sharedScope,
+                            animatedVisibilityScope = this
+                        )
+                    }
+                    composable(
+                        route = ROUTE_STUDENT_DETAILS,
+                        arguments = listOf(navArgument("studentId") { type = NavType.LongType })
+                    ) { entry ->
+                        val studentId = entry.arguments?.getLong("studentId") ?: return@composable
+                        val calendarEntry =
+                            remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
+                        val creationViewModel: LessonCreationViewModel =
+                            hiltViewModel(calendarEntry)
+                        StudentDetailsScreen(
+                            onBack = { nav.popBackStack() },
+                            onAddStudentFromCreation = {
+                                nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            creationViewModel = creationViewModel
+                        )
+                    }
+                    dialog(
+                        route = ROUTE_STUDENT_EDIT,
+                        arguments = listOf(
+                            navArgument("studentId") { type = NavType.LongType },
+                            navArgument(ARG_STUDENT_EDIT_TARGET) {
+                                type = NavType.StringType
+                                defaultValue = StudentEditTarget.PROFILE.name
                             }
-                        },
-                        onStudentOpen = { id ->
-                            nav.navigate(studentDetailsRoute(id)) {
-                                launchSingleTop = true
+                        ),
+                        dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
+                        StudentEditorDialog(
+                            onDismiss = { nav.popBackStack() },
+                            onSaved = {
+                                nav.popBackStack()
                             }
-                        },
-                        onStudentCreatedFromLesson = { newId ->
-                            val reopened = creationViewModel.onStudentCreated(newId)
-                            nav.popBackStack()
-                            nav.navigate(calendarRoute(nav)) {
-                                launchSingleTop = true
-                                restoreState = true
+                        )
+                    }
+                    composable(ROUTE_FINANCE) {
+                        FinanceScreen(
+                            selectedPeriod = financePeriod,
+                            periodOffset = financePeriodOffset,
+                            onPeriodOffsetChange = { financePeriodOffset = it },
+                            onSelectPeriod = { period ->
+                                financePeriod = period
+                                financePeriodOffset = 0
+                            },
+                            onOpenStudent = { studentId ->
+                                nav.navigate(studentDetailsRoute(studentId)) {
+                                    launchSingleTop = true
+                                }
                             }
-                            if (!reopened) {
-                                creationViewModel.dismiss()
-                            }
-                        },
-                        initialEditorOrigin = origin,
-                        initialStudentName = creationState.studentQuery,
-                        initialStudentGrade = creationState.studentGrade,
-                        sharedTransitionScope = sharedScope,
-                        animatedVisibilityScope = this
-                    )
-                }
-                composable(
-                    route = ROUTE_STUDENT_DETAILS,
-                    arguments = listOf(navArgument("studentId") { type = NavType.LongType })
-                ) { entry ->
-                    val studentId = entry.arguments?.getLong("studentId") ?: return@composable
-                    val calendarEntry =
-                        remember(nav) { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }
-                    val creationViewModel: LessonCreationViewModel = hiltViewModel(calendarEntry)
-                    StudentDetailsScreen(
-                        onBack = { nav.popBackStack() },
-                        onAddStudentFromCreation = {
-                            nav.navigate(studentsRoute(StudentEditorOrigin.LESSON_CREATION)) {
-                                launchSingleTop = true
-                            }
-                        },
-                        creationViewModel = creationViewModel
-                    )
-                }
-                dialog(
-                    route = ROUTE_STUDENT_EDIT,
-                    arguments = listOf(
-                        navArgument("studentId") { type = NavType.LongType },
-                        navArgument(ARG_STUDENT_EDIT_TARGET) {
-                            type = NavType.StringType
-                            defaultValue = StudentEditTarget.PROFILE.name
-                        }
-                    ),
-                    dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
-                ) {
-                    StudentEditorDialog(
-                        onDismiss = { nav.popBackStack() },
-                        onSaved = {
-                            nav.popBackStack()
-                        }
-                    )
-                }
-                composable(ROUTE_FINANCE) {
-                    FinanceScreen(
-                        selectedPeriod = financePeriod,
-                        periodOffset = financePeriodOffset,
-                        onPeriodOffsetChange = { financePeriodOffset = it },
-                        onSelectPeriod = { period ->
-                            financePeriod = period
-                            financePeriodOffset = 0
-                        },
-                        onOpenStudent = { studentId ->
-                            nav.navigate(studentDetailsRoute(studentId)) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
-                }
-                composable(ROUTE_SETTINGS) {
-                    SettingsScreen(
-                        onBack = { nav.popBackStack() }
-                    )
+                        )
+                    }
+                    composable(ROUTE_SETTINGS) {
+                        SettingsScreen(
+                            onBack = { nav.popBackStack() }
+                        )
+                    }
                 }
             }
-        }
-        if (!profileState.onboardingCompleted) {
-            OnboardingDialog()
+            if (!profileState.onboardingCompleted) {
+                OnboardingDialog()
+            }
         }
     }
 }
