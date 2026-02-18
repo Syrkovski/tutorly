@@ -217,6 +217,8 @@
     <string name="lesson_create_conflict_back">Вернуться</string>
     <string name="today_title">Сегодня</string>
     <string name="today_remaining_count">Осталось %1$d</string>
+    <string name="progress_label_completed">Проведено %1$d</string>
+    <string name="progress_label_remaining">Осталось %1$d</string>
     <string name="today_empty_title">Сегодня нет занятий</string>
     <string name="today_empty_subtitle">Отличный день для отдыха!</string>
     <string name="today_progress_summary">Проведено %1$d из %2$d занятий</string>
