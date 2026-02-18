@@ -276,27 +276,12 @@ fun CalendarScreen(
 //            containerColor = Color.Transparent
         }
     ) { padding ->
-        val dayProgressMessage = if (mode == CalendarMode.DAY) {
+        val dayProgress = if (mode == CalendarMode.DAY) {
             val lessonsForDay = uiState.lessonsWithinBoundsByDate[anchor].orEmpty()
             val completedCount = lessonsForDay.count { lesson ->
                 !lesson.end.isAfter(uiState.currentDateTime)
             }
-            val remainingCount = (lessonsForDay.size - completedCount).coerceAtLeast(0)
-            val completedText = pluralStringResource(
-                id = R.plurals.calendar_day_completed_lessons,
-                count = completedCount,
-                completedCount
-            )
-            val remainingText = pluralStringResource(
-                id = R.plurals.calendar_day_remaining_lessons,
-                count = remainingCount,
-                remainingCount
-            )
-            stringResource(
-                id = R.string.calendar_day_progress_summary,
-                completedText,
-                remainingText
-            )
+            DayProgress(completed = completedCount, total = lessonsForDay.size)
         } else {
             null
         }
@@ -317,7 +302,7 @@ fun CalendarScreen(
                 },
                 onSwipeLeft = nextPeriod,
                 onSwipeRight = prevPeriod,
-                progressMessage = dayProgressMessage
+                dayProgress = dayProgress
             )
 
             // Контент занимает остаток экрана и скроллится внутри
@@ -516,7 +501,7 @@ private fun CalendarTimelineHeader(
     onSelectMode: (CalendarMode) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
-    progressMessage: String?,
+    dayProgress: DayProgress?,
     modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru") }
@@ -588,19 +573,25 @@ private fun CalendarTimelineHeader(
                 }
         )
 
-        progressMessage?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        dayProgress?.let {
+            val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = 8.dp),
+                color = MaterialTheme.extendedColors.accent,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         }
     }
 }
+
+private data class DayProgress(
+    val completed: Int,
+    val total: Int
+)
 
 @Composable
 private fun CalendarModeToggle(
@@ -1400,4 +1391,3 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
         recurrenceLabel = recurrence
     )
 }
-

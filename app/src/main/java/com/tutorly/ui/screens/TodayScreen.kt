@@ -41,6 +41,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -643,16 +644,19 @@ private fun DayProgressSummary(
                 contentDescription = null,
                 modifier = Modifier.size(width = 178.dp, height = 154.dp)
             )
-            val summaryText = if (allLessonsCompleted) {
-                stringResource(id = R.string.today_progress_all_done)
-            } else {
-                stringResource(R.string.today_progress_summary, completed, total)
-            }
-            Text(
-                text = summaryText,
-                style = MaterialTheme.typography.titleMedium
+            val progress = if (total == 0) 0f else completed.toFloat() / total.toFloat()
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.extendedColors.accent,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
-            if (!allLessonsCompleted) {
+            if (allLessonsCompleted) {
+                Text(
+                    text = stringResource(id = R.string.today_progress_all_done),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            } else {
                 val remainingText = pluralStringResource(
                     id = R.plurals.today_progress_remaining,
                     count = remaining,
