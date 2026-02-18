@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Duration
+import java.time.Instant
 
 @Singleton
 class RoomStudentsRepository @Inject constructor(
@@ -67,12 +68,16 @@ class RoomStudentsRepository @Inject constructor(
         ) { student, hasDebt, lessons, lessonsWithSubject, prepaymentCents ->
             student ?: return@combine null
 
-            val metrics = buildMetrics(lessons, prepaymentCents)
-            val rate = lessonsWithSubject.firstOrNull()?.lesson?.let(::buildRate)
-            val recentSubject = lessonsWithSubject.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
+            val now = Instant.now()
+            val occurredLessons = lessons.filter { it.startAt <= now }
+            val occurredLessonsWithSubject = lessonsWithSubject.filter { it.lesson.startAt <= now }
+
+            val metrics = buildMetrics(occurredLessons, prepaymentCents)
+            val rate = occurredLessonsWithSubject.firstOrNull()?.lesson?.let(::buildRate)
+            val recentSubject = occurredLessonsWithSubject.firstOrNull()?.subject?.name?.takeIf { it.isNotBlank() }?.trim()
             val primarySubject = student.subject?.takeIf { it.isNotBlank() }?.trim()
                 ?: recentSubject
-            val profileLessons = lessonsWithSubject.map { projection ->
+            val profileLessons = occurredLessonsWithSubject.map { projection ->
                 toProfileLesson(projection, primarySubject)
             }
 
