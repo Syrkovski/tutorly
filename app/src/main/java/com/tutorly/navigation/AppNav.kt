@@ -61,6 +61,19 @@ const val ROUTE_STUDENT_EDIT = "$ROUTE_STUDENT_EDIT_BASE?$ARG_STUDENT_EDIT_TARGE
 private fun studentDetailsRoute(studentId: Long) = ROUTE_STUDENT_DETAILS.replace("{studentId}", studentId.toString())
 private fun studentsRoute(origin: StudentEditorOrigin = StudentEditorOrigin.NONE) =
     "$ROUTE_STUDENTS?$ARG_STUDENT_EDITOR_ORIGIN=${origin.name}"
+private fun calendarRoute(nav: NavHostController): String {
+    val entry = runCatching { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }.getOrNull()
+    val savedDate = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_ANCHOR_DATE)
+    val savedMode = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_CALENDAR_MODE)
+    return buildCalendarRoute(savedDate, savedMode)
+}
+
+private fun buildCalendarRoute(date: String?, mode: String?): String {
+    val anchor = date?.takeIf { it.isNotBlank() } ?: LocalDate.now().toString()
+    val tab = mode?.takeIf { it.isNotBlank() } ?: CalendarMode.DAY.name
+    return "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}=$anchor&${CalendarViewModel.ARG_CALENDAR_MODE}=$tab"
+}
+
 private fun studentEditRoute(studentId: Long, target: StudentEditTarget? = null): String {
     val base = ROUTE_STUDENT_EDIT_BASE.replace("{studentId}", studentId.toString())
     return if (target != null) {
@@ -325,17 +338,4 @@ fun AppNavRoot() {
             )
         }
     }
-}
-
-fun calendarRoute(nav: NavHostController): String {
-    val entry = runCatching { nav.getBackStackEntry(ROUTE_CALENDAR_PATTERN) }.getOrNull()
-    val savedDate = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_ANCHOR_DATE)
-    val savedMode = entry?.savedStateHandle?.get<String>(CalendarViewModel.ARG_CALENDAR_MODE)
-    return buildCalendarRoute(savedDate, savedMode)
-}
-
-fun buildCalendarRoute(date: String?, mode: String?): String {
-    val anchor = date?.takeIf { it.isNotBlank() } ?: LocalDate.now().toString()
-    val tab = mode?.takeIf { it.isNotBlank() } ?: CalendarMode.DAY.name
-    return "${ROUTE_CALENDAR}?${CalendarViewModel.ARG_ANCHOR_DATE}=$anchor&${CalendarViewModel.ARG_CALENDAR_MODE}=$tab"
 }
