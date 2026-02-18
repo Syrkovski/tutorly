@@ -588,7 +588,7 @@ class GoogleCalendarMigrationService @Inject constructor(
             RecurrenceFrequency.WEEKLY
         }
         val interval = if (intervalWeeks == 2) 1 else intervalWeeks
-        val until = last.startAt
+        val until = schoolYearEndInstant(zone)
 
         return RecurrenceCreateRequest(
             frequency = frequency,
@@ -613,9 +613,19 @@ class GoogleCalendarMigrationService @Inject constructor(
             frequency = RecurrenceFrequency.WEEKLY,
             interval = 1,
             daysOfWeek = days,
-            until = first.startAt,
+            until = schoolYearEndInstant(zone),
             timezone = startLocal.zone
         )
+    }
+
+
+    private fun schoolYearEndInstant(zone: ZoneId): Instant {
+        val today = LocalDate.now(zone)
+        val endYear = if (today.monthValue > Month.JUNE.value) today.year + 1 else today.year
+        return LocalDate.of(endYear, Month.JUNE, 30)
+            .atTime(LocalTime.MAX)
+            .atZone(zone)
+            .toInstant()
     }
 
     private fun determineIntervalWeeks(
