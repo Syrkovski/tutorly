@@ -138,7 +138,7 @@ private fun SettingsTopBar(onBack: () -> Unit) {
                 onClick = onBack,
                 modifier = Modifier.align(Alignment.CenterStart),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 )
             ) {
                 Icon(
@@ -150,7 +150,7 @@ private fun SettingsTopBar(onBack: () -> Unit) {
             Text(
                 text = stringResource(id = R.string.settings_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,

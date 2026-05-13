@@ -25,8 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -63,7 +63,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
-import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.TopBarContainer
@@ -279,16 +278,6 @@ fun CalendarScreen(
 //            containerColor = Color.Transparent
         }
     ) { padding ->
-        val dayProgress = if (mode == CalendarMode.DAY) {
-            val lessonsForDay = uiState.lessonsWithinBoundsByDate[anchor].orEmpty()
-            val completedCount = lessonsForDay.count { lesson ->
-                !lesson.end.isAfter(uiState.currentDateTime)
-            }
-            DayProgress(completed = completedCount, total = lessonsForDay.size)
-        } else {
-            null
-        }
-
         Column(
             Modifier
                 .fillMaxSize()
@@ -304,8 +293,7 @@ fun CalendarScreen(
                     viewModel.setMode(newMode)
                 },
                 onSwipeLeft = nextPeriod,
-                onSwipeRight = prevPeriod,
-                dayProgress = dayProgress
+                onSwipeRight = prevPeriod
             )
 
             // Контент занимает остаток экрана и скроллится внутри
@@ -429,11 +417,6 @@ fun CalendarTopBar(
     onOpenSettings: () -> Unit
 ) {
     val locale = remember { Locale("ru") }
-    val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
-    val monthLabel = remember(anchor, locale) {
-        val raw = monthFormatter.format(anchor)
-        raw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
-    }
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -445,28 +428,36 @@ fun CalendarTopBar(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = monthLabel,
+                text = stringResource(R.string.nav_calendar),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
-                    .align(Alignment.Center)
-//                    .padding(horizontal = 96.dp)
-                    .clickable { showDatePicker = true },
-                textAlign = TextAlign.Center,
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp, end = 104.dp),
+                textAlign = TextAlign.Start,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            IconButton(
-                onClick = onOpenSettings,
+            Row(
                 modifier = Modifier.align(Alignment.CenterEnd),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
-                )
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = stringResource(id = R.string.settings_title)
-                )
+                IconButton(
+                    onClick = onOpenSettings,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
+                }
+                IconButton(
+                    onClick = { showDatePicker = true },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
+                }
             }
         }
     }
@@ -504,7 +495,6 @@ private fun CalendarTimelineHeader(
     onSelectMode: (CalendarMode) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
-    dayProgress: DayProgress?,
     modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru") }
@@ -519,32 +509,12 @@ private fun CalendarTimelineHeader(
     ) {
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            weekDays.forEach { day ->
-                WeekDayCell(
-                    modifier = Modifier.weight(1f),
-                    date = day,
-                    isSelected = day == anchor,
-                    isToday = day == today,
-                    locale = locale,
-                    onClick = { onSelectDate(day) }
-                )
-            }
-        }
-
         CalendarModeToggle(
             selected = mode,
             onSelect = onSelectMode,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 4.dp)
+                .padding(horizontal = 16.dp, bottom = 6.dp)
                 .pointerInput(mode) {
                     val threshold = 48.dp.toPx()
                     var totalDrag = 0f
@@ -575,98 +545,27 @@ private fun CalendarTimelineHeader(
                     )
                 }
         )
-
-        dayProgress?.let {
-            val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
-            val remaining = (it.total - it.completed).coerceAtLeast(0)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                GradientProgressBar(
-                    progress = progress,
-                    height = 12.dp,
-                    modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            weekDays.forEach { day ->
+                WeekDayCell(
+                    modifier = Modifier.weight(1f),
+                    date = day,
+                    isSelected = day == anchor,
+                    isToday = day == today,
+                    locale = locale,
+                    onClick = { onSelectDate(day) }
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.extendedColors.accent
-                        )
-                        Text(
-                            text = stringResource(R.string.progress_label_completed, it.completed),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccessTime,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.progress_label_remaining, remaining),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
             }
         }
-    }
-}
 
-private data class DayProgress(
-    val completed: Int,
-    val total: Int
-)
-
-@Composable
-private fun GradientProgressBar(
-    progress: Float,
-    height: Dp,
-    modifier: Modifier = Modifier
-) {
-    val clampedProgress = progress.coerceIn(0f, 1f)
-    val accent = MaterialTheme.extendedColors.accent
-    val gradient = remember(accent) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                accent.copy(alpha = 0.65f),
-                accent
-            )
-        )
-    }
-
-    Box(
-        modifier = modifier
-            .height(height)
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        if (clampedProgress > 0f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(clampedProgress)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(gradient)
-            )
-        }
+        Spacer(Modifier.height(6.dp))
     }
 }
 
@@ -682,8 +581,10 @@ private fun CalendarModeToggle(
     val inactiveColor = Color(0xFFB9BCC7)
     TabRow(
         selectedTabIndex = selectedIndex,
-        modifier = modifier,
-//        containerColor = Color(0xFFFEFEFE),
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp)),
+        containerColor = Color(0xFFF3F4FA),
         contentColor = MaterialTheme.colorScheme.onSurface,
         divider = {},
         indicator = { tabPositions ->
@@ -697,10 +598,17 @@ private fun CalendarModeToggle(
                     Box(
                         modifier = Modifier
                             .tabIndicatorOffset(position)
-                            .padding(horizontal = 38.dp)
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                            .background(accent)
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        accent.copy(alpha = 0.72f),
+                                        accent
+                                    )
+                                )
+                            )
                     )
                 }
             }
@@ -722,16 +630,16 @@ private fun CalendarModeToggle(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .height(44.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = stringResource(id = labelRes),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (isSelected) {
-                            MaterialTheme.colorScheme.onSurface
+                            Color(0xFFF8F9FF)
                         } else {
-                            inactiveColor
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                         }
                     )
                 }
@@ -912,14 +820,13 @@ private fun DayTimeline(
     Box(
         modifier = Modifier
             .fillMaxSize()
-//            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 0.dp, vertical = 0.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxSize(),
-//            shape = RoundedCornerShape(28.dp),
-//            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-//            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
                 modifier = Modifier
