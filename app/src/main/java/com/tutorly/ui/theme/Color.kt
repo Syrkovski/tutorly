@@ -21,12 +21,12 @@ internal data class ThemePalette(
 )
 
 internal val OriginalPalette = ThemePalette(
-    topBarStart = Color(0xFF3B7D72),
-    topBarEnd = Color(0xFF4E998C),
-    accent = Color(0xFF4E998C),
-    chipFill = Color(0xFFE7EFEA),
-    backgroundTop = Color(0xFFF7FBFA),
-    backgroundBottom = Color(0xFFF0F6F4),
+    topBarStart = Color(0xFF5D50E6),
+    topBarEnd = Color(0xFF7E74F9),
+    accent = Color(0xFF5D50E6),
+    chipFill = Color(0xFFF1F0FD),
+    backgroundTop = Color(0xFFF8F7FE),
+    backgroundBottom = Color(0xFFF3F2FC),
     lessonsHighlight = MetricPalette(
         border = Color(0xFF4C6388)
     ),
@@ -42,12 +42,12 @@ internal val OriginalPalette = ThemePalette(
 )
 
 internal val PlumPalette = ThemePalette(
-    topBarStart = Color(0xFF5C2D64),
-    topBarEnd = Color(0xFF6F497E),
-    accent = Color(0xFF6F497E),
-    chipFill = Color(0xFFE6D3EE),
-    backgroundTop = Color(0xFFFAF3FE),
-    backgroundBottom = Color(0xFFF0E3F8),
+    topBarStart = Color(0xFF5B45D8),
+    topBarEnd = Color(0xFF7A69EB),
+    accent = Color(0xFF5B45D8),
+    chipFill = Color(0xFFF0EDFC),
+    backgroundTop = Color(0xFFF8F6FE),
+    backgroundBottom = Color(0xFFF3F0FC),
     lessonsHighlight = MetricPalette(
         border = Color(0xFF4C6388)
     ),
@@ -63,12 +63,12 @@ internal val PlumPalette = ThemePalette(
 )
 
 internal val RoyalPalette = ThemePalette(
-    topBarStart = Color(0xFF2E4FA6),
-    topBarEnd = Color(0xFF416BC0),
-    accent = Color(0xFF416BC0),
-    chipFill = Color(0xFFE3E9F7),
-    backgroundTop = Color(0xFFF5F8FE),
-    backgroundBottom = Color(0xFFEBF2FC),
+    topBarStart = Color(0xFF4A59D8),
+    topBarEnd = Color(0xFF6B7AF0),
+    accent = Color(0xFF4A59D8),
+    chipFill = Color(0xFFEEF1FE),
+    backgroundTop = Color(0xFFF7F8FF),
+    backgroundBottom = Color(0xFFF0F2FD),
     lessonsHighlight = MetricPalette(
         border = Color(0xFF4C6388)
     ),
@@ -84,10 +84,10 @@ internal val RoyalPalette = ThemePalette(
 )
 
 val CardSurface = Color(0xFFFFFFFF)
-val PrimaryTextColor = Color(0xFF2C2C33)
-val SecondaryTextColor = Color(0xFF49484E)
-val OutlineLavender = Color(0xFFB9C9C4)
-val OutlineVariantLavender = Color(0xFFEEF9F6)
+val PrimaryTextColor = Color(0xFF1F2340)
+val SecondaryTextColor = Color(0xFF6B6F86)
+val OutlineLavender = Color(0xFFD8DBEC)
+val OutlineVariantLavender = Color(0xFFEDEEFA)
 
 val PaidChipContent = Color(0xFFFFFFFF)
 val DebtChipContent = Color(0xFFFFFFFF)

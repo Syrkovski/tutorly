@@ -33,6 +33,7 @@ import com.tutorly.navigation.ROUTE_FINANCE
 import com.tutorly.navigation.ROUTE_STUDENTS
 import com.tutorly.navigation.ROUTE_TODAY
 import com.tutorly.ui.theme.SecondaryTextColor
+import com.tutorly.ui.theme.extendedColors
 
 enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui.graphics.vector.ImageVector){
     Calendar(ROUTE_CALENDAR, "Расписание", Icons.Outlined.CalendarMonth),
@@ -44,16 +45,17 @@ enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui
 @Composable
 fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
     val primaryColor = MaterialTheme.colorScheme.primary
+    val selectedContainer = MaterialTheme.extendedColors.chipSelected
     Surface(
         color = Color.White,
         tonalElevation = 0.dp,
-        shadowElevation = 8.dp
+        shadowElevation = 10.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 12.dp),
+                .height(86.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -74,19 +76,19 @@ fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
                     Spacer(modifier = Modifier.height(3.dp))
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (selected) primaryColor else Color.Transparent)
+                            .size(width = 44.dp, height = 32.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) selectedContainer else Color.Transparent),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = tab.label,
+                            tint = if (selected) primaryColor else SecondaryTextColor,
+                            modifier = Modifier.size(22.dp)
+                        )
                     )
-                    Spacer(modifier = Modifier.height(9.dp))
-                    Icon(
-                        imageVector = tab.icon,
-                        contentDescription = tab.label,
-                        tint = if (selected) primaryColor else SecondaryTextColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = tab.label,
                         color = if (selected) primaryColor else SecondaryTextColor,
