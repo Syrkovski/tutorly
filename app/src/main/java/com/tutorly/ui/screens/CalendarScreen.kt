@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Settings
@@ -429,11 +431,6 @@ fun CalendarTopBar(
     onOpenSettings: () -> Unit
 ) {
     val locale = remember { Locale("ru") }
-    val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
-    val monthLabel = remember(anchor, locale) {
-        val raw = monthFormatter.format(anchor)
-        raw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
-    }
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -445,28 +442,45 @@ fun CalendarTopBar(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = monthLabel,
+                text = stringResource(R.string.nav_calendar),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .align(Alignment.Center)
-//                    .padding(horizontal = 96.dp)
-                    .clickable { showDatePicker = true },
+                    .padding(horizontal = 96.dp),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             IconButton(
-                onClick = onOpenSettings,
-                modifier = Modifier.align(Alignment.CenterEnd),
+                onClick = { },
+                modifier = Modifier.align(Alignment.CenterStart),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 )
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = stringResource(id = R.string.settings_title)
-                )
+                Icon(imageVector = Icons.Outlined.Menu, contentDescription = null)
+            }
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(
+                    onClick = onOpenSettings,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
+                }
+                IconButton(
+                    onClick = { showDatePicker = true },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
+                }
             }
         }
     }
@@ -519,26 +533,6 @@ private fun CalendarTimelineHeader(
     ) {
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            weekDays.forEach { day ->
-                WeekDayCell(
-                    modifier = Modifier.weight(1f),
-                    date = day,
-                    isSelected = day == anchor,
-                    isToday = day == today,
-                    locale = locale,
-                    onClick = { onSelectDate(day) }
-                )
-            }
-        }
-
         CalendarModeToggle(
             selected = mode,
             onSelect = onSelectMode,
@@ -575,6 +569,25 @@ private fun CalendarTimelineHeader(
                     )
                 }
         )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            weekDays.forEach { day ->
+                WeekDayCell(
+                    modifier = Modifier.weight(1f),
+                    date = day,
+                    isSelected = day == anchor,
+                    isToday = day == today,
+                    locale = locale,
+                    onClick = { onSelectDate(day) }
+                )
+            }
+        }
 
         dayProgress?.let {
             val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
@@ -683,7 +696,7 @@ private fun CalendarModeToggle(
     TabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier,
-//        containerColor = Color(0xFFFEFEFE),
+        containerColor = Color(0xFFF1F2F8),
         contentColor = MaterialTheme.colorScheme.onSurface,
         divider = {},
         indicator = { tabPositions ->
@@ -697,10 +710,10 @@ private fun CalendarModeToggle(
                     Box(
                         modifier = Modifier
                             .tabIndicatorOffset(position)
-                            .padding(horizontal = 38.dp)
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                            .background(accent)
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.8f))))
                     )
                 }
             }
@@ -729,7 +742,7 @@ private fun CalendarModeToggle(
                         text = stringResource(id = labelRes),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (isSelected) {
-                            MaterialTheme.colorScheme.onSurface
+                            Color.White
                         } else {
                             inactiveColor
                         }
