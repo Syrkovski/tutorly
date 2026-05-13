@@ -27,8 +27,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -65,7 +63,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
-import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.TopBarContainer
@@ -281,16 +278,6 @@ fun CalendarScreen(
 //            containerColor = Color.Transparent
         }
     ) { padding ->
-        val dayProgress = if (mode == CalendarMode.DAY) {
-            val lessonsForDay = uiState.lessonsWithinBoundsByDate[anchor].orEmpty()
-            val completedCount = lessonsForDay.count { lesson ->
-                !lesson.end.isAfter(uiState.currentDateTime)
-            }
-            DayProgress(completed = completedCount, total = lessonsForDay.size)
-        } else {
-            null
-        }
-
         Column(
             Modifier
                 .fillMaxSize()
@@ -306,8 +293,7 @@ fun CalendarScreen(
                     viewModel.setMode(newMode)
                 },
                 onSwipeLeft = nextPeriod,
-                onSwipeRight = prevPeriod,
-                dayProgress = dayProgress
+                onSwipeRight = prevPeriod
             )
 
             // Контент занимает остаток экрана и скроллится внутри
@@ -447,23 +433,14 @@ fun CalendarTopBar(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 56.dp, end = 96.dp),
+                    .padding(start = 16.dp, end = 104.dp),
                 textAlign = TextAlign.Start,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            IconButton(
-                onClick = { },
-                modifier = Modifier.align(Alignment.CenterStart),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Icon(imageVector = Icons.Outlined.Menu, contentDescription = null)
-            }
             Row(
                 modifier = Modifier.align(Alignment.CenterEnd),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 IconButton(
                     onClick = onOpenSettings,
@@ -518,7 +495,6 @@ private fun CalendarTimelineHeader(
     onSelectMode: (CalendarMode) -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
-    dayProgress: DayProgress?,
     modifier: Modifier = Modifier
 ) {
     val locale = remember { Locale("ru") }
@@ -589,97 +565,7 @@ private fun CalendarTimelineHeader(
             }
         }
 
-        dayProgress?.let {
-            val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
-            val remaining = (it.total - it.completed).coerceAtLeast(0)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                GradientProgressBar(
-                    progress = progress,
-                    height = 12.dp,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.extendedColors.accent
-                        )
-                        Text(
-                            text = stringResource(R.string.progress_label_completed, it.completed),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccessTime,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.progress_label_remaining, remaining),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private data class DayProgress(
-    val completed: Int,
-    val total: Int
-)
-
-@Composable
-private fun GradientProgressBar(
-    progress: Float,
-    height: Dp,
-    modifier: Modifier = Modifier
-) {
-    val clampedProgress = progress.coerceIn(0f, 1f)
-    val accent = MaterialTheme.extendedColors.accent
-    val gradient = remember(accent) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                accent.copy(alpha = 0.65f),
-                accent
-            )
-        )
-    }
-
-    Box(
-        modifier = modifier
-            .height(height)
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        if (clampedProgress > 0f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(clampedProgress)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(gradient)
-            )
-        }
+        Spacer(Modifier.height(6.dp))
     }
 }
 
