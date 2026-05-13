@@ -820,12 +820,12 @@ private fun DayTimeline(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF7F8FF))
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 0.dp, vertical = 0.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxSize(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FF)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
