@@ -446,9 +446,9 @@ fun CalendarTopBar(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 96.dp),
-                textAlign = TextAlign.Center,
+                    .align(Alignment.CenterStart)
+                    .padding(start = 56.dp, end = 96.dp),
+                textAlign = TextAlign.Start,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -538,7 +538,7 @@ private fun CalendarTimelineHeader(
             onSelect = onSelectMode,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 4.dp)
+                .padding(horizontal = 16.dp, bottom = 6.dp)
                 .pointerInput(mode) {
                     val threshold = 48.dp.toPx()
                     var totalDrag = 0f
@@ -696,7 +696,7 @@ private fun CalendarModeToggle(
     TabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier,
-        containerColor = Color(0xFFF1F2F8),
+        containerColor = Color(0xFFF3F4FA),
         contentColor = MaterialTheme.colorScheme.onSurface,
         divider = {},
         indicator = { tabPositions ->
@@ -713,7 +713,14 @@ private fun CalendarModeToggle(
                             .padding(horizontal = 4.dp, vertical = 4.dp)
                             .height(40.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.8f))))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        accent.copy(alpha = 0.72f),
+                                        accent
+                                    )
+                                )
+                            )
                     )
                 }
             }
@@ -742,9 +749,9 @@ private fun CalendarModeToggle(
                         text = stringResource(id = labelRes),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (isSelected) {
-                            Color.White
+                            Color(0xFFF8F9FF)
                         } else {
-                            inactiveColor
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                         }
                     )
                 }
