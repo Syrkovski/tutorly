@@ -94,7 +94,7 @@ fun TopBarContainer(content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
+        shadowElevation = 0.dp,
         tonalElevation = 0.dp
     ) {
         Column(

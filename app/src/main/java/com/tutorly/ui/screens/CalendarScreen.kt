@@ -695,7 +695,9 @@ private fun CalendarModeToggle(
     val inactiveColor = Color(0xFFB9BCC7)
     TabRow(
         selectedTabIndex = selectedIndex,
-        modifier = modifier,
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp)),
         containerColor = Color(0xFFF3F4FA),
         contentColor = MaterialTheme.colorScheme.onSurface,
         divider = {},
@@ -711,8 +713,8 @@ private fun CalendarModeToggle(
                         modifier = Modifier
                             .tabIndicatorOffset(position)
                             .padding(horizontal = 4.dp, vertical = 4.dp)
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
@@ -742,7 +744,7 @@ private fun CalendarModeToggle(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .height(44.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -932,14 +934,13 @@ private fun DayTimeline(
     Box(
         modifier = Modifier
             .fillMaxSize()
-//            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(Color(0xFFF7F8FF))
             .padding(horizontal = 0.dp, vertical = 0.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxSize(),
-//            shape = RoundedCornerShape(28.dp),
-//            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-//            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FF)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
                 modifier = Modifier
