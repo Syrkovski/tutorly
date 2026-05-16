@@ -30,6 +30,11 @@ object TutorlyRadii {
     val pill = 999.dp
     /** Скругление верхних углов bottom-sheet. */
     val bottomSheetTop = 28.dp
+    val card = 18.dp
+    val cardLarge = 22.dp
+    val segmented = 14.dp
+    val iconBox = 12.dp
+    val floatingButton = 999.dp
 }
 
 /** Высоты/ширины ключевых контейнеров и индикаторов. */
@@ -41,7 +46,7 @@ object TutorlySizing {
     /** Толщина верхнего индикатора активной вкладки. */
     val tabIndicatorHeight = 3.dp
     /** Базовый размер иконки в навигационных компонентах. */
-    val navIcon = 24.dp
+    val navIcon = 30.dp
     /** Минимальный размер кружка статуса урока. */
     val statusChipMinSize = 24.dp
     /** Максимальная ширина контейнера диалога на больших экранах. */
@@ -72,6 +77,9 @@ object TutorlyElevation {
     val paymentBadgeTonal = 1.dp
     /** Тональная высота контейнера bottom sheet по умолчанию. */
     val bottomSheetTonal = 0.dp
+    val cardSoft = 4.dp
+    val cardMedium = 8.dp
+    val fab = 12.dp
 }
 
 /** Явные токены типографики для мелких бейджей/чипов. */
@@ -85,11 +93,24 @@ object TutorlyColors {
     /** Фон нижнего бара. */
     val bottomBarContainer = Color.White
     /** Светлый текст на цветном фоне top bar. */
+    val topBarContainer = Color.White
     val topBarOnGradient = Color(0xFFFEFEFE)
     /** Акцентный цвет успешной оплаты/предоплаты. */
     val paymentPaid = Color(0xFF4E998C)
     /** Нейтральный цвет неоплаченного будущего урока. */
     val futureUnpaid = Color(0xFF727272)
+    val screenBackground = Color(0xFFFBFCFF)
+    val cardBorder = Color(0xFFE7EAF5)
+    val softContainer = Color(0xFFF3F5FF)
+    val textPrimary = Color(0xFF3830FC)
+    val textSecondary = Color(0xFF5F6686)
+
+    val paid = Color(0xFF2DBE62)
+    val pending = Color(0xFFFF8A1F)
+    val overdue = Color(0xFFFF3B4D)
+
+    val premiumGradientStart = Color(0xFF5B55FF)
+    val premiumGradientEnd = Color(0xFF8D7CFF)
 }
 
 

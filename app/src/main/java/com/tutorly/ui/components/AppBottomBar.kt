@@ -78,24 +78,24 @@ fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(TutorlySpacing.xxs))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(TutorlySizing.tabIndicatorHeight)
-                            .clip(RoundedCornerShape(TutorlyRadii.tabIndicator))
-                            .background(if (selected) primaryColor else Color.Transparent)
-                    )
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(TutorlySizing.tabIndicatorHeight)
+//                            .clip(RoundedCornerShape(TutorlyRadii.tabIndicator))
+//                            .background(if (selected) primaryColor else Color.Transparent)
+//                    )
                     Spacer(modifier = Modifier.height(TutorlyComponentSpacing.tabIndicatorToIcon))
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
-                        tint = if (selected) primaryColor else SecondaryTextColor,
+                        tint = if (selected) TutorlyColors.textPrimary else TutorlyColors.textSecondary,
                         modifier = Modifier.size(TutorlySizing.navIcon)
                     )
                     Spacer(modifier = Modifier.height(TutorlySpacing.xs))
                     Text(
                         text = tab.label,
-                        color = if (selected) primaryColor else SecondaryTextColor,
+                        color = if (selected) TutorlyColors.textPrimary else TutorlyColors.textSecondary,
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

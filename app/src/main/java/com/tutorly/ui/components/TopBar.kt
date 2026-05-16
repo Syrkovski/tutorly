@@ -60,7 +60,7 @@ fun AppTopBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        color = TutorlyColors.topBarOnGradient
+                        color = TutorlyColors.textPrimary
                     )
                 }
             },
@@ -74,7 +74,7 @@ fun AppTopBar(
                         onClick = it,
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            contentColor = TutorlyColors.textPrimary
                         )
                     ) {
                         Icon(
@@ -87,9 +87,9 @@ fun AppTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = TutorlyColors.topBarOnGradient,
-                actionIconContentColor = TutorlyColors.topBarOnGradient,
-                navigationIconContentColor = TutorlyColors.topBarOnGradient
+                titleContentColor = TutorlyColors.textPrimary,
+                actionIconContentColor = TutorlyColors.textPrimary,
+                navigationIconContentColor = TutorlyColors.textPrimary
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
@@ -107,11 +107,7 @@ fun TopBarContainer(content: @Composable () -> Unit) {
         tonalElevation = TutorlyElevation.topBarTonal
     ) {
         Box(
-            modifier = Modifier.background(
-                Brush.horizontalGradient(
-                    colors = listOf(extendedColors.topBarStart, extendedColors.topBarEnd)
-                )
-            )
+            modifier = Modifier.background(Color.White)
         ) {
             Column(
                 modifier = Modifier
