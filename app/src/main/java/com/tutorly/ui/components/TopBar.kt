@@ -23,16 +23,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyColors
 import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlySizing
-import com.tutorly.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,8 +93,6 @@ fun AppTopBar(
 
 @Composable
 fun TopBarContainer(content: @Composable () -> Unit) {
-    val extendedColors = MaterialTheme.extendedColors
-
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
@@ -105,7 +100,7 @@ fun TopBarContainer(content: @Composable () -> Unit) {
         tonalElevation = TutorlyElevation.topBarTonal
     ) {
         Box(
-            modifier = Modifier.background(Color.White)
+            modifier = Modifier.background(TutorlyColors.topBarContainer)
         ) {
             Column(
                 modifier = Modifier
@@ -124,7 +119,7 @@ fun UnifiedTopBar(content: @Composable () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(TutorlySizing.topBarHeight)
         ) {
             content()
         }
