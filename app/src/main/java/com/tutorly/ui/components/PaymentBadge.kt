@@ -8,10 +8,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
+import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlyComponentSpacing
+import com.tutorly.ui.theme.TutorlyElevation
+import com.tutorly.ui.theme.TutorlyRadii
+import com.tutorly.ui.theme.TutorlySpacing
+import com.tutorly.ui.theme.TutorlyTypeScale
 
 enum class PaymentBadgeStatus {
     PAID,
@@ -24,7 +29,7 @@ fun PaymentBadge(
     status: PaymentBadgeStatus,
     modifier: Modifier = Modifier
 ) {
-    val paidColor = Color(0xFF4E998C)
+    val paidColor = TutorlyColors.paymentPaid
     val (txt, container, content) = when (status) {
         PaymentBadgeStatus.PAID -> Triple("Оплачено", paidColor, PaidChipContent)
 
@@ -40,13 +45,13 @@ fun PaymentBadge(
         modifier = modifier,
         color = container,
         contentColor = content,
-        shape = RoundedCornerShape(999.dp),
-        tonalElevation = 1.dp
+        shape = RoundedCornerShape(TutorlyRadii.pill),
+        tonalElevation = TutorlyElevation.paymentBadgeTonal
     ) {
         Text(
             txt,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            fontSize = TutorlyTypeScale.badgeText,
+            modifier = Modifier.padding(horizontal = TutorlyComponentSpacing.paymentBadgeHorizontal, vertical = TutorlySpacing.xs)
         )
     }
 }
