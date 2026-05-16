@@ -42,6 +42,7 @@ import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.components.AppBottomBar
 import com.tutorly.ui.screens.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tutorly.ui.theme.TutorlyColors
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import com.tutorly.ui.theme.extendedColors
@@ -104,11 +105,7 @@ fun AppNavRoot() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(extendedColors.backgroundTop, extendedColors.backgroundBottom)
-                )
-            )
+            .background(TutorlyColors.topBarContainer)
     ) {
         Scaffold(
             bottomBar = {

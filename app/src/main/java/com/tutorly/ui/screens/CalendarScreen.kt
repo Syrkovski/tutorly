@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.DatePickerDialog
+import androidx.compose.ui.text.font.FontWeight
 import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
 import com.tutorly.models.PaymentStatus
@@ -77,6 +78,11 @@ import com.tutorly.ui.lessoncreation.LessonCreationSheet
 import com.tutorly.ui.lessoncreation.LessonCreationViewModel
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
+import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlyElevation
+import com.tutorly.ui.theme.TutorlyRadii
+import com.tutorly.ui.theme.TutorlySizing
+import com.tutorly.ui.theme.TutorlySpacing
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -267,8 +273,8 @@ fun CalendarScreen(
                         )
                     )
                 },
-                containerColor = MaterialTheme.extendedColors.accent,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = TutorlyColors.textPrimary,
+                contentColor = TutorlyColors.topBarContainer
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
@@ -494,14 +500,60 @@ private fun CalendarTimelineHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFFFEFEFE))
+            .background(TutorlyColors.topBarContainer)
     ) {
+        TutorlySegmentedToggle(
+            selected = mode,
+            onSelected = onSelectMode,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = TutorlySpacing.taggleDayWeekSpadingHorizontal)
+                .padding(bottom = TutorlySpacing.taggleDayWeekSpadingBottop)
+        )
+
+//        CalendarModeToggle(
+//            selected = mode,
+//            onSelect = onSelectMode,
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(bottom = 4.dp)
+//                .pointerInput(mode) {
+//                    val threshold = 48.dp.toPx()
+//                    var totalDrag = 0f
+//                    var handled = false
+//                    detectHorizontalDragGestures(
+//                        onDragStart = {
+//                            totalDrag = 0f
+//                            handled = false
+//                        },
+//                        onDragEnd = {
+//                            totalDrag = 0f
+//                            handled = false
+//                        },
+//                        onDragCancel = {
+//                            totalDrag = 0f
+//                            handled = false
+//                        },
+//                        onHorizontalDrag = { change, dragAmount ->
+//                            if (handled) return@detectHorizontalDragGestures
+//
+//                            totalDrag += dragAmount
+//                            if (abs(totalDrag) > threshold) {
+//                                if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
+//                                handled = true
+//                                change.consume()
+//                            }
+//                        }
+//                    )
+//                }
+//        )
+
         Spacer(Modifier.height(12.dp))
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = TutorlySpacing.taggleDayWeekSpadingHorizontal)
                 .padding(bottom = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -511,101 +563,65 @@ private fun CalendarTimelineHeader(
                     modifier = Modifier.weight(1f),
                     date = day,
                     isSelected = day == anchor,
-                    isToday = day == today,
+//                    isToday = day == today,
+                    isToday = false,
                     locale = locale,
                     onClick = { onSelectDate(day) }
                 )
             }
         }
 
-        CalendarModeToggle(
-            selected = mode,
-            onSelect = onSelectMode,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp)
-                .pointerInput(mode) {
-                    val threshold = 48.dp.toPx()
-                    var totalDrag = 0f
-                    var handled = false
-                    detectHorizontalDragGestures(
-                        onDragStart = {
-                            totalDrag = 0f
-                            handled = false
-                        },
-                        onDragEnd = {
-                            totalDrag = 0f
-                            handled = false
-                        },
-                        onDragCancel = {
-                            totalDrag = 0f
-                            handled = false
-                        },
-                        onHorizontalDrag = { change, dragAmount ->
-                            if (handled) return@detectHorizontalDragGestures
-
-                            totalDrag += dragAmount
-                            if (abs(totalDrag) > threshold) {
-                                if (totalDrag < 0) onSwipeLeft() else onSwipeRight()
-                                handled = true
-                                change.consume()
-                            }
-                        }
-                    )
-                }
-        )
-
-        dayProgress?.let {
-            val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
-            val remaining = (it.total - it.completed).coerceAtLeast(0)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                GradientProgressBar(
-                    progress = progress,
-                    height = 12.dp,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.extendedColors.accent
-                        )
-                        Text(
-                            text = stringResource(R.string.progress_label_completed, it.completed),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccessTime,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.progress_label_remaining, remaining),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-        }
+//        dayProgress?.let {
+//            val progress = if (it.total == 0) 0f else it.completed.toFloat() / it.total.toFloat()
+//            val remaining = (it.total - it.completed).coerceAtLeast(0)
+//            Column(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(horizontal = 16.dp)
+//                    .padding(bottom = 8.dp),
+//                verticalArrangement = Arrangement.spacedBy(6.dp)
+//            ) {
+//                GradientProgressBar(
+//                    progress = progress,
+//                    height = 12.dp,
+//                    modifier = Modifier.fillMaxWidth()
+//                )
+//                Row(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    Row(
+//                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Outlined.CheckCircle,
+//                            contentDescription = null,
+//                            tint = MaterialTheme.extendedColors.accent
+//                        )
+//                        Text(
+//                            text = stringResource(R.string.progress_label_completed, it.completed),
+//                            style = MaterialTheme.typography.bodySmall
+//                        )
+//                    }
+//                    Row(
+//                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Outlined.AccessTime,
+//                            contentDescription = null,
+//                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+//                        )
+//                        Text(
+//                            text = stringResource(R.string.progress_label_remaining, remaining),
+//                            style = MaterialTheme.typography.bodySmall
+//                        )
+//                    }
+//                }
+//            }
+//        }
     }
 }
 
@@ -635,7 +651,7 @@ private fun GradientProgressBar(
         modifier = modifier
             .height(height)
             .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(TutorlyColors.topBarContainer)
     ) {
         if (clampedProgress > 0f) {
             Box(
@@ -735,7 +751,8 @@ private fun WeekDayCell(
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
     }
     val number = remember(date) { date.dayOfMonth.toString() }
-    val circleColor = if (isSelected) accent else Color.Transparent
+//    val circleGrad = TutorlyColors.textPrimary
+    val circleColor = if (isSelected) TutorlyColors.textPrimary else Color.Transparent
     val numberColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
     val labelColor = Color(0xFFB9BCC7)
 
@@ -891,8 +908,8 @@ private fun DayTimeline(
     Box(
         modifier = Modifier
             .fillMaxSize()
-//            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 0.dp, vertical = 0.dp)
+            .background(TutorlyColors.topBarContainer)
+            .padding(horizontal = 10.dp, vertical = 0.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxSize(),
@@ -904,6 +921,7 @@ private fun DayTimeline(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scroll)
+                    .background(TutorlyColors.topBarContainer)
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
@@ -934,9 +952,9 @@ private fun DayTimeline(
                             }
                         }
                 ) {
-                    val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-                    val accent = MaterialTheme.extendedColors.accent
-                    val circleColor = MaterialTheme.colorScheme.background
+                    val gridLineColor = TutorlyColors.premiumGradientEnd.copy(alpha = 0.06f)
+                    val accent = TutorlyColors.textPrimary
+                    val circleColor = TutorlyColors.topBarContainer
                     Canvas(Modifier.matchParentSize()) {
                         val leftPad = LabelWidth.toPx()
                         val spineW = 2.dp.toPx()
@@ -950,7 +968,7 @@ private fun DayTimeline(
                             )
                         }
                         drawRect(
-                            color = accent,
+                            color = gridLineColor,
                             topLeft = Offset(leftPad - spineW / 2f, 0f),
                             size = Size(spineW, size.height)
                         )
@@ -1041,7 +1059,7 @@ private fun DayTimeline(
                                     .height(highlightHeight)
                                     .padding(start = LabelWidth + 16.dp, end = 20.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(accent.copy(alpha = 0.15f))
+                                    .background(TutorlyColors.topBarContainer)
                                     .zIndex(0.5f)
                             )
 
@@ -1446,4 +1464,82 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
         isRecurring = isRecurring,
         recurrenceLabel = recurrence
     )
+}
+
+@Composable
+fun TutorlySegmentedToggle(
+    selected: CalendarMode,
+    onSelected: (CalendarMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val items = listOf(
+        CalendarMode.DAY to "День",
+        CalendarMode.WEEK to "Неделя"
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(TutorlySizing.taggleHeight),
+        shape = RoundedCornerShape(TutorlyRadii.tabItem),
+        color = Color(0xFFF7F8FC),
+        shadowElevation = TutorlyElevation.taggleDayWeekShadow,
+        tonalElevation = TutorlyElevation.taggleDayWeekTonal
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+//                .padding(2.dp),
+//            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            items.forEach { (mode, label) ->
+                val isSelected = mode == selected
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Surface(
+                            modifier = Modifier
+                                .matchParentSize(),
+                            shape = RoundedCornerShape(TutorlyRadii.tabItem),
+                            color = Color.Transparent,
+                            shadowElevation = TutorlyElevation.taggleButtonDayWeekShadow,
+                            tonalElevation = TutorlyElevation.taggleButtonDayWeekTonal
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                TutorlyColors.premiumGradientEnd,
+                                                TutorlyColors.premiumGradientStart
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(RoundedCornerShape(TutorlyRadii.tabItem))
+                            .clickable { onSelected(mode) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isSelected) Color.White else Color(0xFF5D6175)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

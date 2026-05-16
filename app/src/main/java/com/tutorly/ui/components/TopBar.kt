@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.weight
+//import androidx.compose.foundation.layout.weight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,66 +38,8 @@ import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyColors
 import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlySizing
+import com.tutorly.ui.theme.TutorlySpacing
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AppTopBar(
-    title: String,
-    onAddClick: (() -> Unit)? = null,
-    actions: @Composable RowScope.() -> Unit = {},
-    navigationIcon: (@Composable () -> Unit)? = null
-) {
-    TopBarContainer {
-        TopAppBar(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(TutorlySizing.topBarHeight),
-            title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        color = TutorlyColors.textPrimary
-                    )
-                }
-            },
-            navigationIcon = {
-                navigationIcon?.invoke()
-            },
-            actions = {
-                actions()
-                onAddClick?.let {
-                    FilledTonalIconButton(
-                        onClick = it,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = TutorlyColors.textPrimary
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = stringResource(id = R.string.add_student)
-                        )
-                    }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                titleContentColor = TutorlyColors.textPrimary,
-                actionIconContentColor = TutorlyColors.textPrimary,
-                navigationIconContentColor = TutorlyColors.textPrimary
-            ),
-            windowInsets = WindowInsets(0, 0, 0, 0)
-        )
-    }
-}
 
 @Composable
 fun TopBarContainer(content: @Composable () -> Unit) {
@@ -144,14 +86,15 @@ fun UnifiedTopBar(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .height(TutorlySizing.topBarHeight)
+                .padding(horizontal = TutorlySpacing.topBarSpacing),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                color = TutorlyColors.textPrimary,
+                color = TutorlyColors.contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Start,
@@ -161,10 +104,11 @@ fun UnifiedTopBar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CompositionLocalProvider(LocalContentColor provides TutorlyColors.textPrimary) {
+                CompositionLocalProvider(LocalContentColor provides TutorlyColors.contentColor) {
                     actions()
                 }
             }
         }
     }
 }
+
