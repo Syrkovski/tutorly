@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tutorly.ui.theme.TutorlyScreenTokens
+import com.tutorly.ui.theme.TutorlySpacing
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,10 +65,10 @@ fun OnboardingDialog(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = TutorlyScreenTokens.cardHorizontal, vertical = TutorlyScreenTokens.screenVertical),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)) {
                 Text(
                     text = "Добро пожаловать в Tutorly",
                     style = MaterialTheme.typography.headlineSmall,
@@ -85,7 +87,7 @@ fun OnboardingDialog(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(TutorlySpacing.sm)) {
                 when (state.step) {
                     1 -> {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -160,11 +162,11 @@ private fun StepSubjects(
     state: OnboardingUiState,
     viewModel: OnboardingViewModel
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(TutorlySpacing.md)) {
         Text("Выберите основные предметы:")
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(TutorlySpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(TutorlySpacing.sm)
         ) {
             state.suggestedSubjects.forEach { subject ->
                 val selected = state.selectedSubjects.contains(subject)
@@ -192,7 +194,7 @@ private fun StepSubjects(
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(TutorlySpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -217,11 +219,11 @@ private fun StepRate(
     state: OnboardingUiState,
     viewModel: OnboardingViewModel
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(TutorlySpacing.md)) {
         Text("Выберите ставку за час:")
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(TutorlySpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(TutorlySpacing.sm)
         ) {
             state.recommendedRatesRubles.forEach { rate ->
                 val selected = state.selectedRateRubles == rate
@@ -251,7 +253,7 @@ private fun StepRate(
         Text(text = "Ставка: ₽${state.selectedRateRubles}/ч")
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(TutorlySpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -273,7 +275,7 @@ private fun StepRate(
 
 @Composable
 private fun StepImport(state: OnboardingUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(TutorlySpacing.md)) {
         Text(
             text = "Импортировать занятия из Google Календаря?",
             style = MaterialTheme.typography.titleMedium
@@ -313,7 +315,7 @@ private fun OnboardingImportCandidatesDialog(
                     .fillMaxWidth()
                     .heightIn(max = 360.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(TutorlySpacing.md)
             ) {
                 if (candidates.isEmpty()) {
                     Text(

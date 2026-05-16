@@ -63,6 +63,7 @@ import com.tutorly.ui.components.TopBarContainer
 import com.tutorly.ui.theme.MetricTileColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.theme.extendedColors
+import com.tutorly.ui.theme.TutorlyScreenTokens
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -80,13 +81,13 @@ fun FinanceTopBar(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.tabHeaderVertical),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(68.dp)
+                    .height(TutorlyScreenTokens.tabTitleHeight)
             ) {
                 Text(
                     text = stringResource(id = R.string.finance_title),
@@ -97,7 +98,7 @@ fun FinanceTopBar(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(horizontal = 96.dp)
+                        .padding(horizontal = TutorlyScreenTokens.tabTitleHorizontalInset)
                 )
             }
 
@@ -138,7 +139,7 @@ private fun FinancePeriodToggle(
                     Box(
                         modifier = Modifier
                             .tabIndicatorOffset(position)
-                            .padding(horizontal = 38.dp)
+                            .padding(horizontal = TutorlyScreenTokens.tabIndicatorHorizontalInset)
                             .height(3.dp)
                             .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
                             .background(accent)
@@ -324,8 +325,8 @@ private fun FinanceContent(
             .background(MaterialTheme.colorScheme.background)
             .then(swipeModifier)
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.screenVertical),
+        verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
     ) {
         Text(
             text = periodRange,
@@ -519,8 +520,8 @@ private fun FinanceChartCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = TutorlyScreenTokens.cardHorizontal, vertical = TutorlyScreenTokens.cardHorizontal),
+            verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
         ) {
             Text(
                 text = stringResource(R.string.finance_chart_title),
@@ -648,8 +649,8 @@ private fun FinanceDebtorsSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = TutorlyScreenTokens.cardHorizontal, vertical = TutorlyScreenTokens.cardHorizontal),
+            verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
         ) {
             Text(
                 text = stringResource(R.string.finance_debtors_title),
