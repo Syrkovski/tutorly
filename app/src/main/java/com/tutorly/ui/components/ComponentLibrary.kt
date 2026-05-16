@@ -145,11 +145,15 @@ fun FilterChipGroup(
 ) {
     LazyRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(TutorlySpacing.sm)) {
         items(options) { option ->
-            FilterChip(label = option, selected = selectedOptions.contains(option)) { isSelected ->
+            FilterChip(
+                label = option,
+                selected = selectedOptions.contains(option),
+                onSelectedChange = { isSelected ->
                 val next = selectedOptions.toMutableSet()
                 if (isSelected) next.add(option) else next.remove(option)
-                onSelectionChange(next)
-            }
+                    onSelectionChange(next)
+                }
+            )
         }
     }
 }
