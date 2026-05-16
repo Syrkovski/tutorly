@@ -84,23 +84,14 @@ fun FinanceTopBar(
                 .padding(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.tabHeaderVertical),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(TutorlyScreenTokens.tabTitleHeight)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.finance_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.surface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = TutorlyScreenTokens.tabTitleHorizontalInset)
-                )
-            }
+            Text(
+                text = stringResource(id = R.string.finance_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Start
+            )
 
             FinancePeriodToggle(
                 selected = selectedPeriod,

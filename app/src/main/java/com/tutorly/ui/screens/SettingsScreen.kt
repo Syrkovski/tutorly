@@ -127,38 +127,17 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsTopBar(onBack: () -> Unit) {
-    UnifiedTopBar {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.CenterStart),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
+    UnifiedTopBar(
+        title = stringResource(id = R.string.settings_title),
+        actions = {
+            IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(id = R.string.settings_back)
                 )
             }
-
-            Text(
-                text = stringResource(id = R.string.settings_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 72.dp)
-            )
         }
-    }
+    )
 }
 
 @Composable

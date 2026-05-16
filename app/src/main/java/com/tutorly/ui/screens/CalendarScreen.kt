@@ -437,38 +437,18 @@ fun CalendarTopBar(
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    UnifiedTopBar {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            Text(
-                text = monthLabel,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier
-                    .align(Alignment.Center)
-//                    .padding(horizontal = 96.dp)
-                    .clickable { showDatePicker = true },
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            IconButton(
-                onClick = onOpenSettings,
-                modifier = Modifier.align(Alignment.CenterEnd),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
+    UnifiedTopBar(
+        title = monthLabel,
+        modifier = Modifier.clickable { showDatePicker = true },
+        actions = {
+            IconButton(onClick = onOpenSettings) {
                 Icon(
                     imageVector = Icons.Outlined.Settings,
                     contentDescription = stringResource(id = R.string.settings_title)
                 )
             }
         }
-    }
+    )
 
     if (showDatePicker) {
         DisposableEffect(anchor) {
