@@ -83,6 +83,19 @@ internal val RoyalPalette = ThemePalette(
     )
 )
 
+internal val PremiumPalette = ThemePalette(
+    topBarStart = Color(0xFFFFFFFF),
+    topBarEnd = Color(0xFFFFFFFF),
+    accent = Color(0xFF2F2BFF),
+    chipFill = Color(0xFFF1F2FF),
+    backgroundTop = Color(0xFFFBFCFF),
+    backgroundBottom = Color(0xFFF5F7FF),
+    lessonsHighlight = MetricPalette(border = Color(0xFF6C5CFF)),
+    rateHighlight = MetricPalette(border = Color(0xFFFF9F43)),
+    earnedHighlight = MetricPalette(border = Color(0xFF36C76B)),
+    prepaymentHighlight = MetricPalette(border = Color(0xFFFF4D5E))
+)
+
 val CardSurface = Color(0xFFFFFFFF)
 val PrimaryTextColor = Color(0xFF2C2C33)
 val SecondaryTextColor = Color(0xFF49484E)

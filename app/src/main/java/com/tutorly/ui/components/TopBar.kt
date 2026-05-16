@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -20,7 +19,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +58,7 @@ fun AppTopBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        color = TutorlyColors.topBarOnGradient
+                        color = TutorlyColors.textPrimary
                     )
                 }
             },
@@ -74,7 +72,7 @@ fun AppTopBar(
                         onClick = it,
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            contentColor = TutorlyColors.textPrimary
                         )
                     ) {
                         Icon(
@@ -87,9 +85,9 @@ fun AppTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = TutorlyColors.topBarOnGradient,
-                actionIconContentColor = TutorlyColors.topBarOnGradient,
-                navigationIconContentColor = TutorlyColors.topBarOnGradient
+                titleContentColor = TutorlyColors.textPrimary,
+                actionIconContentColor = TutorlyColors.textPrimary,
+                navigationIconContentColor = TutorlyColors.textPrimary
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
@@ -107,11 +105,7 @@ fun TopBarContainer(content: @Composable () -> Unit) {
         tonalElevation = TutorlyElevation.topBarTonal
     ) {
         Box(
-            modifier = Modifier.background(
-                Brush.horizontalGradient(
-                    colors = listOf(extendedColors.topBarStart, extendedColors.topBarEnd)
-                )
-            )
+            modifier = Modifier.background(Color.White)
         ) {
             Column(
                 modifier = Modifier
