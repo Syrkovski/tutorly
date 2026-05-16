@@ -34,9 +34,11 @@ import com.tutorly.navigation.ROUTE_STUDENTS
 import com.tutorly.navigation.ROUTE_TODAY
 import com.tutorly.ui.theme.SecondaryTextColor
 import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlyRadii
 import com.tutorly.ui.theme.TutorlySizing
 import com.tutorly.ui.theme.TutorlySpacing
+import com.tutorly.ui.theme.TutorlyComponentSpacing
 
 enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui.graphics.vector.ImageVector){
     Calendar(ROUTE_CALENDAR, "Расписание", Icons.Outlined.CalendarMonth),
@@ -50,8 +52,8 @@ fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
     val primaryColor = MaterialTheme.colorScheme.primary
     Surface(
         color = TutorlyColors.bottomBarContainer,
-        tonalElevation = 0.dp,
-        shadowElevation = 8.dp
+        tonalElevation = TutorlyElevation.bottomBarTonal,
+        shadowElevation = TutorlyElevation.bottomBarShadow
     ) {
         Row(
             modifier = Modifier
@@ -83,7 +85,7 @@ fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
                             .clip(RoundedCornerShape(TutorlyRadii.tabIndicator))
                             .background(if (selected) primaryColor else Color.Transparent)
                     )
-                    Spacer(modifier = Modifier.height(TutorlySpacing.sm + 1.dp))
+                    Spacer(modifier = Modifier.height(TutorlyComponentSpacing.tabIndicatorToIcon))
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,

@@ -12,6 +12,8 @@ import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
 import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlyComponentSpacing
+import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlyRadii
 import com.tutorly.ui.theme.TutorlySpacing
 import com.tutorly.ui.theme.TutorlyTypeScale
@@ -44,12 +46,12 @@ fun PaymentBadge(
         color = container,
         contentColor = content,
         shape = RoundedCornerShape(TutorlyRadii.pill),
-        tonalElevation = 1.dp
+        tonalElevation = TutorlyElevation.paymentBadgeTonal
     ) {
         Text(
             txt,
             fontSize = TutorlyTypeScale.badgeText,
-            modifier = Modifier.padding(horizontal = TutorlySpacing.sm + 2.dp, vertical = TutorlySpacing.xs)
+            modifier = Modifier.padding(horizontal = TutorlyComponentSpacing.paymentBadgeHorizontal, vertical = TutorlySpacing.xs)
         )
     }
 }

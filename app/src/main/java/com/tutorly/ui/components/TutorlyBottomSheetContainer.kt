@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlyRadii
 import com.tutorly.ui.theme.TutorlySpacing
 
@@ -28,7 +29,7 @@ import com.tutorly.ui.theme.TutorlySpacing
 fun TutorlyBottomSheetContainer(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
-    tonalElevation: Dp = 0.dp,
+    tonalElevation: Dp = TutorlyElevation.bottomSheetTonal,
     shape: Shape = RoundedCornerShape(topStart = TutorlyRadii.bottomSheetTop, topEnd = TutorlyRadii.bottomSheetTop),
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
     content: @Composable () -> Unit,

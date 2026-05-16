@@ -22,6 +22,7 @@ import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
 import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlySizing
 import java.time.ZonedDateTime
 
 /** Visual parameters for the payment status indicator. */
@@ -39,7 +40,7 @@ fun StatusChip(data: StatusChipData, modifier: Modifier = Modifier) {
         contentColor = data.content,
         shape = CircleShape,
         modifier = modifier
-            .defaultMinSize(minWidth = 24.dp, minHeight = 24.dp)
+            .defaultMinSize(minWidth = TutorlySizing.statusChipMinSize, minHeight = TutorlySizing.statusChipMinSize)
             .semantics { contentDescription = data.description }
     ) {
         Box(contentAlignment = Alignment.Center) {

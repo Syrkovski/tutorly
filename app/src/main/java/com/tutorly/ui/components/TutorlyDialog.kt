@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.tutorly.ui.theme.TutorlySizing
 import com.tutorly.ui.theme.TutorlySpacing
 import androidx.compose.ui.window.DialogProperties
 
@@ -35,7 +36,7 @@ fun TutorlyDialog(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = TutorlySpacing.lg)
-                .widthIn(max = 560.dp),
+                .widthIn(max = TutorlySizing.dialogMaxWidth),
             shape = AlertDialogDefaults.shape,
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = Color.White,
@@ -45,7 +46,7 @@ fun TutorlyDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = TutorlySpacing.xl, vertical = TutorlySpacing.lg)
-                    .heightIn(max = 600.dp)
+                    .heightIn(max = TutorlySizing.dialogMaxHeight)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),

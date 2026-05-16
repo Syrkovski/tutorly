@@ -32,7 +32,7 @@ object TutorlyRadii {
     val bottomSheetTop = 28.dp
 }
 
-/** Высоты ключевых контейнеров и индикаторов. */
+/** Высоты/ширины ключевых контейнеров и индикаторов. */
 object TutorlySizing {
     /** Высота нижнего бара приложения. */
     val bottomBarHeight = 80.dp
@@ -42,6 +42,36 @@ object TutorlySizing {
     val tabIndicatorHeight = 3.dp
     /** Базовый размер иконки в навигационных компонентах. */
     val navIcon = 24.dp
+    /** Минимальный размер кружка статуса урока. */
+    val statusChipMinSize = 24.dp
+    /** Максимальная ширина контейнера диалога на больших экранах. */
+    val dialogMaxWidth = 560.dp
+    /** Максимальная высота контента диалога перед скроллом. */
+    val dialogMaxHeight = 600.dp
+}
+
+/** Отдельные токены для локальных паддингов компонентов. */
+object TutorlyComponentSpacing {
+    /** Отступ между верхним индикатором таба и иконкой. */
+    val tabIndicatorToIcon = 9.dp
+    /** Горизонтальный паддинг текста в бейдже оплаты. */
+    val paymentBadgeHorizontal = 10.dp
+}
+
+/** Токены для теней/тональных возвышений. */
+object TutorlyElevation {
+    /** Тень нижней панели навигации. */
+    val bottomBarShadow = 8.dp
+    /** Тональная высота нижней панели навигации. */
+    val bottomBarTonal = 0.dp
+    /** Тень верхнего бара. */
+    val topBarShadow = 4.dp
+    /** Тональная высота верхнего бара. */
+    val topBarTonal = 0.dp
+    /** Тональная высота бейджа оплаты. */
+    val paymentBadgeTonal = 1.dp
+    /** Тональная высота контейнера bottom sheet по умолчанию. */
+    val bottomSheetTonal = 0.dp
 }
 
 /** Явные токены типографики для мелких бейджей/чипов. */

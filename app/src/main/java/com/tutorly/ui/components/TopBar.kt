@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
 import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlySizing
 import com.tutorly.ui.theme.extendedColors
 
@@ -102,8 +103,8 @@ fun TopBarContainer(content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
-        shadowElevation = 4.dp,
-        tonalElevation = 0.dp
+        shadowElevation = TutorlyElevation.topBarShadow,
+        tonalElevation = TutorlyElevation.topBarTonal
     ) {
         Box(
             modifier = Modifier.background(
