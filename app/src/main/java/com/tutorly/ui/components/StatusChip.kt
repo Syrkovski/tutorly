@@ -21,6 +21,7 @@ import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.theme.DebtChipContent
 import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
+import com.tutorly.ui.theme.TutorlyColors
 import java.time.ZonedDateTime
 
 /** Visual parameters for the payment status indicator. */
@@ -61,7 +62,7 @@ fun statusChipData(
 ): StatusChipData {
     val colorScheme = MaterialTheme.colorScheme
     val cancelledColor = colorScheme.outline
-    val paidColor = Color(0xFF4E998C)
+    val paidColor = TutorlyColors.paymentPaid
 
     fun defaultContentColor(background: Color): Color =
         if (background.luminance() < 0.5f) Color.White else colorScheme.onSurface
@@ -85,7 +86,7 @@ fun statusChipData(
 
         PaymentStatus.DUE, PaymentStatus.UNPAID -> {
             if (isFutureLesson) {
-                val futureUnpaid = Color(0xFF727272)
+                val futureUnpaid = TutorlyColors.futureUnpaid
                 StatusChipData(
                     label = "₽",
                     description = stringResource(R.string.lesson_status_unpaid),

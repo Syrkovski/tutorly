@@ -33,6 +33,10 @@ import com.tutorly.navigation.ROUTE_FINANCE
 import com.tutorly.navigation.ROUTE_STUDENTS
 import com.tutorly.navigation.ROUTE_TODAY
 import com.tutorly.ui.theme.SecondaryTextColor
+import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlyRadii
+import com.tutorly.ui.theme.TutorlySizing
+import com.tutorly.ui.theme.TutorlySpacing
 
 enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui.graphics.vector.ImageVector){
     Calendar(ROUTE_CALENDAR, "Расписание", Icons.Outlined.CalendarMonth),
@@ -45,15 +49,15 @@ enum class Tab(val route:String, val label:String, val icon: androidx.compose.ui
 fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
     val primaryColor = MaterialTheme.colorScheme.primary
     Surface(
-        color = Color.White,
+        color = TutorlyColors.bottomBarContainer,
         tonalElevation = 0.dp,
         shadowElevation = 8.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 12.dp),
+                .height(TutorlySizing.bottomBarHeight)
+                .padding(horizontal = TutorlySpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -64,29 +68,29 @@ fun AppBottomBar(currentRoute: String, onSelect:(String)->Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(TutorlyRadii.tabItem))
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null
                         ) { onSelect(tab.route) },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(TutorlySpacing.xxs))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(2.dp))
+                            .height(TutorlySizing.tabIndicatorHeight)
+                            .clip(RoundedCornerShape(TutorlyRadii.tabIndicator))
                             .background(if (selected) primaryColor else Color.Transparent)
                     )
-                    Spacer(modifier = Modifier.height(9.dp))
+                    Spacer(modifier = Modifier.height(TutorlySpacing.sm + 1.dp))
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
                         tint = if (selected) primaryColor else SecondaryTextColor,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(TutorlySizing.navIcon)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(TutorlySpacing.xs))
                     Text(
                         text = tab.label,
                         color = if (selected) primaryColor else SecondaryTextColor,

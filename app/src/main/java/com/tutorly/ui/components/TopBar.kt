@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tutorly.R
+import com.tutorly.ui.theme.TutorlyColors
+import com.tutorly.ui.theme.TutorlySizing
 import com.tutorly.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +47,7 @@ fun AppTopBar(
         TopAppBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .height(TutorlySizing.topBarHeight),
             title = {
                 Box(
                     modifier = Modifier
@@ -57,7 +59,7 @@ fun AppTopBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        color = Color(0xFFFEFEFE)
+                        color = TutorlyColors.topBarOnGradient
                     )
                 }
             },
@@ -84,9 +86,9 @@ fun AppTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                titleContentColor = Color(0xFFFEFEFE),
-                actionIconContentColor = Color(0xFFFEFEFE),
-                navigationIconContentColor = Color(0xFFFEFEFE)
+                titleContentColor = TutorlyColors.topBarOnGradient,
+                actionIconContentColor = TutorlyColors.topBarOnGradient,
+                navigationIconContentColor = TutorlyColors.topBarOnGradient
             ),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
