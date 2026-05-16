@@ -93,6 +93,7 @@ import com.tutorly.ui.theme.DebtChipFill
 import com.tutorly.ui.theme.PaidChipContent
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
+import com.tutorly.ui.theme.TutorlyScreenTokens
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -256,8 +257,8 @@ private fun EmptyState(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.screenVertical),
+        verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
     ) {
         item(key = "empty_state_header") {
             Card(
@@ -269,7 +270,7 @@ private fun EmptyState(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                        .padding(horizontal = TutorlyScreenTokens.cardHorizontal, vertical = TutorlyScreenTokens.cardVertical),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Image(
@@ -328,7 +329,7 @@ private fun DayInProgressContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.screenVertical),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (showProgressSummary) {
@@ -411,8 +412,8 @@ private fun ReviewPendingContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.screenVertical),
+        verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
     ) {
         item(key = "review_summary") {
             ReviewSummaryCard(
@@ -486,7 +487,7 @@ private fun ReviewSummaryCard(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.undraw_to_do_list_o3jf),
@@ -598,7 +599,7 @@ private fun ReviewEmptyMarkedCard() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = TutorlyScreenTokens.cardHorizontal, vertical = TutorlyScreenTokens.cardVertical),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -641,7 +642,7 @@ private fun DayProgressSummary(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
         )  {
             Image(
                 painter = painterResource(id = R.drawable.focused),
@@ -798,8 +799,8 @@ private fun DayClosedContent(
     val currencyFormatter = rememberCurrencyFormatter()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = TutorlyScreenTokens.screenHorizontal, vertical = TutorlyScreenTokens.screenVertical),
+        verticalArrangement = Arrangement.spacedBy(TutorlyScreenTokens.sectionGap)
     ) {
         item(key = "summary") {
             DayClosedSummary(

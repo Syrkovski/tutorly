@@ -91,3 +91,18 @@ object TutorlyColors {
     /** Нейтральный цвет неоплаченного будущего урока. */
     val futureUnpaid = Color(0xFF727272)
 }
+
+
+/** Токены экранов (Today/Finance/Onboarding) для унификации паддингов и размеров. */
+object TutorlyScreenTokens {
+    val screenHorizontal = TutorlySpacing.lg
+    val screenVertical = 24.dp
+    val sectionGap = TutorlySpacing.lg
+    val cardHorizontal = TutorlySpacing.xl
+    val cardVertical = 24.dp
+    val buttonRowGap = TutorlySpacing.sm
+    val tabHeaderVertical = TutorlySpacing.md
+    val tabTitleHeight = 68.dp
+    val tabTitleHorizontalInset = 96.dp
+    val tabIndicatorHorizontalInset = 38.dp
+}
