@@ -1,5 +1,6 @@
 package com.tutorly.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -132,7 +133,7 @@ fun FilterChip(label: String, selected: Boolean, onSelectedChange: (Boolean) -> 
             containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
             labelColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
         ),
-        border = AssistChipDefaults.assistChipBorder(borderColor = if (selected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     )
 }
 
