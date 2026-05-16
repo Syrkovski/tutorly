@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.theme.TutorlyColors
 import com.tutorly.ui.theme.extendedColors
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -96,7 +97,7 @@ private fun DayTile(
     }
 
     // Белая подложка только для сегодняшнего дня
-    val bg: Color = Color.Transparent
+    val bg = Color.Transparent
 
     val dayShape = MaterialTheme.shapes.medium
     Surface(
@@ -127,7 +128,7 @@ private fun DayTile(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Spacer(Modifier.height(10.dp))
+//                    Spacer(Modifier.height(10.dp))
                     if (isToday) {
                         MiniBadge()
                     }

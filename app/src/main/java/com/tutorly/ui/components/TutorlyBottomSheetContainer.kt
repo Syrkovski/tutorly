@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.tutorly.ui.theme.TutorlyColors
 import com.tutorly.ui.theme.TutorlyElevation
 import com.tutorly.ui.theme.TutorlyRadii
 import com.tutorly.ui.theme.TutorlySpacing
@@ -34,11 +35,7 @@ fun TutorlyBottomSheetContainer(
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
     content: @Composable () -> Unit,
 ) {
-    val containerColor = if (color == Color.Unspecified) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        color
-    }
+    val containerColor = TutorlyColors.screenBackground
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,

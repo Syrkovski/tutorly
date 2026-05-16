@@ -18,6 +18,11 @@ object TutorlySpacing {
     val lg = 16.dp
     /** Крупный отступ для карточек/диалогов. */
     val xl = 20.dp
+
+    val topBarSpacing = 32.dp
+
+    val taggleDayWeekSpadingBottop = 8.dp
+    val taggleDayWeekSpadingHorizontal = 16.dp
 }
 
 /** Радиусы скругления UI-элементов. */
@@ -53,6 +58,8 @@ object TutorlySizing {
     val dialogMaxWidth = 560.dp
     /** Максимальная высота контента диалога перед скроллом. */
     val dialogMaxHeight = 600.dp
+
+    val taggleHeight = 44.dp
 }
 
 /** Отдельные токены для локальных паддингов компонентов. */
@@ -66,11 +73,11 @@ object TutorlyComponentSpacing {
 /** Токены для теней/тональных возвышений. */
 object TutorlyElevation {
     /** Тень нижней панели навигации. */
-    val bottomBarShadow = 8.dp
+    val bottomBarShadow = 2.dp
     /** Тональная высота нижней панели навигации. */
     val bottomBarTonal = 0.dp
     /** Тень верхнего бара. */
-    val topBarShadow = 4.dp
+    val topBarShadow = 0.dp
     /** Тональная высота верхнего бара. */
     val topBarTonal = 0.dp
     /** Тональная высота бейджа оплаты. */
@@ -80,6 +87,13 @@ object TutorlyElevation {
     val cardSoft = 4.dp
     val cardMedium = 8.dp
     val fab = 12.dp
+
+    val taggleDayWeekShadow = 0.dp
+    val taggleDayWeekTonal = 0.dp
+
+    val taggleButtonDayWeekShadow = 8.dp
+    val taggleButtonDayWeekTonal = 0.dp
+
 }
 
 /** Явные токены типографики для мелких бейджей/чипов. */
@@ -102,15 +116,16 @@ object TutorlyColors {
     val screenBackground = Color(0xFFFBFCFF)
     val cardBorder = Color(0xFFE7EAF5)
     val softContainer = Color(0xFFF3F5FF)
-    val textPrimary = Color(0xFF3830FC)
+    val textPrimary = Color(0xFF4445F2)
     val textSecondary = Color(0xFF5F6686)
+    val contentColor = Color(0xFF0C0E2E)
 
     val paid = Color(0xFF2DBE62)
     val pending = Color(0xFFFF8A1F)
     val overdue = Color(0xFFFF3B4D)
 
-    val premiumGradientStart = Color(0xFF5B55FF)
-    val premiumGradientEnd = Color(0xFF8D7CFF)
+    val premiumGradientStart = Color(0xFF4445F2)
+    val premiumGradientEnd = Color(0xFF9793F4)
 }
 
 

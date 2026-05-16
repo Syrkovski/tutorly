@@ -84,7 +84,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
@@ -1437,38 +1437,16 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
-    TopBarContainer {
-        val titleRes = when (state) {
-            is TodayUiState.DayClosed -> R.string.today_topbar_closed
-            else -> R.string.today_title
-        }
-        val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 16.dp)
-        ) {
-            Text(
-                text = stringResource(titleRes),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = if (canReopen) 72.dp else 0.dp),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
+    val titleRes = when (state) {
+        is TodayUiState.DayClosed -> R.string.today_topbar_closed
+        else -> R.string.today_title
+    }
+    val canReopen = (state as? TodayUiState.DayClosed)?.canReopen == true
+    UnifiedTopBar(
+        title = stringResource(titleRes),
+        actions = {
             if (canReopen) {
-                IconButton(
-                    onClick = onReopenDay,
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
+                IconButton(onClick = onReopenDay) {
                     Icon(
                         imageVector = Icons.Outlined.LockOpen,
                         contentDescription = stringResource(R.string.today_reopen_day_action)
@@ -1476,7 +1454,7 @@ private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
                 }
             }
         }
-    }
+    )
 }
 
 @Composable

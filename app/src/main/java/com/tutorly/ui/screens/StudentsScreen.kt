@@ -86,7 +86,7 @@ import com.tutorly.R
 import com.tutorly.models.SubjectPreset
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
@@ -404,104 +404,35 @@ private fun StudentsTopBar(
     onDeleteSelection: () -> Unit,
     onArchiveSelection: () -> Unit
 ) {
-    TopBarContainer {
-        val titleText = if (hasSelection) {
-            stringResource(id = R.string.students_selected_count, selectedCount)
-        } else {
-            stringResource(
-                id = if (isArchiveMode) {
-                    R.string.students_archive_title
-                } else {
-                    R.string.students_title
-                }
-            )
-        }
-        val actionIcon = if (isArchiveMode) {
-            Icons.Outlined.Unarchive
-        } else {
-            Icons.Outlined.Archive
-        }
-        val contentDescription = stringResource(
-            id = if (isArchiveMode) {
-                R.string.students_archive_show_active
-            } else {
-                R.string.students_archive_show
+    val titleText = if (hasSelection) {
+        stringResource(id = R.string.students_selected_count, selectedCount)
+    } else {
+        stringResource(id = if (isArchiveMode) R.string.students_archive_title else R.string.students_title)
+    }
+    val actionIcon = if (isArchiveMode) Icons.Outlined.Unarchive else Icons.Outlined.Archive
+    val contentDescription = stringResource(
+        id = if (isArchiveMode) R.string.students_archive_show_active else R.string.students_archive_show
+    )
+    UnifiedTopBar(title = titleText) {
+        if (hasSelection) {
+            IconButton(onClick = onArchiveSelection) {
+                Icon(imageVector = actionIcon, contentDescription = contentDescription)
             }
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 16.dp)
-        ) {
-            Text(
-                text = titleText,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                textAlign = if (hasSelection) TextAlign.Start else TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .align(if (hasSelection) Alignment.CenterStart else Alignment.Center)
-                    .padding(
-                        start = if (hasSelection) 0.dp else 72.dp,
-                        end = 72.dp
-                    )
-            )
-
-            if (hasSelection) {
-                Row(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    IconButton(
-                        onClick = onArchiveSelection,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Icon(
-                            imageVector = actionIcon,
-                            contentDescription = contentDescription
-                        )
-                    }
-                    IconButton(
-                        onClick = onDeleteSelection,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = stringResource(id = R.string.students_delete_action)
-                        )
-                    }
-                    IconButton(
-                        onClick = onClearSelection,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(id = R.string.student_editor_close)
-                        )
-                    }
-                }
-            } else {
-                IconButton(
-                    onClick = onToggleArchive,
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Icon(
-                        imageVector = actionIcon,
-                        contentDescription = contentDescription
-                    )
-                }
+            IconButton(onClick = onDeleteSelection) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(id = R.string.students_delete_action)
+                )
+            }
+            IconButton(onClick = onClearSelection) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(id = R.string.student_editor_close)
+                )
+            }
+        } else {
+            IconButton(onClick = onToggleArchive) {
+                Icon(imageVector = actionIcon, contentDescription = contentDescription)
             }
         }
     }

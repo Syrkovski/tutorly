@@ -78,7 +78,7 @@ import com.tutorly.R
 import com.tutorly.domain.model.StudentProfile
 import com.tutorly.domain.model.StudentProfileLesson
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
 import com.tutorly.ui.theme.extendedColors
@@ -441,7 +441,7 @@ private fun StudentProfileTopBar(
     archiveEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
 ) {
-    TopBarContainer {
+    UnifiedTopBar {
         val hasBack = onBackClick != null
         val hasActions = listOfNotNull(
             onEditProfileClick,

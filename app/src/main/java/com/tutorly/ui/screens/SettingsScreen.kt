@@ -58,7 +58,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.core.content.ContextCompat
 import com.tutorly.R
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.theme.extendedColors
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -127,39 +127,17 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsTopBar(onBack: () -> Unit) {
-    TopBarContainer {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 16.dp)
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.CenterStart),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
+    UnifiedTopBar(
+        title = stringResource(id = R.string.settings_title),
+        actions = {
+            IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(id = R.string.settings_back)
                 )
             }
-
-            Text(
-                text = stringResource(id = R.string.settings_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.surface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 72.dp)
-            )
         }
-    }
+    )
 }
 
 @Composable
