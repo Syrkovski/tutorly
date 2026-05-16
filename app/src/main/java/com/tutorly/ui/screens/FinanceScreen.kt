@@ -59,7 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.theme.MetricTileColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
 import com.tutorly.ui.theme.extendedColors
@@ -77,7 +77,7 @@ fun FinanceTopBar(
     onSelectPeriod: (FinancePeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    TopBarContainer {
+    UnifiedTopBar {
         Column(
             modifier = modifier
                 .fillMaxWidth()

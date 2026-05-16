@@ -117,3 +117,16 @@ fun TopBarContainer(content: @Composable () -> Unit) {
         }
     }
 }
+
+@Composable
+fun UnifiedTopBar(content: @Composable () -> Unit) {
+    TopBarContainer {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        ) {
+            content()
+        }
+    }
+}

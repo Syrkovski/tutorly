@@ -66,7 +66,7 @@ import com.tutorly.ui.CalendarEvent
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
 import com.tutorly.ui.components.StatusChipData
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.WeekMosaic
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.screens.normalizeGrade
@@ -437,11 +437,10 @@ fun CalendarTopBar(
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    TopBarContainer {
+    UnifiedTopBar {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
                 .padding(horizontal = 16.dp)
         ) {
             Text(

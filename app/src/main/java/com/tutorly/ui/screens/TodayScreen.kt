@@ -84,7 +84,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.lessoncard.LessonCardSheet
 import com.tutorly.ui.lessoncard.LessonCardViewModel
@@ -1437,7 +1437,7 @@ private fun LessonMetaPill(text: String, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayTopBar(state: TodayUiState, onReopenDay: () -> Unit) {
-    TopBarContainer {
+    UnifiedTopBar {
         val titleRes = when (state) {
             is TodayUiState.DayClosed -> R.string.today_topbar_closed
             else -> R.string.today_title

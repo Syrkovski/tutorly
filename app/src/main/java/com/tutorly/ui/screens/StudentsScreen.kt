@@ -86,7 +86,7 @@ import com.tutorly.R
 import com.tutorly.models.SubjectPreset
 import com.tutorly.ui.components.PaymentBadge
 import com.tutorly.ui.components.PaymentBadgeStatus
-import com.tutorly.ui.components.TopBarContainer
+import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.TutorlyBottomSheetContainer
 import com.tutorly.ui.theme.extendedColors
 import com.tutorly.ui.theme.TutorlyCardDefaults
@@ -404,7 +404,7 @@ private fun StudentsTopBar(
     onDeleteSelection: () -> Unit,
     onArchiveSelection: () -> Unit
 ) {
-    TopBarContainer {
+    UnifiedTopBar {
         val titleText = if (hasSelection) {
             stringResource(id = R.string.students_selected_count, selectedCount)
         } else {
