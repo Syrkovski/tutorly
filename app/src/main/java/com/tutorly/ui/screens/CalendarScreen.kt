@@ -1384,21 +1384,6 @@ private fun LessonCardInner(
                 .padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF5F7FF)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = lessonUi.leadingSymbol,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFF3E43D6),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = lessonUi.studentName,
@@ -1450,7 +1435,6 @@ private data class LessonUi(
     val studentName: String,
     val secondaryLine: String?,
     val statusColor: Color,
-    val leadingSymbol: String,
     val statusLabel: String,
     val badgeContainerColor: Color,
     val badgeContentColor: Color,
@@ -1468,7 +1452,7 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
     val (badgeText, badgeContainer, badgeContent) = when (paymentStatus) {
         PaymentStatus.PAID -> Triple("Оплачено", Color(0xFFE6F7EC), Color(0xFF2DA45A))
         PaymentStatus.DUE -> Triple("Ожидают оплаты", Color(0xFFFFF2E6), Color(0xFFE08A22))
-        PaymentStatus.UNPAID -> Triple("Просрочено", Color(0xFFFFE9EC), Color(0xFFD64258))
+        PaymentStatus.UNPAID -> Triple("Долг", Color(0xFFFFE9EC), Color(0xFFD64258))
         PaymentStatus.CANCELLED -> Triple("Отменено", Color(0xFFEDF1F6), Color(0xFF667085))
     }
 
@@ -1476,18 +1460,11 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
         studentName = studentName,
         secondaryLine = secondaryLine,
         statusColor = status.background,
-        leadingSymbol = subject.toLeadingSymbol(),
         statusLabel = badgeText,
         badgeContainerColor = badgeContainer,
         badgeContentColor = badgeContent,
         amountText = formatRubles(priceCents)
     )
-}
-
-private fun String?.toLeadingSymbol(): String {
-    val value = this?.trim().orEmpty()
-    if (value.isEmpty()) return "Σ"
-    return value.first().uppercaseChar().toString()
 }
 
 private fun formatRubles(amountCents: Int): String {
