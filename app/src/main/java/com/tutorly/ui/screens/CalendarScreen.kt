@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Settings
@@ -1349,10 +1348,10 @@ private fun LessonCardVisual(
 
         Box(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
+                .align(Alignment.CenterStart)
                 .fillMaxHeight()
-                .width(12.dp)
-                .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
+                .width(4.dp)
+                .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
                 .background(lessonUi.statusColor)
         )
     }
@@ -1373,18 +1372,34 @@ private fun LessonCardInner(
                 drawRoundRect(
                     color = Color(0x14000000),
                     topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                    size = Size(size.width - strokeWidth + 20, size.height - strokeWidth),
+                    size = Size(size.width - strokeWidth, size.height - strokeWidth),
                     cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
                     style = Stroke(width = strokeWidth)
                 )
             }
     ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            Column(
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF5F7FF)),
+                contentAlignment = Alignment.Center
             ) {
+                Text(
+                    text = lessonUi.leadingSymbol,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF3E43D6),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = lessonUi.studentName,
                     style = MaterialTheme.typography.titleSmall,
@@ -1392,40 +1407,37 @@ private fun LessonCardInner(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (lessonUi.isRecurring) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = lessonUi.recurrenceLabel ?: stringResource(id = R.string.lesson_recurring_short),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .weight(1f, fill = false),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                lessonUi.secondaryLine?.let { secondaryLine ->
-                    Text(
-                        text = secondaryLine,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = lessonUi.secondaryLine ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             Spacer(modifier = Modifier.width(10.dp))
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = lessonUi.badgeContainerColor
+                ) {
+                    Text(
+                        text = lessonUi.statusLabel,
+                        color = lessonUi.badgeContentColor,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Text(
+                    text = lessonUi.amountText,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
@@ -1437,11 +1449,12 @@ private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipDat
 private data class LessonUi(
     val studentName: String,
     val secondaryLine: String?,
-    val note: String?,
-    val statusDescription: String,
     val statusColor: Color,
-    val isRecurring: Boolean,
-    val recurrenceLabel: String?
+    val leadingSymbol: String,
+    val statusLabel: String,
+    val badgeContainerColor: Color,
+    val badgeContentColor: Color,
+    val amountText: String
 )
 
 @Composable
@@ -1452,18 +1465,35 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
     val secondaryLine = listOfNotNull(grade, subject)
         .takeIf { it.isNotEmpty() }
         ?.joinToString(separator = " • ")
-    val note = lessonNote?.takeIf { it.isNotBlank() }?.trim()
-    val recurrence = recurrenceLabel?.takeIf { isRecurring }
+    val (badgeText, badgeContainer, badgeContent) = when (paymentStatus) {
+        PaymentStatus.PAID -> Triple("Оплачено", Color(0xFFE6F7EC), Color(0xFF2DA45A))
+        PaymentStatus.DUE -> Triple("Ожидают оплаты", Color(0xFFFFF2E6), Color(0xFFE08A22))
+        PaymentStatus.UNPAID -> Triple("Просрочено", Color(0xFFFFE9EC), Color(0xFFD64258))
+        PaymentStatus.CANCELLED -> Triple("Отменено", Color(0xFFEDF1F6), Color(0xFF667085))
+    }
 
     return LessonUi(
         studentName = studentName,
         secondaryLine = secondaryLine,
-        note = note,
-        statusDescription = status.description,
         statusColor = status.background,
-        isRecurring = isRecurring,
-        recurrenceLabel = recurrence
+        leadingSymbol = subject.toLeadingSymbol(),
+        statusLabel = badgeText,
+        badgeContainerColor = badgeContainer,
+        badgeContentColor = badgeContent,
+        amountText = formatRubles(priceCents)
     )
+}
+
+private fun String?.toLeadingSymbol(): String {
+    val value = this?.trim().orEmpty()
+    if (value.isEmpty()) return "Σ"
+    return value.first().uppercaseChar().toString()
+}
+
+private fun formatRubles(amountCents: Int): String {
+    val rubles = (amountCents / 100.0)
+    val formatted = java.text.DecimalFormat("#,##0").format(rubles).replace(',', ' ')
+    return "$formatted ₽"
 }
 
 @Composable
