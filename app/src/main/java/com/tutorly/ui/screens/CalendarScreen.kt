@@ -65,6 +65,7 @@ import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
+import com.tutorly.ui.components.ScheduleLessonCard
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.WeekMosaic
@@ -1316,133 +1317,20 @@ private fun LessonCardVisual(
     enabled: Boolean
 ) {
     val cardShape = RoundedCornerShape(12.dp)
-    val innerStrokeWidth = 1.dp
-    Box(modifier = modifier) {
-        if (onClick != null) {
-            Card(
-                modifier = Modifier.fillMaxSize(),
-                onClick = onClick,
-                shape = cardShape,
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                enabled = enabled
-            ) {
-                LessonCardInner(
-                    lessonUi = lessonUi,
-                    innerStrokeWidth = innerStrokeWidth
-                )
-            }
-        } else {
-            Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = cardShape,
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-            ) {
-                LessonCardInner(
-                    lessonUi = lessonUi,
-                    innerStrokeWidth = innerStrokeWidth
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxHeight()
-                .width(4.dp)
-                .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
-                .background(lessonUi.statusColor)
-        )
-    }
-}
-
-@Composable
-private fun LessonCardInner(
-    lessonUi: LessonUi,
-    innerStrokeWidth: Dp
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                val strokeWidth = innerStrokeWidth.toPx()
-                val radius = 12.dp.toPx().coerceAtLeast(0f)
-                val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
-                drawRoundRect(
-                    color = Color(0x14000000),
-                    topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                    size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                    cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
-                    style = Stroke(width = strokeWidth)
-                )
-            }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = lessonUi.studentName,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = lessonUi.secondaryLine ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = lessonUi.badgeContainerColor
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .background(lessonUi.badgeContentColor, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = lessonUi.statusIcon,
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = lessonUi.statusLabel,
-                            color = lessonUi.badgeContentColor,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-                Text(
-                    text = lessonUi.amountText,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
+    ScheduleLessonCard(
+        studentName = lessonUi.studentName,
+        subtitle = lessonUi.secondaryLine,
+        statusIcon = lessonUi.statusIcon,
+        statusLabel = lessonUi.statusLabel,
+        badgeContainerColor = lessonUi.badgeContainerColor,
+        badgeContentColor = lessonUi.badgeContentColor,
+        amountText = lessonUi.amountText,
+        statusStripeColor = lessonUi.statusColor,
+        modifier = modifier.fillMaxSize(),
+        shape = cardShape,
+        onClick = onClick,
+        enabled = enabled
+    )
 }
 
 @Composable

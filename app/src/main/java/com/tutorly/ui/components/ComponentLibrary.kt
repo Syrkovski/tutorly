@@ -22,6 +22,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tutorly.ui.theme.TutorlyColors
 import com.tutorly.ui.theme.TutorlyElevation
@@ -224,4 +226,90 @@ fun SearchField(
         singleLine = true,
         shape = RoundedCornerShape(TutorlyRadii.segmented)
     )
+}
+
+@Composable
+fun ScheduleLessonCard(
+    studentName: String,
+    subtitle: String?,
+    statusIcon: String,
+    statusLabel: String,
+    badgeContainerColor: Color,
+    badgeContentColor: Color,
+    amountText: String,
+    statusStripeColor: Color,
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    stripeWidth: Dp = 4.dp
+) {
+    val content: @Composable () -> Unit = {
+        Box(Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(studentName, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(subtitle ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(shape = RoundedCornerShape(999.dp), color = badgeContainerColor) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.size(16.dp).background(badgeContentColor, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(statusIcon, color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.width(6.dp))
+                            Text(statusLabel, color = badgeContentColor, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    Text(amountText, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .matchParentSize()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(stripeWidth)
+                        .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
+                        .background(statusStripeColor)
+                )
+            }
+        }
+    }
+
+    if (onClick != null) {
+        Card(
+            modifier = modifier,
+            onClick = onClick,
+            enabled = enabled,
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = elevation,
+            content = content
+        )
+    } else {
+        Card(
+            modifier = modifier,
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = elevation,
+            content = content
+        )
+    }
 }
