@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -245,7 +246,7 @@ fun ScheduleLessonCard(
     enabled: Boolean = true,
     stripeWidth: Dp = 4.dp
 ) {
-    val content: @Composable () -> Unit = {
+    val content: @Composable ColumnScope.() -> Unit = {
         Box(Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
