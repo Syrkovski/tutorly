@@ -1409,12 +1409,30 @@ private fun LessonCardInner(
                     shape = RoundedCornerShape(999.dp),
                     color = lessonUi.badgeContainerColor
                 ) {
-                    Text(
-                        text = lessonUi.statusLabel,
-                        color = lessonUi.badgeContentColor,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .background(lessonUi.badgeContentColor, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = lessonUi.statusIcon,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = lessonUi.statusLabel,
+                            color = lessonUi.badgeContentColor,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
                 Text(
                     text = lessonUi.amountText,
@@ -1435,6 +1453,7 @@ private data class LessonUi(
     val studentName: String,
     val secondaryLine: String?,
     val statusColor: Color,
+    val statusIcon: String,
     val statusLabel: String,
     val badgeContainerColor: Color,
     val badgeContentColor: Color,
@@ -1444,28 +1463,42 @@ private data class LessonUi(
 @Composable
 private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
     val status = statusPresentation(now)
+    val isFutureLesson = start.isAfter(now)
     val grade = normalizeGrade(studentGrade)
     val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
     val secondaryLine = listOfNotNull(grade, subject)
         .takeIf { it.isNotEmpty() }
         ?.joinToString(separator = " • ")
-    val (badgeText, badgeContainer, badgeContent) = when (paymentStatus) {
-        PaymentStatus.PAID -> Triple("Оплачено", Color(0xFFE6F7EC), Color(0xFF2DA45A))
-        PaymentStatus.DUE -> Triple("Ожидают оплаты", Color(0xFFFFF2E6), Color(0xFFE08A22))
-        PaymentStatus.UNPAID -> Triple("Долг", Color(0xFFFFE9EC), Color(0xFFD64258))
-        PaymentStatus.CANCELLED -> Triple("Отменено", Color(0xFFEDF1F6), Color(0xFF667085))
+    val (statusIcon, badgeText, badgeContainer, badgeContent) = when {
+        paymentStatus == PaymentStatus.PAID && isFutureLesson ->
+            Quadruple("∞", "Абонемент", Color(0xFFE9ECFF), Color(0xFF4A56D9))
+
+        paymentStatus == PaymentStatus.PAID ->
+            Quadruple("✓", "Оплачено", Color(0xFFE6F7EC), Color(0xFF2DA45A))
+
+        paymentStatus == PaymentStatus.UNPAID && !isFutureLesson ->
+            Quadruple("!", "Долг", Color(0xFFFFE9EC), Color(0xFFD64258))
+
+        paymentStatus == PaymentStatus.CANCELLED ->
+            Quadruple("×", "Отменено", Color(0xFFEDF1F6), Color(0xFF667085))
+
+        else ->
+            Quadruple("◷", "Ожидает оплаты", Color(0xFFFFF2E6), Color(0xFFE08A22))
     }
 
     return LessonUi(
         studentName = studentName,
         secondaryLine = secondaryLine,
         statusColor = status.background,
+        statusIcon = statusIcon,
         statusLabel = badgeText,
         badgeContainerColor = badgeContainer,
         badgeContentColor = badgeContent,
         amountText = formatRubles(priceCents)
     )
 }
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 private fun formatRubles(amountCents: Int): String {
     val rubles = (amountCents / 100.0)
