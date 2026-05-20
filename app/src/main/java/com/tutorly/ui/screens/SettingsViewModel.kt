@@ -247,7 +247,7 @@ data class SettingsUiState(
     val workDayEndMinutes: Int = UserProfile.DEFAULT_WORK_DAY_END,
     val workDayEndExtendsToNextDay: Boolean = false,
     val weekendDays: Set<DayOfWeek> = emptySet(),
-    val selectedTheme: AppThemePreset = AppThemePreset.ORIGINAL,
+    val selectedTheme: AppThemePreset = AppThemePreset.PREMIUM,
     val availableThemes: List<ThemeOption> = ThemeOption.defaults(),
     val isCalendarImporting: Boolean = false,
     val isCalendarCandidatesLoading: Boolean = false,
@@ -266,19 +266,9 @@ data class ThemeOption(
     companion object {
         fun defaults(): List<ThemeOption> = listOf(
             ThemeOption(
-                preset = AppThemePreset.ORIGINAL,
-                labelRes = R.string.settings_theme_original,
-                previewColor = 0xFF4E998C
-            ),
-            ThemeOption(
-                preset = AppThemePreset.PLUM,
-                labelRes = R.string.settings_theme_plum,
-                previewColor = 0xFF8F4AA1
-            ),
-            ThemeOption(
-                preset = AppThemePreset.ROYAL,
-                labelRes = R.string.settings_theme_royal,
-                previewColor = 0xFF4D71CE
+                preset = AppThemePreset.PREMIUM,
+                labelRes = R.string.settings_theme_premium,
+                previewColor = 0xFF2F2BFF
             )
         )
     }
