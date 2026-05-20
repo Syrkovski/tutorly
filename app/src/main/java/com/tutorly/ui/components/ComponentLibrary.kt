@@ -241,7 +241,14 @@ fun ScheduleLessonCard(
     statusStripeColor: Color,
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(12.dp),
-    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    elevation: CardElevation = CardDefaults.cardElevation(
+        defaultElevation = 6.dp,
+        pressedElevation = 6.dp,
+        focusedElevation = 6.dp,
+        hoveredElevation = 6.dp,
+        draggedElevation = 6.dp,
+        disabledElevation = 0.dp
+    ),
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     stripeWidth: Dp = 4.dp
