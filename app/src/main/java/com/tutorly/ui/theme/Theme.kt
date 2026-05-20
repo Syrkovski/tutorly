@@ -35,16 +35,16 @@ data class ExtendedColors(
 
 private val LocalExtendedColors = staticCompositionLocalOf {
     ExtendedColors(
-        topBarStart = OriginalPalette.topBarStart,
-        topBarEnd = OriginalPalette.topBarEnd,
-        accent = OriginalPalette.accent,
-        chipSelected = OriginalPalette.chipFill,
-        backgroundTop = OriginalPalette.backgroundTop,
-        backgroundBottom = OriginalPalette.backgroundBottom,
-        lessonsMetric = OriginalPalette.lessonsHighlight.toMetricTileColors(),
-        rateMetric = OriginalPalette.rateHighlight.toMetricTileColors(),
-        earnedMetric = OriginalPalette.earnedHighlight.toMetricTileColors(),
-        prepaymentMetric = OriginalPalette.prepaymentHighlight.toMetricTileColors()
+        topBarStart = PremiumPalette.topBarStart,
+        topBarEnd = PremiumPalette.topBarEnd,
+        accent = PremiumPalette.accent,
+        chipSelected = PremiumPalette.chipFill,
+        backgroundTop = PremiumPalette.backgroundTop,
+        backgroundBottom = PremiumPalette.backgroundBottom,
+        lessonsMetric = PremiumPalette.lessonsHighlight.toMetricTileColors(),
+        rateMetric = PremiumPalette.rateHighlight.toMetricTileColors(),
+        earnedMetric = PremiumPalette.earnedHighlight.toMetricTileColors(),
+        prepaymentMetric = PremiumPalette.prepaymentHighlight.toMetricTileColors()
     )
 }
 
@@ -55,7 +55,7 @@ val MaterialTheme.extendedColors: ExtendedColors
 
 @Composable
 fun AppTheme(
-    preset: AppThemePreset = AppThemePreset.ORIGINAL,
+    preset: AppThemePreset = AppThemePreset.PREMIUM,
     content: @Composable () -> Unit
 ) {
     val palette = remember(preset) { paletteForPreset(preset) }
@@ -70,9 +70,7 @@ fun AppTheme(
 }
 
 private fun paletteForPreset(preset: AppThemePreset): PaletteResult = when (preset) {
-    AppThemePreset.ORIGINAL -> createPalette(OriginalPalette)
-    AppThemePreset.PLUM -> createPalette(PlumPalette)
-    AppThemePreset.ROYAL -> createPalette(RoyalPalette)
+    AppThemePreset.PREMIUM -> createPalette(PremiumPalette)
 }
 
 private fun createPalette(themePalette: ThemePalette): PaletteResult {

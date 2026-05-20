@@ -313,9 +313,7 @@
     <string name="settings_work_end">Окончание дня</string>
     <string name="settings_weekends">Выходные</string>
     <string name="settings_theme">Цвет темы</string>
-    <string name="settings_theme_original">Фирменная</string>
-    <string name="settings_theme_plum">Лиловая</string>
-    <string name="settings_theme_royal">Королевская</string>
+    <string name="settings_theme_premium">Премиальная</string>
     <string name="settings_calendar_import_title">Импорт из Google Календаря</string>
     <string name="settings_calendar_import_description">
         Перенесём занятия из Google Календаря за текущий учебный год и автоматически создадим учеников.

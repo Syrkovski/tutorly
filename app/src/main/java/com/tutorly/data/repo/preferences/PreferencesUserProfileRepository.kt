@@ -75,7 +75,7 @@ class PreferencesUserProfileRepository @Inject constructor(
                 runCatching { AppThemePreset.valueOf(value) }.getOrNull()
                     ?: legacyTheme(value)
             }
-            ?: AppThemePreset.ORIGINAL
+            ?: AppThemePreset.PREMIUM
         return UserProfile(
             workDayStartMinutes = sanitizedStart,
             workDayEndMinutes = sanitizedEnd,
@@ -86,9 +86,7 @@ class PreferencesUserProfileRepository @Inject constructor(
     }
 
     private fun legacyTheme(value: String): AppThemePreset? = when (value) {
-        "OCEAN" -> AppThemePreset.ROYAL
-        "FOREST" -> AppThemePreset.PLUM
-        "SUNSET" -> AppThemePreset.ORIGINAL
+        "OCEAN", "FOREST", "SUNSET", "ORIGINAL", "PLUM", "ROYAL" -> AppThemePreset.PREMIUM
         else -> null
     }
 

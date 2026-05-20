@@ -9,7 +9,7 @@ data class UserProfile(
     val workDayStartMinutes: Int = DEFAULT_WORK_DAY_START,
     val workDayEndMinutes: Int = DEFAULT_WORK_DAY_END,
     val weekendDays: Set<DayOfWeek> = emptySet(),
-    val theme: AppThemePreset = AppThemePreset.ORIGINAL,
+    val theme: AppThemePreset = AppThemePreset.PREMIUM,
     val onboardingCompleted: Boolean = false
 ) {
     companion object {
@@ -19,7 +19,5 @@ data class UserProfile(
 }
 
 enum class AppThemePreset {
-    ORIGINAL,
-    PLUM,
-    ROYAL
+    PREMIUM
 }
