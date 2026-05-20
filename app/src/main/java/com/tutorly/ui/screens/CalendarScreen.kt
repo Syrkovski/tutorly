@@ -1267,7 +1267,7 @@ private fun LessonBlock(
             .fillMaxWidth()
             .offset(y = top + LessonCardVerticalInset)
             .height(height - LessonCardVerticalInset * 2)
-            .padding(start = LabelWidth + 16.dp, end = 20.dp)
+            .padding(start = LabelWidth + 8.dp, end = 20.dp)
             .alpha(if (isDragging) 0.4f else 1f)
             .zIndex(if (isDragging) 0.25f else 0f)
             .onGloballyPositioned { coordinates ->
@@ -1354,7 +1354,7 @@ private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
     val isFutureLesson = start.isAfter(now)
     val grade = normalizeGrade(studentGrade)
     val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
-    val secondaryLine = listOfNotNull(grade, subject)
+    val secondaryLine = listOfNotNull(subject)
         .takeIf { it.isNotEmpty() }
         ?.joinToString(separator = " • ")
     val (statusIcon, badgeText, badgeContainer, badgeContent) = when {

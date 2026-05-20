@@ -113,7 +113,7 @@ object TutorlyColors {
     val paymentPaid = Color(0xFF4E998C)
     /** Нейтральный цвет неоплаченного будущего урока. */
     val futureUnpaid = Color(0xFF727272)
-    val screenBackground = Color(0xFFFBFCFF)
+    val screenBackground = Color.White
     val cardBorder = Color(0xFFE7EAF5)
     val softContainer = Color(0xFFF3F5FF)
     val textPrimary = Color(0xFF4445F2)
