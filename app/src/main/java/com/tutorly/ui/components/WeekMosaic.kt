@@ -291,6 +291,7 @@ data class LessonBrief(
     val grade: String?,
     val subjectName: String?,
     val subjectColorArgb: Int?,
+    val priceCents: Int,
     val paymentStatus: PaymentStatus
 )
 
@@ -323,6 +324,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = null,
                 subjectName = "Математика",
                 subjectColorArgb = null,
+                priceCents = 150_000,
                 paymentStatus = PaymentStatus.PAID
             ),
             LessonBrief(
@@ -333,6 +335,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = "7 класс",
                 subjectName = "Физика",
                 subjectColorArgb = null,
+                priceCents = 180_000,
                 paymentStatus = PaymentStatus.UNPAID
             ),
             LessonBrief(
@@ -343,6 +346,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = null,
                 subjectName = "Русский",
                 subjectColorArgb = null,
+                priceCents = 200_000,
                 paymentStatus = PaymentStatus.DUE
             )
         )
@@ -355,6 +359,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = "10 класс",
                 subjectName = "Химия",
                 subjectColorArgb = null,
+                priceCents = 170_000,
                 paymentStatus = PaymentStatus.PAID
             )
         )

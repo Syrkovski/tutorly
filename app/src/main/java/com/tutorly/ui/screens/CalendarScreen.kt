@@ -422,6 +422,7 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
         grade = studentGrade,
         subjectName = subjectName,
         subjectColorArgb = subjectColorArgb,
+        priceCents = priceCents,
         paymentStatus = paymentStatus
     )
 }
