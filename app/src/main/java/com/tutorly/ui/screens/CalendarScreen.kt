@@ -1283,7 +1283,6 @@ private fun LessonBlock(
                     }
                 )
             }
-            .clip(RoundedCornerShape(12.dp))
     ) {
         LessonCardVisual(
             lessonUi = lessonUi,
