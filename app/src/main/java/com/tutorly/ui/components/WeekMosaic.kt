@@ -1,6 +1,5 @@
 package com.tutorly.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,9 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tutorly.models.PaymentStatus
@@ -30,7 +27,6 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -212,130 +208,49 @@ private fun LessonRowCompact(
         end = lesson.end,
         now = currentDateTime
     )
-
-    val subjectColor = lesson.subjectColorArgb?.let { Color(it) }
-    val baseSurface = MaterialTheme.colorScheme.surface
-
-    val containerColor = MaterialTheme.colorScheme.onPrimaryContainer
-//
-//        when {
-//        tone == LessonTone.Ongoing -> MaterialTheme.colorScheme.primaryContainer
-//        subjectColor != null -> subjectColor.copy(alpha = 0.12f).compositeOver(baseSurface)
-//        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f).compositeOver(baseSurface)
-//    }
-
-    val titleColor = when {
-        tone == LessonTone.Ongoing -> MaterialTheme.colorScheme.onSurface
-        subjectColor != null -> subjectColor
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    val secondaryColor = if (tone == LessonTone.Ongoing) {
-        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    val border = if (tone == LessonTone.Ongoing) {
-        null
-    } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-    }
-
-    val locale = remember { Locale("ru") }
-    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
-    val timeRange = remember(lesson.start, lesson.end, timeFormatter) {
-        "${lesson.start.format(timeFormatter)} – ${lesson.end.format(timeFormatter)}"
-    }
+    val isFutureLesson = lesson.start.isAfter(currentDateTime)
 
     val hasSubject = !lesson.subjectName.isNullOrBlank()
     val title = lesson.student
-
 
     val subtitleParts = mutableListOf<String>()
     if (hasSubject) {
         lesson.grade?.takeIf { it.isNotBlank() }?.let { subtitleParts += it.trim() }
         subtitleParts += lesson.subjectName!!.trim()
-
     } else {
         lesson.grade?.takeIf { it.isNotBlank() }?.let { subtitleParts += it.trim() }
     }
-
     val subtitle = subtitleParts.takeIf { it.isNotEmpty() }?.joinToString(separator = " • ")
 
-    Surface(
-//        color = containerColor,
-//        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(12.dp),
-        border = border,
-//        tonalElevation = if (tone == LessonTone.Ongoing) 2.dp else 0.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = 64.dp)
-//            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-//                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                subtitle?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-//                Text(
-//                    text = status.description,
-//                    style = MaterialTheme.typography.labelSmall,
-//                    color = secondaryColor,
-//                    maxLines = 1,
-//                    overflow = TextOverflow.Ellipsis
-//                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = timeRange,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = if (tone == LessonTone.Ongoing) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    }
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(12.dp)
-                    .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
-                    .background(status.background)
-            )
-        }
+    val (statusIcon, statusLabel, badgeContainer, badgeContent) = when {
+        lesson.paymentStatus == PaymentStatus.PAID && isFutureLesson -> Quadruple("∞", "Абонемент", Color(0xFFE9ECFF), Color(0xFF4A56D9))
+        lesson.paymentStatus == PaymentStatus.PAID -> Quadruple("✓", "Оплачено", Color(0xFFE6F7EC), Color(0xFF2DA45A))
+        lesson.paymentStatus == PaymentStatus.UNPAID && !isFutureLesson -> Quadruple("!", "Долг", Color(0xFFFFE9EC), Color(0xFFD64258))
+        lesson.paymentStatus == PaymentStatus.CANCELLED -> Quadruple("×", "Отменено", Color(0xFFEDF1F6), Color(0xFF667085))
+        else -> Quadruple("◷", "Ожидает оплаты", Color(0xFFFFF2E6), Color(0xFFE08A22))
     }
+
+    ScheduleLessonCard(
+        studentName = title,
+        subtitle = subtitle,
+        statusIcon = statusIcon,
+        statusLabel = statusLabel,
+        badgeContainerColor = badgeContainer,
+        badgeContentColor = badgeContent,
+        amountText = formatRubles(lesson.priceCents),
+        statusStripeColor = status.background,
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 64.dp),
+        onClick = onClick
+    )
 }
+
+private fun formatRubles(amountCents: Int): String {
+    val rubles = (amountCents / 100.0)
+    val formatted = java.text.DecimalFormat("#,##0").format(rubles).replace(',', ' ')
+    return "$formatted ₽"
+}
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
 private fun MiniBadge() {
@@ -378,6 +293,7 @@ data class LessonBrief(
     val grade: String?,
     val subjectName: String?,
     val subjectColorArgb: Int?,
+    val priceCents: Int,
     val paymentStatus: PaymentStatus
 )
 
@@ -410,6 +326,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = null,
                 subjectName = "Математика",
                 subjectColorArgb = null,
+                priceCents = 150_000,
                 paymentStatus = PaymentStatus.PAID
             ),
             LessonBrief(
@@ -420,6 +337,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = "7 класс",
                 subjectName = "Физика",
                 subjectColorArgb = null,
+                priceCents = 180_000,
                 paymentStatus = PaymentStatus.UNPAID
             ),
             LessonBrief(
@@ -430,6 +348,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = null,
                 subjectName = "Русский",
                 subjectColorArgb = null,
+                priceCents = 200_000,
                 paymentStatus = PaymentStatus.DUE
             )
         )
@@ -442,6 +361,7 @@ private fun demoLessonsFor(date: LocalDate): List<LessonBrief> {
                 grade = "10 класс",
                 subjectName = "Химия",
                 subjectColorArgb = null,
+                priceCents = 170_000,
                 paymentStatus = PaymentStatus.PAID
             )
         )

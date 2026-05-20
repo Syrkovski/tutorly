@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Settings
@@ -66,6 +65,7 @@ import com.tutorly.R
 import com.tutorly.ui.CalendarEvent
 import com.tutorly.models.PaymentStatus
 import com.tutorly.ui.components.LessonBrief
+import com.tutorly.ui.components.ScheduleLessonCard
 import com.tutorly.ui.components.StatusChipData
 import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.WeekMosaic
@@ -422,6 +422,7 @@ private fun CalendarLesson.toLessonBrief(): LessonBrief {
         grade = studentGrade,
         subjectName = subjectName,
         subjectColorArgb = subjectColorArgb,
+        priceCents = priceCents,
         paymentStatus = paymentStatus
     )
 }
@@ -1266,7 +1267,7 @@ private fun LessonBlock(
             .fillMaxWidth()
             .offset(y = top + LessonCardVerticalInset)
             .height(height - LessonCardVerticalInset * 2)
-            .padding(start = LabelWidth + 16.dp, end = 20.dp)
+            .padding(start = LabelWidth + 8.dp, end = 20.dp)
             .alpha(if (isDragging) 0.4f else 1f)
             .zIndex(if (isDragging) 0.25f else 0f)
             .onGloballyPositioned { coordinates ->
@@ -1283,7 +1284,6 @@ private fun LessonBlock(
                     }
                 )
             }
-            .clip(RoundedCornerShape(12.dp))
     ) {
         LessonCardVisual(
             lessonUi = lessonUi,
@@ -1317,117 +1317,20 @@ private fun LessonCardVisual(
     enabled: Boolean
 ) {
     val cardShape = RoundedCornerShape(12.dp)
-    val innerStrokeWidth = 1.dp
-    Box(modifier = modifier) {
-        if (onClick != null) {
-            Card(
-                modifier = Modifier.fillMaxSize(),
-                onClick = onClick,
-                shape = cardShape,
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                enabled = enabled
-            ) {
-                LessonCardInner(
-                    lessonUi = lessonUi,
-                    innerStrokeWidth = innerStrokeWidth
-                )
-            }
-        } else {
-            Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = cardShape,
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-            ) {
-                LessonCardInner(
-                    lessonUi = lessonUi,
-                    innerStrokeWidth = innerStrokeWidth
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .width(12.dp)
-                .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
-                .background(lessonUi.statusColor)
-        )
-    }
-}
-
-@Composable
-private fun LessonCardInner(
-    lessonUi: LessonUi,
-    innerStrokeWidth: Dp
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                val strokeWidth = innerStrokeWidth.toPx()
-                val radius = 12.dp.toPx().coerceAtLeast(0f)
-                val adjustedRadius = (radius - strokeWidth / 2f).coerceAtLeast(0f)
-                drawRoundRect(
-                    color = Color(0x14000000),
-                    topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                    size = Size(size.width - strokeWidth + 20, size.height - strokeWidth),
-                    cornerRadius = CornerRadius(adjustedRadius, adjustedRadius),
-                    style = Stroke(width = strokeWidth)
-                )
-            }
-    ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = lessonUi.studentName,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (lessonUi.isRecurring) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = lessonUi.recurrenceLabel ?: stringResource(id = R.string.lesson_recurring_short),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .weight(1f, fill = false),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                lessonUi.secondaryLine?.let { secondaryLine ->
-                    Text(
-                        text = secondaryLine,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-        }
-    }
+    ScheduleLessonCard(
+        studentName = lessonUi.studentName,
+        subtitle = lessonUi.secondaryLine,
+        statusIcon = lessonUi.statusIcon,
+        statusLabel = lessonUi.statusLabel,
+        badgeContainerColor = lessonUi.badgeContainerColor,
+        badgeContentColor = lessonUi.badgeContentColor,
+        amountText = lessonUi.amountText,
+        statusStripeColor = lessonUi.statusColor,
+        modifier = modifier.fillMaxSize(),
+        shape = cardShape,
+        onClick = onClick,
+        enabled = enabled
+    )
 }
 
 @Composable
@@ -1437,33 +1340,58 @@ private fun CalendarLesson.statusPresentation(now: ZonedDateTime): StatusChipDat
 private data class LessonUi(
     val studentName: String,
     val secondaryLine: String?,
-    val note: String?,
-    val statusDescription: String,
     val statusColor: Color,
-    val isRecurring: Boolean,
-    val recurrenceLabel: String?
+    val statusIcon: String,
+    val statusLabel: String,
+    val badgeContainerColor: Color,
+    val badgeContentColor: Color,
+    val amountText: String
 )
 
 @Composable
 private fun CalendarLesson.toLessonUi(now: ZonedDateTime): LessonUi {
     val status = statusPresentation(now)
+    val isFutureLesson = start.isAfter(now)
     val grade = normalizeGrade(studentGrade)
     val subject = subjectName?.takeIf { it.isNotBlank() }?.trim()
-    val secondaryLine = listOfNotNull(grade, subject)
+    val secondaryLine = listOfNotNull(subject)
         .takeIf { it.isNotEmpty() }
         ?.joinToString(separator = " • ")
-    val note = lessonNote?.takeIf { it.isNotBlank() }?.trim()
-    val recurrence = recurrenceLabel?.takeIf { isRecurring }
+    val (statusIcon, badgeText, badgeContainer, badgeContent) = when {
+        paymentStatus == PaymentStatus.PAID && isFutureLesson ->
+            Quadruple("∞", "Абонемент", Color(0xFFE9ECFF), Color(0xFF4A56D9))
+
+        paymentStatus == PaymentStatus.PAID ->
+            Quadruple("✓", "Оплачено", Color(0xFFE6F7EC), Color(0xFF2DA45A))
+
+        paymentStatus == PaymentStatus.UNPAID && !isFutureLesson ->
+            Quadruple("!", "Долг", Color(0xFFFFE9EC), Color(0xFFD64258))
+
+        paymentStatus == PaymentStatus.CANCELLED ->
+            Quadruple("×", "Отменено", Color(0xFFEDF1F6), Color(0xFF667085))
+
+        else ->
+            Quadruple("◷", "Ожидает оплаты", Color(0xFFFFF2E6), Color(0xFFE08A22))
+    }
 
     return LessonUi(
         studentName = studentName,
         secondaryLine = secondaryLine,
-        note = note,
-        statusDescription = status.description,
         statusColor = status.background,
-        isRecurring = isRecurring,
-        recurrenceLabel = recurrence
+        statusIcon = statusIcon,
+        statusLabel = badgeText,
+        badgeContainerColor = badgeContainer,
+        badgeContentColor = badgeContent,
+        amountText = formatRubles(priceCents)
     )
+}
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+private fun formatRubles(amountCents: Int): String {
+    val rubles = (amountCents / 100.0)
+    val formatted = java.text.DecimalFormat("#,##0").format(rubles).replace(',', ' ')
+    return "$formatted ₽"
 }
 
 @Composable

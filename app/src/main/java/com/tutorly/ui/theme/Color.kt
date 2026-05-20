@@ -25,8 +25,8 @@ internal val OriginalPalette = ThemePalette(
     topBarEnd = Color(0xFF4E998C),
     accent = Color(0xFF4E998C),
     chipFill = Color(0xFFE7EFEA),
-    backgroundTop = Color(0xFFF7FBFA),
-    backgroundBottom = Color(0xFFF0F6F4),
+    backgroundTop = Color.White,
+    backgroundBottom = Color.White,
     lessonsHighlight = MetricPalette(
         border = Color(0xFF4C6388)
     ),
@@ -88,7 +88,7 @@ internal val PremiumPalette = ThemePalette(
     topBarEnd = Color(0xFFFFFFFF),
     accent = Color(0xFF2F2BFF),
     chipFill = Color(0xFFF1F2FF),
-    backgroundTop = Color(0xFFFBFCFF),
+    backgroundTop = Color.White,
     backgroundBottom = Color(0xFFF5F7FF),
     lessonsHighlight = MetricPalette(border = Color(0xFF6C5CFF)),
     rateHighlight = MetricPalette(border = Color(0xFFFF9F43)),

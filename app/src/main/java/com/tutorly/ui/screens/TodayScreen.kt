@@ -84,6 +84,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tutorly.R
 import com.tutorly.domain.model.LessonForToday
 import com.tutorly.models.PaymentStatus
+import com.tutorly.ui.components.TutorlyButton
+import com.tutorly.ui.components.TutorlyCard
 import com.tutorly.ui.components.UnifiedTopBar
 import com.tutorly.ui.components.statusChipData
 import com.tutorly.ui.lessoncard.LessonCardSheet
@@ -590,12 +592,7 @@ private fun LessonsReviewCarousel(
 
 @Composable
 private fun ReviewEmptyMarkedCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
-    ) {
+    TutorlyCard(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -631,12 +628,7 @@ private fun DayProgressSummary(
     remaining: Int,
     allLessonsCompleted: Boolean
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
-    ) {
+    TutorlyCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -737,12 +729,7 @@ private fun GradientProgressBar(
 
 @Composable
 private fun CloseDayCallout(onRequestCloseDay: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
-    ) {
+    TutorlyCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -758,9 +745,10 @@ private fun CloseDayCallout(onRequestCloseDay: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(onClick = onRequestCloseDay) {
-                Text(text = stringResource(R.string.today_close_day_action))
-            }
+            TutorlyButton(
+                text = stringResource(R.string.today_close_day_action),
+                onClick = onRequestCloseDay
+            )
         }
     }
 }
@@ -847,12 +835,7 @@ private fun DayClosedSummary(
     dueAmountCents: Long,
     formatter: NumberFormat
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = TutorlyCardDefaults.colors(containerColor = Color.White),
-        elevation = TutorlyCardDefaults.elevation()
-    ) {
+    TutorlyCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1328,12 +1311,7 @@ private fun LessonCard(
         now = ZonedDateTime.now(zoneId)
     )
 
-    Card(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        colors = cardColors,
-        elevation = cardElevation
-    ) {
+    TutorlyCard(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
